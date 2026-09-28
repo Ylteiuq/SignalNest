@@ -1,0 +1,20 @@
+HTTP/1.1 200 
+Date: Mon, 28 Sep 2026 07:04:23 GMT
+Content-Type: text/html;charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Frame-Options: ALLOW-FROM https://ws.whu.edu.cn,https://oir.whu.edu.cn,https://law.whu.edu.cn
+X-XSS-Protection: 1; mode=block
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer-when-downgrade
+X-Download-Options: noopen
+X-Permitted-Cross-Domain-Policies: master-only
+Permissions-Policy: geolocation=(self), microphone=()
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+Content-Security-Policy: default-src 'self' data: blob: https://agent.vsbclub.com:90 https://newagent.vsbclub.com *.whu.edu.cn *.conac.cn *.gov.cn *.baidu.com *.eol.cn *.qq.com *.kaipuyun.cn *.bdimg.com *.wx.qq.com *.people.com.cn *.weibo.com *.m1905.cn 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'self' https://airs.whu.edu.cn/;
+Vary: User-Agent,Accept-Encoding
+Set-Cookie: [REDACTED]
+Content-Language: zh-CN
+Server: WHU-AppSrv 1.0.0
+X-Powered-By: WHU-AppSrv 1.0.0
+
