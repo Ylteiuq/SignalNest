@@ -1,7 +1,7 @@
 # Relative paths are resolved from this configuration file's directory.
 [storage]
 data_dir = "data"
-database = "data/campus.sqlite3"
+database = "data/signalnest.sqlite3"
 
 [source]
 id = "whu-undergrad-student"
@@ -11,4 +11,4 @@ list_url = "https://uc.whu.edu.cn/tzgg/xstz.htm"
 connect_timeout_seconds = 10.0
 read_timeout_seconds = 30.0
 request_interval_seconds = 2.0
-user_agent = "CampusInformationAgent/0.1"
+user_agent = "SignalNest/0.1"

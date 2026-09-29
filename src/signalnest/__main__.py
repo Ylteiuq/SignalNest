@@ -1,4 +1,4 @@
-from campus_information_agent.cli import main
+from signalnest.cli import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

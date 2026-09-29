@@ -1,6 +1,6 @@
-# 第一阶段设计与分块状态
+# SignalNest 第一阶段设计
 
-已完成第 1 块（安装、配置、CLI）与第 2 块（SQLite 数据模型和迁移）。数据契约与结构化日志留到第 3 块，原始文件写入和可靠采集流程留到后续阶段。
+三个节点均已完成：安装/配置/CLI、本地存储/迁移、数据契约/模块边界/日志。第一阶段为项目骨架；原始文件写入与可靠采集流程留到后续阶段。项目展示名为 SignalNest，Python 包和命令均为 signalnest。
 
 ## 模块边界
 
@@ -9,8 +9,34 @@
 - `schema.py`：同步 SQLAlchemy Core 表定义，导入只构建内存元数据，不建表。
 - `storage.py`：惰性 engine、SQLite 连接设置与 Alembic 初始化/升级。
 - `migrations/`：随 Python 包安装的固定历史迁移，升级与工作目录无关。
+- `contracts.py`：不可变 Pydantic 输入/输出契约、规范化 JSON 与内容摘要，无 I/O。
+- `fetching.py`：创建同步 HTTPX Client，不主动请求；不接触 Parser 或数据库。
+- `parsing.py`：`html_tree(PageInput)` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储。站点字段解析尚未实现。
+- `eventlog.py`：标准库 JSON 日志，CLI 显式启用；不在导入时配置日志。
 
-后续获取器使用同步 HTTPX Client，负责 HTTP 和原始响应；Parser 使用 Beautiful Soup（显式 `html.parser`），仅接收页面内容与页面 URL，返回结构化列表/正文/附件引用，不访问网络或数据库。协调层负责顺序与失败恢复，不在数据库事务内等待网络。当前没有采集服务或占位采集命令。
+HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；后续获取器负责验证目标 URL/重定向与获取响应。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，尚无完整重试或采集流程。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
+
+后续站点函数签名约定为 `parse_list(page: PageInput) -> ListPage` 和 `parse_notice(page: PageInput) -> ParsedNotice`。页面输入包含内容字节与最终页面 URL，以最终 URL 解析相对地址；函数只返回结构化数据，不访问网络或数据库。
+
+协调层未来负责 request_interval、列表遍历、详情补抓、重试、原始文件归档和短事务的顺序。现在用此文档明确职责，不预建空 coordinator 或插件工厂，也没有占位采集命令。不在数据库事务内等待 HTTP 请求。
+
+## 最小数据契约
+
+- `PageInput`：原始页面 bytes 与 page_url；不包含 Client/Session 等运行依赖。
+- `ListEntry` / `ListPage`：源内稳定身份、绝对详情 URL、标题、日期、条目集合与下一页 URL。source_id 由协调层从配置注入；本栏目空列表必须调查，不能默认为正常。
+- `ParsedNotice` / `NoticeContent`：稳定身份、页面 URL、parser_version，以及标题、日期、正文 HTML/文本、链接/图片/附件引用。HTML 保留结构但未做展示安全处理，不能直接当作可信网页渲染。图片型正文允许 body_text 为空，未来 Parser 仍须验证正文有意义。
+- `AttachmentReference`：名称、URL、可选源文件 ID（本站建议 owner:wbfileid）和访问状态。默认 not_checked，仅有证据时标为 manual_required；不下载或绕过验证码。
+- `RawResponseReference`：URL、获取时间（UTC 秒）、HTTP 状态、白名单头和正文路径/摘要。路径与摘要必须成对出现，路径限定为相对的 raw/<sha256>.bin，304 禁止正文引用；不验证磁盘文件，因为写入器尚未实现。
+
+契约拒绝未知字段、空必要字段、相对/非 HTTP(S)/含凭据 URL；引用集合使用 tuple，避免内容被随意修改。下一阶段 Parser 负责相对 URL 解析、路由身份提取和站点语义校验，不能只靠类型校验判断解析成功。
+
+`NoticeContent.canonical_json()` 固定排序 JSON 键，使用 UTF-8 与紧凑序列化，保留正文内引用顺序；`content_sha256()` 对此编码求摘要。哈希包含标题、日期、正文和引用，排除来源身份、获取 URL/时间、Parser 版本及附件访问状态（后者是运行状态，不是公告更新）。数据库唯一键另含 parser_version。这里只保证同一结构序列化稳定，不声称已实现 HTML 语义规范化；下一阶段必须确定正文清洗、空白、动态统计剔除规则，规则变化更新 Parser 版本。
+
+## 日志
+
+CLI 在参数解析后才配置 signalnest logger，帮助和导入不触发配置。事件枚举目前仅有 config_validated/config_invalid/storage_initialized/storage_init_failed；每次命令有 run_id。JSON 字段限定 time、level、event 及三个可选身份字段；原始消息、args、异常栈、任意 extra、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容；以后增加行为时再增添对应事件。
+
+stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。日志只输出标准流，无文件 handler、后台线程或全局 root logger 改动。字段白名单不是秘密识别器，调用者仍不得把密钥塞进身份字段。
 
 ## 已实现的数据模型
 
@@ -61,4 +87,4 @@
 - 用两个详情 fixture 提取标题、日期、正文段落/表格、链接和图片引用。
 - 提取附件名称和 URL，保留文件标识，不自动下载验证码保护附件。
 - 建立空页面、错误页、缺少必要节点和模板变化的失败测试，不把解析失败当作空列表或成功正文。
-- 固定规范化规则及解析器版本，验证重复解析输出一致；所有测试离线且不改写 fixture。
+- 在已有 NoticeContent 序列化之上确定正文规范化规则，记录解析器版本，验证重复解析输出及内容摘要一致；所有测试离线且不改写 fixture。

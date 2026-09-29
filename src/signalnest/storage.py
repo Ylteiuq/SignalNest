@@ -10,7 +10,7 @@ from sqlalchemy import URL, create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from campus_information_agent.config import StorageSettings
+from signalnest.config import StorageSettings
 
 
 class StorageError(RuntimeError):

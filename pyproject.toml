@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "campus-information-agent"
+name = "signalnest"
 version = "0.1.0"
 description = "Single-user, self-hosted campus information assistant"
 readme = "README.md"
@@ -12,10 +12,12 @@ dependencies = [
     "pydantic>=2.10,<3",
     "sqlalchemy>=2.0.38,<2.1",
     "alembic>=1.15,<2",
+    "httpx>=0.28.1,<0.29",
+    "beautifulsoup4>=4.13,<5",
 ]
 
 [project.scripts]
-campus-information-agent = "campus_information_agent.cli:main"
+signalnest = "signalnest.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8.3,<9", "ruff>=0.11,<1"]

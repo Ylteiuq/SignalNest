@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from campus_information_agent.config import ConfigurationError, load_config
+from signalnest.config import ConfigurationError, load_config
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = (ROOT / "config.example.toml").read_text()
@@ -14,7 +14,7 @@ EXAMPLE = (ROOT / "config.example.toml").read_text()
 def run_cli(cwd, *args):
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     return subprocess.run(
-        [sys.executable, "-m", "campus_information_agent", *args],
+        [sys.executable, "-m", "signalnest", *args],
         cwd=cwd,
         env=env,
         capture_output=True,
@@ -29,10 +29,10 @@ def test_paths_and_validation_have_no_storage_side_effects(tmp_path, monkeypatch
     monkeypatch.chdir(tmp_path.parent)
     settings = load_config(config)
     assert settings.storage.data_dir == tmp_path / "data"
-    assert settings.storage.database == tmp_path / "data/campus.sqlite3"
+    assert settings.storage.database == tmp_path / "data/signalnest.sqlite3"
     result = run_cli(tmp_path.parent, "config-check", "--config", str(config))
     assert result.returncode == 0
-    assert str(tmp_path / "data/campus.sqlite3") in result.stdout
+    assert str(tmp_path / "data/signalnest.sqlite3") in result.stdout
     assert list(tmp_path.iterdir()) == [config]
 
 
@@ -88,6 +88,9 @@ def test_import_and_help_do_not_access_network_or_sqlite(tmp_path):
     script = """
 import socket
 import sqlite3
+import logging
+root_handlers = logging.getLogger().handlers[:]
+app_handlers = logging.getLogger("signalnest").handlers[:]
 
 def forbidden(*args, **kwargs):
     raise AssertionError("unexpected network or database operation")
@@ -95,13 +98,19 @@ socket.socket.connect = forbidden
 socket.create_connection = forbidden
 sqlite3.connect = forbidden
 sqlite3.dbapi2.connect = forbidden
-import campus_information_agent
-import campus_information_agent.config
-import campus_information_agent.cli
-import campus_information_agent.__main__
-import campus_information_agent.schema
-import campus_information_agent.storage
-campus_information_agent.cli.main(["--help"])
+import signalnest
+import signalnest.config
+import signalnest.cli
+import signalnest.__main__
+import signalnest.schema
+import signalnest.storage
+import signalnest.contracts
+import signalnest.fetching
+import signalnest.parsing
+import signalnest.eventlog
+assert logging.getLogger().handlers == root_handlers
+assert logging.getLogger("signalnest").handlers == app_handlers
+signalnest.cli.main(["--help"])
 """
     result = subprocess.run(
         [sys.executable, "-c", script],
@@ -127,7 +136,7 @@ def test_storage_init_cli_repeated(tmp_path):
         result = run_cli(tmp_path.parent, "storage-init", "--config", str(config))
         assert result.returncode == 0, result.stderr
         assert "revision=0001_initial" in result.stdout
-    assert (tmp_path / "data/campus.sqlite3").is_file()
+    assert (tmp_path / "data/signalnest.sqlite3").is_file()
     assert (tmp_path / "data/raw").is_dir()
 
 
@@ -150,7 +159,7 @@ def test_non_database_file_is_not_overwritten(tmp_path):
     config = tmp_path / "settings.toml"
     config.write_text(EXAMPLE)
     (tmp_path / "data").mkdir()
-    database = tmp_path / "data/campus.sqlite3"
+    database = tmp_path / "data/signalnest.sqlite3"
     database.write_bytes(b"this is not a database")
     result = run_cli(tmp_path, "storage-init", "--config", str(config))
     assert result.returncode == 1
@@ -173,7 +182,7 @@ socket.socket.connect = forbidden
 socket.create_connection = forbidden
 sqlite3.connect = forbidden
 sqlite3.dbapi2.connect = forbidden
-from campus_information_agent.cli import main
+from signalnest.cli import main
 raise SystemExit(main(["config-check", "--config", sys.argv[1]]))
 """
     result = subprocess.run(
@@ -185,3 +194,47 @@ raise SystemExit(main(["config-check", "--config", sys.argv[1]]))
     )
     assert result.returncode == 0, result.stderr
     assert list(tmp_path.iterdir()) == [config]
+
+
+def test_existing_config_database_name_is_preserved(tmp_path):
+    import sqlite3
+
+    config = tmp_path / "campus.toml"
+    config.write_text(EXAMPLE.replace("signalnest.sqlite3", "campus.sqlite3"))
+    result = run_cli(tmp_path, "storage-init", "--config", str(config))
+    assert result.returncode == 0, result.stderr
+    database = tmp_path / "data/campus.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO documents "
+            "(source_id, source_document_id, detail_url, discovered_title, discovered_at) "
+            "VALUES ('whu-undergrad-student', '1517:1', 'https://example.org/1', 'old notice', 1)"
+        )
+    result = run_cli(tmp_path.parent, "storage-init", "--config", str(config))
+    assert result.returncode == 0, result.stderr
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT discovered_title FROM documents").fetchall() == [
+            ("old notice",)
+        ]
+    assert not (tmp_path / "data/signalnest.sqlite3").exists()
+
+
+def test_cli_events_are_structured_and_failures_are_not_successes(tmp_path):
+    import json
+
+    config = tmp_path / "signalnest.toml"
+    config.write_text(EXAMPLE)
+    result = run_cli(tmp_path, "config-check", "--config", str(config))
+    event = json.loads(result.stderr)
+    assert event["event"] == "config_validated"
+    assert event["source_id"] == "whu-undergrad-student"
+    assert event["run_id"]
+    assert "config_validated" not in result.stdout
+    (tmp_path / "data").write_text("blocked")
+    result = run_cli(tmp_path, "storage-init", "--config", str(config))
+    event = json.loads(result.stderr.splitlines()[0])
+    assert result.returncode == 1
+    assert event["event"] == "storage_init_failed"
+    assert event["level"] == "ERROR"
+    assert "storage_initialized" not in result.stderr
+    assert not result.stdout

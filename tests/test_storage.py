@@ -8,16 +8,16 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy.exc import IntegrityError
 
-from campus_information_agent import storage
-from campus_information_agent.config import StorageSettings
-from campus_information_agent.schema import documents, metadata, notice_versions, raw_responses
-from campus_information_agent.storage import StorageError, initialize_storage, make_engine
+from signalnest import storage
+from signalnest.config import StorageSettings
+from signalnest.schema import documents, metadata, notice_versions, raw_responses
+from signalnest.storage import StorageError, initialize_storage, make_engine
 
 
 @pytest.fixture
 def settings(tmp_path):
     return StorageSettings(
-        data_dir=str(tmp_path / "data"), database=str(tmp_path / "db % name" / "campus.sqlite3")
+        data_dir=str(tmp_path / "data"), database=str(tmp_path / "db % name" / "signalnest.sqlite3")
     )
 
 
