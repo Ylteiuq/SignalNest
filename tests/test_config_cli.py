@@ -91,12 +91,16 @@ import sqlite3
 
 def forbidden(*args, **kwargs):
     raise AssertionError("unexpected network or database operation")
-socket.socket = forbidden
+socket.socket.connect = forbidden
+socket.create_connection = forbidden
 sqlite3.connect = forbidden
+sqlite3.dbapi2.connect = forbidden
 import campus_information_agent
 import campus_information_agent.config
 import campus_information_agent.cli
 import campus_information_agent.__main__
+import campus_information_agent.schema
+import campus_information_agent.storage
 campus_information_agent.cli.main(["--help"])
 """
     result = subprocess.run(
@@ -114,3 +118,70 @@ def test_absolute_paths(tmp_path):
     config = tmp_path / "settings.toml"
     config.write_text(EXAMPLE.replace('"data"', f'"{tmp_path}/elsewhere"'))
     assert load_config(config).storage.data_dir == tmp_path / "elsewhere"
+
+
+def test_storage_init_cli_repeated(tmp_path):
+    config = tmp_path / "settings.toml"
+    config.write_text(EXAMPLE)
+    for _ in range(2):
+        result = run_cli(tmp_path.parent, "storage-init", "--config", str(config))
+        assert result.returncode == 0, result.stderr
+        assert "revision=0001_initial" in result.stdout
+    assert (tmp_path / "data/campus.sqlite3").is_file()
+    assert (tmp_path / "data/raw").is_dir()
+
+
+def test_storage_init_errors(tmp_path):
+    config = tmp_path / "settings.toml"
+    config.write_text(EXAMPLE)
+    (tmp_path / "data").write_text("existing file, not a directory")
+    result = run_cli(tmp_path, "storage-init", "--config", str(config))
+    assert result.returncode == 1
+    assert "存储错误" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert (tmp_path / "data").read_text() == "existing file, not a directory"
+    config.write_text(EXAMPLE.replace("30.0", "0.0"))
+    result = run_cli(tmp_path, "storage-init", "--config", str(config))
+    assert result.returncode == 2
+    assert "http.read_timeout_seconds" in result.stderr
+
+
+def test_non_database_file_is_not_overwritten(tmp_path):
+    config = tmp_path / "settings.toml"
+    config.write_text(EXAMPLE)
+    (tmp_path / "data").mkdir()
+    database = tmp_path / "data/campus.sqlite3"
+    database.write_bytes(b"this is not a database")
+    result = run_cli(tmp_path, "storage-init", "--config", str(config))
+    assert result.returncode == 1
+    assert "存储错误" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert database.read_bytes() == b"this is not a database"
+
+
+def test_config_check_does_not_open_database_or_network(tmp_path):
+    config = tmp_path / "settings.toml"
+    config.write_text(EXAMPLE)
+    script = """
+import socket
+import sqlite3
+import sys
+
+def forbidden(*args, **kwargs):
+    raise AssertionError("unexpected network or database operation")
+socket.socket.connect = forbidden
+socket.create_connection = forbidden
+sqlite3.connect = forbidden
+sqlite3.dbapi2.connect = forbidden
+from campus_information_agent.cli import main
+raise SystemExit(main(["config-check", "--config", sys.argv[1]]))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(config)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert list(tmp_path.iterdir()) == [config]
