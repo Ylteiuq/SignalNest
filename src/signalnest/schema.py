@@ -67,6 +67,20 @@ raw_responses = sa.Table(
     sa.Column("last_modified", sa.Text),
     sa.Column("body_path", sa.Text),
     sa.Column("body_sha256", sa.Text),
+    # NULL is reserved for responses written before the offline ingestion migration.
+    sa.Column("page_type", sa.Text),
+    sa.Column("document_id", sa.ForeignKey("documents.id", name="fk_response_document")),
+    sa.Column("last_attempt_at", sa.Integer),
+    sa.Column("last_error_code", sa.Text),
+    sa.CheckConstraint(
+        "page_type IS NULL OR page_type IN ('list', 'notice')", name="ck_response_page_type"
+    ),
+    sa.CheckConstraint(
+        "(page_type IS NULL AND document_id IS NULL) OR "
+        "(page_type IS NOT NULL AND ((page_type = 'list' AND document_id IS NULL) OR "
+        "(page_type = 'notice' AND document_id IS NOT NULL)))",
+        name="ck_response_target",
+    ),
     sa.CheckConstraint("status_code BETWEEN 100 AND 599", name="ck_response_status"),
     sa.CheckConstraint(
         "(body_path IS NULL AND body_sha256 IS NULL) OR "

@@ -1,0 +1,405 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="utf-8">
+        <title>学生通知-武汉大学本科生院</title><meta name="pageType" content="2">
+<meta name="pageTitle" content="学生通知">
+
+
+<META Name="SiteName" Content="武汉大学本科生院" />
+<META Name="SiteDomain" Content="uc.whu.edu.cn" />
+<META Name="ColumnName" Content="学生通知" />
+<META Name="ColumnKeywords" Content="学生通知" />
+
+        <link rel="shortcut icon" href="../../2022/images/favicon.ico" />        
+       
+        <link rel="stylesheet" href="../../2022/css/amazeui.min.css">
+        <link rel="stylesheet" href="../../2022/css/self.css">
+        <link rel="stylesheet" href="../../2022/css/iconfont.css">
+         
+    <!--Announced by Visual SiteBuilder 9-->
+<link rel="stylesheet" type="text/css" href="../../_sitegray/_sitegray_d.css" />
+<script language="javascript" src="../../_sitegray/_sitegray.js"></script>
+<!-- CustomerNO:7765626265723230747f475750515742000300014351 -->
+<link rel="stylesheet" type="text/css" href="../../2022/list.vsb.css" />
+<script type="text/javascript" src="/system/resource/js/vsbscreen.min.js" id="_vsbscreen" devices="pc|mobile|pad"></script>
+<script type="text/javascript" src="/system/resource/js/counter.js"></script>
+<script type="text/javascript">_jsq_(1517,'/2022/list.jsp',-1,1407739091)</script>
+</head>
+
+    <body>
+
+        <!--top-->
+        <div class="am-show-lg-only menu-box" data-am-sticky>
+       <header class="nav">
+            <div class="width1200">
+                <div class="am-fl empty logo">
+<a href="../../index.htm'"><img src="../../images/logodn20231215.png"></a></div>
+                <div class="am-fr empty">
+                    <div class="top_search"><!-- 3.1.3版本 -->
+
+
+
+<script language="javascript" src="/system/resource/js/base64.js"></script><script language="javascript" src="/system/resource/js/jquery/jquery-latest.min.js"></script><script language="javascript" src="/system/resource/vue/vue.js"></script><script language="javascript" src="/system/resource/vue/bluebird.min.js"></script><script language="javascript" src="/system/resource/vue/axios.js"></script><script language="javascript" src="/system/resource/vue/polyfill.js"></script><script language="javascript" src="/system/resource/vue/token.js"></script><LINK href="/system/resource/vue/static/element/index.css" type="text/css" rel="stylesheet"><script language="javascript" src="/system/resource/vue/static/element/index.js"></script><script language="javascript" src="/system/resource/vue/static/public.js"></script><script language="javascript" src="/system/resource/openapp/search/js/containsHtmlTags.js"></script><script language="javascript" src="/system/resource/openapp/search/layui/layui.js"></script><style>
+    #appu1 .qwss{
+        height: 31px;
+        font-size: 12px;
+        min-width: 190px;
+        max-width: 600px;
+        width: 60%;
+        margin-top: -15px;
+        outline: none;
+        padding-left: 10px;
+        border-radius: 2px;
+        border: 1px solid #e4e7ed;}
+    #appu1 .tj{
+        padding-left: 6px;
+        letter-spacing: 5px;
+        color: white;
+        min-width: 53px;
+        max-width: 150px;
+        height: 32px;
+        border: 0;
+        border-radius: 2px;
+        background-color: #1890FF;
+        position: relative;
+        top: 1px;
+        width: 20%;
+        margin-top: -15px;}
+</style>
+<div id="divu1"></div>
+<script type="text/html" id="htmlu1">
+    <div id="appu1">
+        <div v-if="!isError">
+            <input type="text" class="search_text" placeholder="全文搜索" autocomplete=off v-model=query.keyWord @keyup.enter="onSubmit">
+             <input type="image" id="search" src="../../2022/images/selbtn.png" align="absmiddle" valign="bottom" style="margin-top:25px;" v-on:click="onSubmit()"/>
+            
+            <div style="float:right;margin-top: 32px;margin-left: 20px;"><a href="javascript:void(0)" data-am-modal="{target: '#doc-modal-1'}" style="color:#fff"><i class="white am-icon-envelope" style="margin-right:5px;"></i>院长信箱</a><a href="../../xl.htm" style="color:#fff;margin-left:15px;"><i class="white am-icon-calendar" style="margin-right:5px;"></i>校历</a><a href="../../jb.htm" style="color:#fff;margin-left:15px;"><i class="white am-icon-history" style="margin-right:5px;"></i>旧版</a></div>
+ <div class="clear"></div>
+        </div>
+        <div v-if="isError" style="color: #b30216; font-size:18px;text-align: center;padding:20px;">
+            应用维护中！
+        </div>
+    </div>
+</script>
+<script>
+    $("#divu1").html($("#htmlu1").text());
+</script>
+<script>
+    var appOwner = "1407739091";
+    var token = 'tourist';
+    var urlPrefix = "/aop_component/";
+
+    jQuery.support.cors = true;
+    $.ajaxSetup({
+        beforeSend: function (request, settings) {
+            request.setRequestHeader("Authorization", token);
+            request.setRequestHeader("owner", appOwner);
+        }
+    });
+
+    new Vue({
+        el: "#appu1",
+        data: function () {
+            return {
+                query: {
+                    keyWord: "",//搜索关键词
+                    owner: appOwner,
+                    token: token,
+                    urlPrefix: urlPrefix,
+                    lang:"i18n_zh_CN"
+                },
+                isError: false
+            }
+        },
+        mounted: function () {
+            var _this = this;
+            // _this.init();
+        },
+        methods: {
+            init: function(){
+                $.ajax({
+                    url: "/aop_component//webber/search/test",
+                    type: "get",
+                    success: function (response) {
+                        if (response.code == "0000") {
+                        } else if (response.code == "220") {
+                            _this.isError = true;
+                            console.log(response);
+                        } else if (!response.code) {
+                            _this.isError = true;
+                            console.log(response);
+                        }
+                    },
+                    error: function (response) {
+                        _this.isError = true;
+                    }
+                });
+            },
+            onSubmit: function (e) {
+                var url = "/aop_views/search/modules/resultpc/soso.html";
+                if ("10" == "1" || "10" == "2") {
+                    url = "" + url;
+                }
+                var _this = this;
+                var query = _this.query;
+                if (url.indexOf("?") > -1) {
+                    url = url.split("?")[0];
+                }
+                if (query.keyWord) {
+                    var query = new Base64().encode(JSON.stringify(query));
+                    window.open(url + "?query=" + query);
+                } else {
+                    alert("请填写搜索内容")
+                }
+            },
+        }
+    })
+</script>
+
+<script>
+   var appElementu1 = document.querySelector("#appu1");
+   if (appElementu1 && appElementu1.__vue__) {
+
+   } else {
+      $("#divu1").html($("#htmlu1").text());
+      var appOwner = "1407739091";   
+      var urlPrefix = "/aop_component/";
+      var ifLogin="";
+      var token = ifLogin=='true'?gettoken(10, true).trim():'tourist';
+      if (containsHtmlTags(token) || !token) { 
+         token = 'tourist';
+      }
+      jQuery.support.cors = true;
+      $.ajaxSetup({
+        beforeSend: function (request, settings) {
+            request.setRequestHeader("Authorization", token);
+            request.setRequestHeader("owner", appOwner);
+        }
+      });
+      var queryInfou1 = {
+        query: {
+            keyWord: "",//搜索关键词
+            owner: appOwner,
+            token: token,
+            urlPrefix: urlPrefix,
+            lang:"i18n_zh_CN"
+        },
+        isError: false
+      };
+      function keyUpFunu1(e){
+        var theEvent = e || window.event;
+        var keyCode = theEvent.keyCode || theEvent.which || theEvent.charCode;
+        if(keyCode == 13){
+          onSubmitu1();
+        }
+      };
+
+      function onSubmitu1(e) {
+        queryInfou1.query.keyWord= $("#appu1  .qwss").val();
+        
+        var url = "/aop_views/search/modules/resultpc/soso.html";      
+        if ("10" == "1" || "10" == "2") {
+           url = "" + url;
+        }
+        var query = queryInfou1.query;
+        if (url.indexOf("?") > -1) {
+            url = url.split("?")[0];
+        }
+        if (query.keyWord) {
+            var query = new Base64().encode(JSON.stringify(query));
+            window.open(url + "?query=" + query);
+        } else {
+            alert("请填写搜索内容")
+        }
+      };
+   }
+</script></div>
+                </div>
+            </div>
+        </header>
+        <div class="menu_bg">
+            <div class="width1200">
+                <ul class="am-nav am-nav-pills am-nav-justify menu">
+                          <li><a href="../../index.htm">首页</a></li>                 
+                  <li><a href="../../bmgk/bmld.htm">部门概况</a></li>                 
+                  <li><a href="../../zfjs.htm">作风建设</a></li>                 
+                  <li><a href="https://info.whu.edu.cn/bmxxgkxw12/bksy.htm">信息公开</a></li>                 
+                  <li><a href="../../xzzx.htm">下载中心</a></li>                 
+
+                </ul>
+            </div>
+        </div>
+        </div>
+        <!--top-->
+        <!--top mobile-->
+        <div class="am-show-sm-only top_m">
+            <!-- 页头 -->
+            <header data-am-widget="header" class="am-header am-header-default" data-am-sticky>
+                <div class="am-fl logo">
+                    <img src="../../images/logosj20231215.png">
+                </div>
+                <div class="am-header-right am-header-nav ico_menu">
+                    <a href="#" data-am-offcanvas="{target: '#doc-oc-demo3'}"><img class="am-img-responsive" src="../../2022/images/ico_menu.png"></a>
+                </div>
+            </header>
+            <!-- 页头 -->
+            <!-- 侧边栏内容 -->
+            <div id="doc-oc-demo3" class="am-offcanvas">
+                <div class="am-offcanvas-bar am-offcanvas-bar-flip">
+                    <div class="am-offcanvas-content menu_m">
+                        <ul class="am-nav am-nav-pills am-nav-justify">
+                          <li><a href="../../index.htm">首页</a></li>                 
+                  <li><a href="../../bmgk/bmld.htm">部门概况</a></li>                 
+                  <li><a href="../../zfjs.htm">作风建设</a></li>                 
+                  <li><a href="https://info.whu.edu.cn/bmxxgkxw12/bksy.htm">信息公开</a></li>                 
+                  <li><a href="../../xzzx.htm">下载中心</a></li>                 
+
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- 侧边栏内容 -->
+        </div>
+        <!--top mobile-->
+        
+        <div class="blank100 am-show-lg-only"></div>
+        <div class="blank40 am-show-sm-only"></div>
+
+<div class="width1200_nei">
+
+<!--left-->
+<div class="nei_left am-fl">
+
+<div class="neileft_menu">
+<p><span>
+通知公告</span></p>
+<ul class="am-list admin-sidebar-list menu_nei_l" id="collapase-nav-1">
+    <li class="am-panel">
+        <a href="../xstz.htm" class="active">学生通知</a>
+    </li>
+    <li class="am-panel">
+        <a href="../zhyw.htm">综合业务</a>
+    </li>
+
+</ul>
+</div>
+
+<div class="neileft_item am-show-lg-only"><script language="javascript" src="/system/resource/js/dynclicks.js"></script><script language="javascript" src="/system/resource/js/centerCutImg.js"></script><script language="javascript" src="/system/resource/js/ajax.js"></script><p><i>最新资讯</i></p>
+<a class="am-text-truncate item" href="../../info/1521/128571.htm">公共卫生学院营养系团队荣获两项”第十一届全国大学生生命科学竞赛”国家级一等奖</a>
+<a class="am-text-truncate item" href="../../info/1521/128561.htm">这支实践队，把用药安全课讲成了社区“爆款”</a>
+<a class="am-text-truncate item" href="../../info/1646/128541.htm">双网联动聚合力  协同育人解难题——本科生院召开“双网联动，协同育人”调研座谈会</a>
+<a class="am-text-truncate item" href="../../info/1521/128521.htm">聚力教学科研共促发展 赋能青年教师成长成才——电气与自动化学院分中心举办青年教师学术沙龙</a>
+<a class="am-text-truncate item" href="../../info/1512/128511.htm">学思践悟强党性 实干担当促发展——教育技术与教学服务中心党支部开展9月主题党日活动</a>
+<script>_showDynClickBatch(['dynclicks_u6_128571','dynclicks_u6_128561','dynclicks_u6_128541','dynclicks_u6_128521','dynclicks_u6_128511'],[128571,128561,128541,128521,128511],"wbnews", 1407739091)</script>
+</div>
+
+</div>
+
+<!--left-->
+
+<!--right-->
+<div class="nei_right">
+
+<div class="main_title02">
+<b><i class="am-icon-dot-circle-o"></i><span>
+学生通知</span></b><span class="am-fr">        
+                <a href="../../index.htm">首页</a>
+
+                >
+                <a href="../../tzgg.htm">通知公告</a>
+
+                >
+                <a href="../xstz.htm">学生通知</a>
+</span>
+</div>
+
+
+<div class="list_txt">
+<ul class="am-list">
+<li><a href="../../info/1517/14309.htm"><span>关于认真做好2021届本科生毕业论文（设计）答辩及有关工作的通知</span><i>2021-05-06</i></a></li>
+<li><a href="../../info/1517/14310.htm"><span>关于认真做好2021届本科生毕业论文（设计）答辩及有关工作的通知</span><i>2021-05-06</i></a></li>
+<li><a href="../../info/1517/14312.htm"><span>关于实施新修订的推免工作管理办法的通知</span><i>2021-04-28</i></a></li>
+<li><a href="../../info/1517/14313.htm"><span>关于做好2022届本科毕业生电子注册照相工作的通知</span><i>2021-04-27</i></a></li>
+<li><a href="../../info/1517/14314.htm"><span>关于2021年6月大学英语四、六级考试监考人员报名工作的通知</span><i>2021-04-26</i></a></li>
+<li><a href="../../info/1517/14315.htm"><span>关于举办武汉大学2021年大学生测绘系列竞赛的通知</span><i>2021-04-23</i></a></li>
+<li><a href="../../info/1517/14316.htm"><span>关于第十四届全国大学生节能减排社会实践与科技竞赛校内选拔成绩及全国比赛有关事项的通知</span><i>2021-04-23</i></a></li>
+<li><a href="../../info/1517/14317.htm"><span>关于开展2021年上半年大学生创新创业训练计划项目结题验收工作的通知</span><i>2021-04-21</i></a></li>
+<li><a href="../../info/1517/14318.htm"><span>关于全国大学生英语竞赛考试期间部分教学楼停课的通知</span><i>2021-04-20</i></a></li>
+<li><a href="../../info/1517/14319.htm"><span>关于举办2021年武汉大学创业模拟大赛暨第八届“学创杯”全国大学生创业综合模拟大赛武汉大学选拔赛的通知</span><i>2021-04-20</i></a></li>
+<li><a href="../../info/1517/14320.htm"><span>关于2020-2021学年第二学期法学双学位期末考试安排调整的通知</span><i>2021-04-19</i></a></li>
+<li><a href="../../info/1517/14321.htm"><span>关于公布2021年武汉大学创新学分评审结果的通知</span><i>2021-04-15</i></a></li>
+<li><a href="../../info/1517/14322.htm"><span>关于2021年劳动节期间教学安排调整的通知</span><i>2021-04-14</i></a></li>
+</ul>
+</div>
+
+<div class="page">
+  <span class="p_pages"><span class="p_first p_fun"><a href="../xstz.htm">首页</a></span><span class="p_prev p_fun"><a href="2.htm">上页</a></span><span class="p_no"><a href="../xstz.htm">1</a></span><span class="p_dot">...</span><span class="p_no"><a href="5.htm">20</a></span><span class="p_no"><a href="4.htm">21</a></span><span class="p_no"><a href="3.htm">22</a></span><span class="p_no"><a href="2.htm">23</a></span><span class="p_no_d">24</span><span class="p_next_d p_fun_d">下页</span><span class="p_last_d p_fun_d">尾页</span></span>
+</div><script>_showDynClickBatch(['dynclicks_u9_14309','dynclicks_u9_14310','dynclicks_u9_14312','dynclicks_u9_14313','dynclicks_u9_14314','dynclicks_u9_14315','dynclicks_u9_14316','dynclicks_u9_14317','dynclicks_u9_14318','dynclicks_u9_14319','dynclicks_u9_14320','dynclicks_u9_14321','dynclicks_u9_14322'],[14309,14310,14312,14313,14314,14315,14316,14317,14318,14319,14320,14321,14322],"wbnews", 1407739091)</script>
+
+
+</div>
+<!--right-->
+</div>
+
+<div class="blank60 am-show-lg-only"></div>
+<div class="blank20 am-show-sm-only"></div>
+
+        <!--第五屏-->
+        <div class="contact">
+            <div class="width1200">
+            <div class="contact_item">
+                    <ul class="am-avg-lg-3 am-avg-sm-1 am-thumbnails empty">
+                        <li class="am-text-left"><img src="../../2022/images/logo.png"></li>
+                        <li><script language="javascript" src="/system/resource/js/openlink.js"></script><a class="foot_title" href="#">院内链接</a>
+<a href="http://xgb.whu.edu.cn/" target="_blank">学生工作部</a>
+<a href="http://tsh.whu.edu.cn" target="_blank">教育技术与教学服务中心</a>
+<a href="https://gc.whu.edu.cn/" target="_blank">大学生工程训练与创新实践中心</a>
+<a href="javascript:void(0)" data-am-modal="{target: '#doc-modal-2'}">教师教学发展中心</a>
+</li>
+                        <li><a class="foot_title" href="#">校内链接</a>
+<a href="http://oir.whu.edu.cn/" target="_blank">国际交流部</a>
+<a href="http://xsjy.whu.edu.cn/jyxt/jyweb/webIndex.zf" target="_blank">学生就业指导与服务中心</a>
+<a href="http://future.whu.edu.cn/" target="_blank">团委</a>
+<a href="https://gs.whu.edu.cn/" target="_blank">研究生院</a>
+<a href="https://www.lib.whu.edu.cn/" target="_blank">图书馆</a>
+</li>
+                    </ul>
+            </div>
+            </div>
+            
+            <div class="blank40 am-show-lg-only"></div>
+            <div class="blank0 am-show-sm-only"></div>
+            
+            <div class="banquan">
+                <div class="width1200">
+                <span class="am-fl">Copyright © 2022 All Reserved 版权所有 武汉大学本科生院</span> <span class="am-fr"> <!-- 版权内容请在本组件"内容配置-版权"处填写 -->
+<p>鄂公网安备 42010202000961号 鄂ICP备20013940号</p></span>
+        </div>
+         </div>
+        </div>
+        <!--第五屏-->
+<script src="../../2022/js/jquery.min.js"></script>
+        <script type="text/javascript">
+            $(function() {
+                $('.banner').flexslider({
+                    animation: "slide",
+                    directionNav: true,
+                });
+                $('.lunbo').flexslider({
+                    controlNav: false,
+                    slideshowSpeed: 2000,  
+                  directionNav: true, 
+                    playAfterPaused: 1000,
+                });
+            });
+        </script>
+        <script type="text/javascript">
+            $(function() {
+                $('.menu_child').width($(document).width());
+            });
+        </script>
+        <script src="../../2022/js/amazeui.min.js"></script>
+</body>
+</html>

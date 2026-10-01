@@ -4,6 +4,7 @@ from shutil import copytree
 
 import pytest
 import sqlalchemy as sa
+from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy.exc import IntegrityError
@@ -79,7 +80,7 @@ def test_initialization_and_schema_match(settings, engine):
             "notice_versions",
         }
         context = MigrationContext.configure(connection, opts={"compare_server_default": True})
-        assert context.get_current_revision() == "0001_initial"
+        assert context.get_current_revision() == "0002_response_target"
         assert compare_metadata(context, metadata) == []
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
 
@@ -89,8 +90,8 @@ def test_repeat_initialization_preserves_data_and_raw_files(settings, engine):
         document_id = insert_document(connection)
     raw = settings.data_dir / "raw" / "retained.bin"
     raw.write_bytes(b"unchanged")
-    assert initialize_storage(settings) == "0001_initial"
-    assert initialize_storage(settings) == "0001_initial"
+    assert initialize_storage(settings) == "0002_response_target"
+    assert initialize_storage(settings) == "0002_response_target"
     with engine.connect() as connection:
         assert connection.execute(sa.select(documents.c.id)).all() == [(document_id,)]
     assert raw.read_bytes() == b"unchanged"
@@ -258,10 +259,10 @@ def test_upgrade_existing_database_and_transactional_failure(
         insert_document(connection)
     migration_dir = tmp_path / "migration assets %"
     copytree(Path(storage.__file__).parent / "migrations", migration_dir)
-    revision = migration_dir / "versions" / "0002_test.py"
+    revision = migration_dir / "versions" / "0003_test.py"
     revision.write_text(
         "from alembic import op\nimport sqlalchemy as sa\n"
-        "revision = '0002_test'\ndown_revision = '0001_initial'\n"
+        "revision = '0003_test'\ndown_revision = '0002_response_target'\n"
         "def upgrade():\n"
         "    op.add_column('documents', sa.Column('test_column', sa.Text()))\n"
         + ("    raise RuntimeError('simulated failure')\n" if fail else "")
@@ -278,11 +279,11 @@ def test_upgrade_existing_database_and_transactional_failure(
         with pytest.raises(RuntimeError, match="simulated failure"):
             initialize_storage(settings)
     else:
-        assert initialize_storage(settings) == "0002_test"
+        assert initialize_storage(settings) == "0003_test"
     with engine.connect() as connection:
         columns = {column["name"] for column in sa.inspect(connection).get_columns("documents")}
         assert ("test_column" in columns) is not fail
-        expected = "0001_initial" if fail else "0002_test"
+        expected = "0002_response_target" if fail else "0003_test"
         assert MigrationContext.configure(connection).get_current_revision() == expected
         assert connection.execute(sa.select(documents)).first() is not None
 
@@ -300,3 +301,83 @@ def test_version_and_state_update_rollback_together(engine):
     with engine.connect() as connection:
         assert connection.execute(sa.select(documents.c.status)).scalar_one() == "discovered"
         assert connection.execute(sa.select(notice_versions)).first() is None
+
+
+def test_upgrade_0001_preserves_success_versions_and_legacy_responses(settings):
+    settings.database.parent.mkdir(parents=True)
+    original = make_engine(settings.database)
+    try:
+        with original.begin() as connection:
+            config = storage.migration_config()
+            config.attributes["connection"] = connection
+            command.upgrade(config, "0001_initial")
+            document_id = insert_document(connection)
+            # Use explicit old columns: current metadata has columns absent in 0001.
+            response_id = connection.exec_driver_sql(
+                "INSERT INTO raw_responses "
+                "(source_id,requested_url,final_url,fetched_at,status_code) "
+                "VALUES ('whu-undergrad-student','https://example.org/','https://example.org/',1,304)"
+            ).lastrowid
+            version_id = connection.execute(
+                notice_versions.insert().values(**version_values(document_id, response_id))
+            ).inserted_primary_key[0]
+            connection.execute(
+                documents.update().values(
+                    status="processed",
+                    current_version_id=version_id,
+                    last_attempt_at=102,
+                    last_success_at=102,
+                )
+            )
+        assert initialize_storage(settings) == "0002_response_target"
+        with original.connect() as connection:
+            row = connection.execute(sa.select(raw_responses)).mappings().one()
+            assert row["page_type"] is None
+            assert row["document_id"] is None
+            assert row["fetched_at"] == 1
+            assert connection.execute(sa.select(notice_versions.c.id)).scalar_one() == version_id
+            assert (
+                connection.execute(sa.select(documents.c.current_version_id)).scalar_one()
+                == version_id
+            )
+            assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
+    finally:
+        original.dispose()
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"page_type": "notice", "document_id": None},
+        {"page_type": "list", "document_id": 1},
+        {"page_type": None, "document_id": 1},
+        {"page_type": "unknown"},
+        {"page_type": "notice", "document_id": 999},
+    ],
+)
+def test_response_target_constraints(engine, values):
+    with engine.begin() as connection:
+        insert_document(connection)
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        insert_response(connection, **values)
+
+
+def test_open_existing_missing_or_old_database_never_initializes(settings):
+    from signalnest.storage import open_initialized_engine
+
+    with pytest.raises(StorageError, match="storage-init"):
+        open_initialized_engine(settings.database)
+    assert not settings.database.exists()
+    settings.database.parent.mkdir(parents=True)
+    engine = make_engine(settings.database)
+    try:
+        with engine.begin() as connection:
+            config = storage.migration_config()
+            config.attributes["connection"] = connection
+            command.upgrade(config, "0001_initial")
+        with pytest.raises(StorageError, match="storage-init"):
+            open_initialized_engine(settings.database)
+        with engine.connect() as connection:
+            assert MigrationContext.configure(connection).get_current_revision() == "0001_initial"
+    finally:
+        engine.dispose()

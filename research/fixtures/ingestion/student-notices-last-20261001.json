@@ -1,0 +1,24 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/tzgg/xstz/1.htm",
+  "final_url": "https://uc.whu.edu.cn/tzgg/xstz/1.htm",
+  "started_at_utc": "2026-10-01T08:06:32.516784+00:00",
+  "completed_at_utc": "2026-10-01T08:06:32.526562+00:00",
+  "status_code": 200,
+  "bytes": 19799,
+  "sha256": "4cbe1d6cd7f0309426ea57df7a6273283dbd1b051eb1315fd37fdb10647dee65",
+  "request_headers": {
+    "User-Agent": "SignalNest-source-research/0.1 (limited public page inspection)",
+    "Accept-Encoding": "identity"
+  },
+  "response_headers": {
+    "date": "Thu, 01 Oct 2026 08:06:33 GMT",
+    "content-type": "text/html",
+    "content-length": "19799",
+    "last-modified": "Wed, 30 Sep 2026 07:11:15 GMT",
+    "vary": "User-Agent,Accept-Encoding",
+    "cache-control": "private, max-age=600",
+    "etag": "\"4d57-65cae013fca17-gzip\""
+  },
+  "header_policy": "allowlist only; cookies and other headers omitted",
+  "body_encoding": "decoded content bytes from HTTPX iter_bytes"
+}

@@ -108,6 +108,8 @@ import signalnest.contracts
 import signalnest.fetching
 import signalnest.parsing
 import signalnest.eventlog
+import signalnest.rawstore
+import signalnest.ingestion
 assert logging.getLogger().handlers == root_handlers
 assert logging.getLogger("signalnest").handlers == app_handlers
 signalnest.cli.main(["--help"])
@@ -135,7 +137,7 @@ def test_storage_init_cli_repeated(tmp_path):
     for _ in range(2):
         result = run_cli(tmp_path.parent, "storage-init", "--config", str(config))
         assert result.returncode == 0, result.stderr
-        assert "revision=0001_initial" in result.stdout
+        assert "revision=0002_response_target" in result.stdout
     assert (tmp_path / "data/signalnest.sqlite3").is_file()
     assert (tmp_path / "data/raw").is_dir()
 

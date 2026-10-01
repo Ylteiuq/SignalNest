@@ -13,6 +13,10 @@ class Event(StrEnum):
     CONFIG_INVALID = "config_invalid"
     STORAGE_INITIALIZED = "storage_initialized"
     STORAGE_INIT_FAILED = "storage_init_failed"
+    RAW_ARCHIVED = "raw_archived"
+    RESPONSE_RECORDED = "response_recorded"
+    PAGE_PROCESSED = "page_processed"
+    PROCESSING_FAILED = "processing_failed"
 
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")
@@ -35,7 +39,7 @@ class JsonFormatter(logging.Formatter):
             "level": record.levelname,
             "event": event,
         }
-        for key in ("source_id", "run_id", "document_id"):
+        for key in ("source_id", "run_id", "document_id", "response_id", "stage", "error_code"):
             value = _identifier(getattr(record, key, None))
             if value is not None:
                 payload[key] = value
@@ -64,6 +68,9 @@ def log_event(
     source_id: str | None = None,
     run_id: str | None = None,
     document_id: int | None = None,
+    response_id: int | None = None,
+    stage: str | None = None,
+    error_code: str | None = None,
 ) -> None:
     """Context is identifiers only; never pass configuration values or page contents."""
     if not isinstance(event, Event):
@@ -71,5 +78,12 @@ def log_event(
     logger.log(
         level,
         event,
-        extra={"source_id": source_id, "run_id": run_id, "document_id": document_id},
+        extra={
+            "source_id": source_id,
+            "run_id": run_id,
+            "document_id": document_id,
+            "response_id": response_id,
+            "stage": stage,
+            "error_code": error_code,
+        },
     )

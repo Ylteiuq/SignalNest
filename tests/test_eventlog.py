@@ -51,3 +51,32 @@ def test_formatter_never_serializes_arbitrary_message_or_extra():
 def test_event_api_rejects_arbitrary_text():
     with pytest.raises(TypeError, match="Event"):
         log_event(logging.getLogger("signalnest"), "<html>whole page</html>")
+
+
+def test_processing_context_is_bounded_and_safe():
+    output = io.StringIO()
+    log_event(
+        configure_logging(output),
+        Event.PROCESSING_FAILED,
+        level=logging.ERROR,
+        source_id="whu-undergrad-student",
+        document_id=3,
+        response_id=7,
+        stage="parse",
+        error_code="parse_missing_structure",
+        run_id="run-1",
+    )
+    payload = json.loads(output.getvalue())
+    assert payload["response_id"] == 7
+    assert payload["stage"] == "parse"
+    assert payload["error_code"] == "parse_missing_structure"
+    output.seek(0)
+    output.truncate()
+    log_event(
+        configure_logging(output),
+        Event.PROCESSING_FAILED,
+        stage="<html>PRIVATE</html>",
+        error_code="SECRET=" * 100,
+    )
+    assert "stage" not in json.loads(output.getvalue())
+    assert "SECRET" not in output.getvalue()

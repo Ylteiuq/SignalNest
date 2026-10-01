@@ -103,7 +103,7 @@ class ParsedNotice(Contract):
 
 
 class RawResponseReference(Contract):
-    """Metadata only; an actual raw-file writer is a later-stage responsibility."""
+    """Metadata only; RawStore verifies disk references at the I/O boundary."""
 
     source_id: NonemptyText
     requested_url: WebUrl

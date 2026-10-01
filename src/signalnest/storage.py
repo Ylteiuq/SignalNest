@@ -1,10 +1,12 @@
 """Explicit local initialization and synchronous SQLite connections, with no import I/O."""
 
+import sqlite3
 from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from alembic.util.exc import CommandError
 from sqlalchemy import URL, create_engine, event
 from sqlalchemy.engine import Engine
@@ -17,14 +19,21 @@ class StorageError(RuntimeError):
     """Storage initialization failed; never report a successful migration."""
 
 
-def make_engine(database: Path) -> Engine:
+def make_engine(database: Path, *, must_exist: bool = False) -> Engine:
     """Create a lazy engine; opening a connection is an explicit caller action."""
     if not database.is_absolute():
         raise ValueError("database path must be absolute; use load_config first")
+    options = {}
+    if must_exist:
+        # mode=rw prevents creating an empty database, including after a path race.
+        options["creator"] = lambda: sqlite3.connect(
+            database.as_uri() + "?mode=rw", uri=True, timeout=5
+        )
     engine = create_engine(
         URL.create("sqlite+pysqlite", database=str(database)),
         connect_args={"timeout": 5},
         hide_parameters=True,
+        **options,
     )
 
     @event.listens_for(engine, "connect")
@@ -39,6 +48,20 @@ def make_engine(database: Path) -> Engine:
     def begin_transaction(connection):
         connection.exec_driver_sql("BEGIN")
 
+    return engine
+
+
+def open_initialized_engine(database: Path) -> Engine:
+    """Open existing storage at head; never create or migrate it implicitly."""
+    engine = make_engine(database, must_exist=True)
+    try:
+        with engine.connect() as connection:
+            revision = MigrationContext.configure(connection).get_current_revision()
+            if revision != ScriptDirectory.from_config(migration_config()).get_current_head():
+                raise StorageError("数据库未初始化或未升级，请先执行 storage-init")
+    except (SQLAlchemyError, StorageError) as exc:
+        engine.dispose()
+        raise StorageError("数据库不可用或未初始化，请检查路径并先执行 storage-init") from exc
     return engine
 
 

@@ -1,0 +1,216 @@
+{
+  "run_at_utc": "2026-10-01T08:19:39.117845+00:00",
+  "environment": {
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "httpx": "0.28.1",
+    "parser_version": "whu-student-notices-v1"
+  },
+  "results": [
+    {
+      "case": "current_parser_missing_pagination",
+      "result": "pass",
+      "entries": 25,
+      "next_page_url": null,
+      "meaning": "reproduced defect; this pass is NOT desirable behavior"
+    },
+    {
+      "case": "student-notices-home-20261001",
+      "result": "pass",
+      "entries": 25,
+      "next_page_url": "https://uc.whu.edu.cn/tzgg/xstz/23.htm"
+    },
+    {
+      "case": "student-notices-last-20261001",
+      "result": "pass",
+      "entries": 13,
+      "next_page_url": null
+    },
+    {
+      "case": "archive_then_rollback_then_304_reprocess_and_parser_upgrade",
+      "result": "pass",
+      "evidence_count": 2,
+      "processing_versions": [
+        "v1",
+        "v2"
+      ],
+      "reused_body_sha256": "c8a26d20eb6fd20568bfecdfb562647b72de42ee6bcb883094d5f73269a3378b"
+    },
+    {
+      "case": "no_baseline_304_falls_back_unconditionally",
+      "result": "pass",
+      "sent_validators": [
+        null,
+        null
+      ]
+    },
+    {
+      "case": "missing_body_304_falls_back_unconditionally",
+      "result": "pass",
+      "sent_validators": [
+        "\"a\"",
+        null
+      ]
+    },
+    {
+      "case": "corrupt_body_304_falls_back_unconditionally",
+      "result": "pass",
+      "sent_validators": [
+        "\"a\"",
+        null
+      ]
+    },
+    {
+      "case": "automatic_redirect_forwards_validator",
+      "result": "pass",
+      "calls": [
+        [
+          "https://uc.whu.edu.cn/tzgg/xstz.htm",
+          "\"home\""
+        ],
+        [
+          "https://uc.whu.edu.cn/target",
+          "\"home\""
+        ]
+      ]
+    },
+    {
+      "case": "manual_redirect_rebuilds_target_headers",
+      "result": "pass",
+      "calls": [
+        [
+          "https://uc.whu.edu.cn/tzgg/xstz.htm",
+          "\"home\""
+        ],
+        [
+          "https://uc.whu.edu.cn/target",
+          null
+        ]
+      ]
+    },
+    {
+      "case": "oversize_closes_stream_no_complete_body",
+      "result": "pass"
+    },
+    {
+      "case": "read_error_closes_stream_no_complete_body",
+      "result": "pass"
+    },
+    {
+      "case": "retry_after_seconds_dates_invalid_and_deferral",
+      "result": "pass",
+      "values": [
+        "120",
+        "Thu, 01 Oct 2026 08:02:00 GMT",
+        "Wed, 30 Sep 2026 08:00:00 GMT",
+        "-1",
+        "1.5",
+        "bad"
+      ],
+      "due": [
+        1790841720,
+        1790841720,
+        1790841600,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "case": "shared_spacing_for_initial_redirect_retry_fake_clock",
+      "result": "pass",
+      "starts": [
+        0.0,
+        3.0,
+        6.0,
+        120.0
+      ]
+    },
+    {
+      "case": "read_timeout_then_200",
+      "result": "pass",
+      "outcome": "body",
+      "request_starts": [
+        0.0,
+        3.0
+      ],
+      "scope": "test-only proposed policy"
+    },
+    {
+      "case": "three_503",
+      "result": "pass",
+      "outcome": "exhausted",
+      "request_starts": [
+        0.0,
+        3.0,
+        6.0
+      ],
+      "scope": "test-only proposed policy"
+    },
+    {
+      "case": "403_no_retry",
+      "result": "pass",
+      "outcome": "failed",
+      "request_starts": [
+        0.0
+      ],
+      "scope": "test-only proposed policy"
+    },
+    {
+      "case": "429_no_immediate_retry",
+      "result": "pass",
+      "outcome": "deferred",
+      "request_starts": [
+        0.0
+      ],
+      "scope": "test-only proposed policy"
+    },
+    {
+      "case": "501_no_retry",
+      "result": "pass",
+      "outcome": "failed",
+      "request_starts": [
+        0.0
+      ],
+      "scope": "test-only proposed policy"
+    },
+    {
+      "case": "304_validation_branch",
+      "result": "pass",
+      "outcome": "validate",
+      "request_starts": [
+        0.0
+      ],
+      "scope": "test-only proposed policy"
+    },
+    {
+      "case": "manual_redirect_cross_origin",
+      "result": "pass",
+      "outcome": "redirect_rejected",
+      "requests": 1
+    },
+    {
+      "case": "manual_redirect_downgrade",
+      "result": "pass",
+      "outcome": "redirect_rejected",
+      "requests": 1
+    },
+    {
+      "case": "manual_redirect_loop",
+      "result": "pass",
+      "outcome": "redirect_loop",
+      "requests": 1
+    },
+    {
+      "case": "manual_redirect_too_many_hops",
+      "result": "pass",
+      "outcome": "redirect_limit",
+      "requests": 4
+    },
+    {
+      "case": "injected_tls_cause_identifiable",
+      "result": "pass",
+      "scope": "not a real handshake"
+    }
+  ]
+}
