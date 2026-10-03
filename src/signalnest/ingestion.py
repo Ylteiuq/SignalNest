@@ -12,22 +12,38 @@ from typing import Literal
 import sqlalchemy as sa
 from pydantic import Field, ValidationError, model_validator
 from sqlalchemy.dialects.sqlite import insert
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from signalnest.cache import (
+    CacheCandidate,
+    request_uri,
+    reuse_reason,
+    validate_binding,
+    validation_reason,
+)
 from signalnest.contracts import (
     Contract,
     ListPage,
     NonemptyText,
     PageInput,
+    PaginationEvidence,
     ParsedNotice,
     RawResponseReference,
+    RequestProfile,
     WebUrl,
 )
+from signalnest.errors import IngestError, validate_error_code, validate_time
 from signalnest.eventlog import Event, log_event
-from signalnest.parsing import ParseError, parse_list, parse_notice
+from signalnest.ingestion_state import (
+    Origin,
+    advance_source,
+    discovery_context,
+    validate_processing_run,
+)
+from signalnest.parsing import PARSER_VERSION, ParseError, parse_list, parse_notice
 from signalnest.rawstore import RawStore, RawStoreError
-from signalnest.schema import documents, notice_versions, raw_responses
+from signalnest.schema import documents, http_resources, notice_versions, raw_responses
 
 
 class ResponseInput(Contract):
@@ -38,54 +54,46 @@ class ResponseInput(Contract):
     source_document_id: NonemptyText | None = None
     requested_url: WebUrl
     final_url: WebUrl
-    fetched_at: int = Field(ge=0, strict=True)
+    fetched_at: int = Field(ge=0, le=2**63 - 1, strict=True)
     status_code: int = Field(ge=100, le=599, strict=True)
     content_type: str | None = None
     etag: str | None = None
     last_modified: str | None = None
+    request_profile: RequestProfile | None = None
+    body_state: Literal["complete", "unavailable"] | None = None
+    vary: str | None = None
+    cache_control: str | None = None
+    content_encoding: str | None = None
 
     @model_validator(mode="after")
     def target(self):
         if (self.page_type == "notice") != (self.source_document_id is not None):
             raise ValueError("notice requires source_document_id; list must not have one")
+        if self.request_profile is not None:
+            try:
+                request_uri(str(self.requested_url))
+            except IngestError:
+                raise ValueError(
+                    "request URI cannot contain a fragment or unsupported syntax"
+                ) from None
         return self
-
-
-class IngestError(RuntimeError):
-    def __init__(
-        self,
-        code: str,
-        stage: str,
-        *,
-        response_id: int | None = None,
-        document_id: int | None = None,
-    ):
-        self.code = code
-        self.stage = stage
-        self.response_id = response_id
-        self.document_id = document_id
-        super().__init__(f"{stage}: {code} (response_id={response_id}, document_id={document_id})")
-
-    def __str__(self) -> str:
-        return (
-            f"{self.stage}: {self.code} "
-            f"(response_id={self.response_id}, document_id={self.document_id})"
-        )
 
 
 @dataclass(frozen=True)
 class ProcessingResult:
     response_id: int
-    outcome: Literal["processed", "evidence_only"] = "processed"
+    outcome: Literal["processed", "evidence_only", "full_fetch_required"] = "processed"
     document_id: int | None = None
     version_id: int | None = None
     discovered_count: int = 0
     next_page_url: str | None = None
+    pagination: PaginationEvidence | None = None
+    body_response_id: int | None = None
+    error_code: str | None = None
 
 
 def _time(value: int) -> None:
-    if type(value) is not int or value < 0:
-        raise IngestError("invalid_processing_time", "validation")
+    validate_time(value)
 
 
 def _attempt_time(row, processed_at: int) -> None:
@@ -109,69 +117,170 @@ def _target(engine: Engine, evidence: ResponseInput) -> int | None:
     return document_id
 
 
-def discover_page(
-    engine: Engine,
+def _response_on(connection: Connection, response_id: int):
+    row = (
+        connection.execute(sa.select(raw_responses).where(raw_responses.c.id == response_id))
+        .mappings()
+        .one_or_none()
+    )
+    if row is None:
+        raise IngestError("response_missing", "evidence", response_id=response_id)
+    return row
+
+
+def _observation(connection: Connection, body, observed_response_id: int | None, at: int):
+    observed = (
+        body if observed_response_id is None else _response_on(connection, observed_response_id)
+    )
+    if observed["id"] != body["id"] and (
+        observed["status_code"] != 304
+        or observed["validated_response_id"] != body["id"]
+        or any(
+            observed[field] != body[field]
+            for field in (
+                "resource_id",
+                "source_id",
+                "requested_url",
+                "final_url",
+                "page_type",
+                "document_id",
+            )
+        )
+    ):
+        raise IngestError("cache_binding_invalid", "validation")
+    for row in (body, observed):
+        if at < row["fetched_at"] or (
+            row["last_attempt_at"] is not None and at < row["last_attempt_at"]
+        ):
+            raise IngestError("stale_processing_time", "validation", response_id=row["id"])
+    return observed
+
+
+def _processing_marks(connection: Connection, body, observed, at: int, parser_version: str):
+    if not parser_version.strip():
+        raise IngestError("invalid_parser_version", "validation")
+    connection.execute(
+        raw_responses.update()
+        .where(raw_responses.c.id.in_({body["id"], observed["id"]}))
+        .values(last_attempt_at=at, last_error_code=None)
+    )
+    if body["resource_id"] is not None:
+        # An explicit historical replay must not promote an old transport baseline.
+        connection.execute(
+            http_resources.update()
+            .where(
+                http_resources.c.id == body["resource_id"],
+                http_resources.c.latest_response_id == body["id"],
+            )
+            .values(
+                last_processed_response_id=body["id"],
+                last_processed_parser_version=parser_version,
+                last_processed_at=at,
+            )
+        )
+
+
+def discover_page_in_transaction(
+    connection: Connection,
     source_id: str,
     page: ListPage,
     discovered_at: int,
     *,
     response_id: int | None = None,
+    observed_response_id: int | None = None,
+    parser_version: str = PARSER_VERSION,
+    origin: Origin = "unknown",
+    ingestion_run_id: str | None = None,
+    automatic: bool = False,
 ) -> int:
-    """Atomic per page; rediscovery refreshes URL/title but preserves all state/times."""
+    """No commit/rollback; caller must roll back on any error. All I/O/Parser precedes this."""
     _time(discovered_at)
     if not source_id.strip():
         raise IngestError("invalid_source", "validation")
+    origin = discovery_context(connection, source_id, origin, ingestion_run_id, discovered_at)
+    validate_processing_run(connection, source_id, ingestion_run_id, discovered_at, parser_version)
+    response = observed = None
+    if response_id is not None:
+        response = _response_on(connection, response_id)
+        if (
+            response["page_type"] != "list"
+            or response["source_id"] != source_id
+            or response["status_code"] != 200
+            or response["body_path"] is None
+        ):
+            raise IngestError("response_not_list", "validation", response_id=response_id)
+        observed = _observation(connection, response, observed_response_id, discovered_at)
+        if automatic and (reason := _automatic_body_reason(connection, response)) is not None:
+            raise IngestError(reason, "cache", response_id=response_id)
+    elif observed_response_id is not None:
+        raise IngestError("body_response_required", "validation")
+    for entry in page.entries:
+        statement = insert(documents).values(
+            source_id=source_id,
+            source_document_id=entry.source_document_id,
+            detail_url=str(entry.detail_url),
+            discovered_title=entry.title,
+            discovered_at=discovered_at,
+            discovery_origin=origin,
+            first_discovery_run_id=ingestion_run_id,
+        )
+        connection.execute(
+            statement.on_conflict_do_update(
+                index_elements=[documents.c.source_id, documents.c.source_document_id],
+                set_={
+                    "detail_url": statement.excluded.detail_url,
+                    "discovered_title": statement.excluded.discovered_title,
+                },
+            )
+        )
+    if response is not None:
+        _processing_marks(connection, response, observed, discovered_at, parser_version)
+    advance_source(connection, source_id, "last_list_registered_at", discovered_at)
+    return len(page.entries)
+
+
+def discover_page(
+    engine: Engine, source_id: str, page: ListPage, discovered_at: int, **options
+) -> int:
+    """Convenient atomic page wrapper; preserve rediscovery state and first origin."""
     try:
         with engine.begin() as connection:
-            if response_id is not None:
-                response = (
-                    connection.execute(
-                        sa.select(raw_responses).where(raw_responses.c.id == response_id)
-                    )
-                    .mappings()
-                    .one_or_none()
-                )
-                if (
-                    response is None
-                    or response["page_type"] != "list"
-                    or response["source_id"] != source_id
-                    or response["status_code"] != 200
-                    or response["body_path"] is None
-                ):
-                    raise IngestError("response_not_list", "validation", response_id=response_id)
-                if discovered_at < response["fetched_at"] or (
-                    response["last_attempt_at"] is not None
-                    and discovered_at < response["last_attempt_at"]
-                ):
-                    raise IngestError(
-                        "stale_processing_time", "validation", response_id=response_id
-                    )
-            for entry in page.entries:
-                statement = insert(documents).values(
-                    source_id=source_id,
-                    source_document_id=entry.source_document_id,
-                    detail_url=str(entry.detail_url),
-                    discovered_title=entry.title,
-                    discovered_at=discovered_at,
-                )
-                connection.execute(
-                    statement.on_conflict_do_update(
-                        index_elements=[documents.c.source_id, documents.c.source_document_id],
-                        set_={
-                            "detail_url": statement.excluded.detail_url,
-                            "discovered_title": statement.excluded.discovered_title,
-                        },
-                    )
-                )
-            if response_id is not None:
-                connection.execute(
-                    raw_responses.update()
-                    .where(raw_responses.c.id == response_id)
-                    .values(last_attempt_at=discovered_at, last_error_code=None)
-                )
+            return discover_page_in_transaction(
+                connection, source_id, page, discovered_at, **options
+            )
     except SQLAlchemyError as exc:
         raise IngestError("database_write_failed", "discovery") from exc
-    return len(page.entries)
+
+
+def _resource(connection: Connection, evidence: ResponseInput) -> int | None:
+    if evidence.request_profile is None:
+        return None
+    uri = request_uri(str(evidence.requested_url))
+    profile = evidence.request_profile
+    connection.execute(
+        insert(http_resources)
+        .values(
+            source_id=evidence.source_id,
+            request_uri=uri,
+            profile_sha256=profile.sha256(),
+            request_profile=profile.model_dump(),
+        )
+        .on_conflict_do_nothing()
+    )
+    resource = (
+        connection.execute(
+            sa.select(http_resources).where(
+                http_resources.c.source_id == evidence.source_id,
+                http_resources.c.request_uri == uri,
+                http_resources.c.profile_sha256 == profile.sha256(),
+            )
+        )
+        .mappings()
+        .one()
+    )
+    if resource["request_profile"] != profile.model_dump():
+        raise IngestError("profile_mismatch", "cache")
+    return resource["id"]
 
 
 def record_response(
@@ -180,16 +289,23 @@ def record_response(
     evidence: ResponseInput,
     content: bytes | None,
     *,
+    candidate: CacheCandidate | None = None,
     run_id: str | None = None,
 ) -> int:
-    """Publish/verify body, then commit a fresh response row. No parse success implied."""
+    """Archive only complete bytes, then independently commit evidence and latest 200."""
     document_id = None
     try:
         document_id = _target(engine, evidence)
         if evidence.status_code == 304 and content is not None:
             raise IngestError("304_has_body", "validation", document_id=document_id)
-        if evidence.status_code != 304 and content is None:
-            raise IngestError("body_required", "validation", document_id=document_id)
+        if evidence.request_profile is not None and evidence.status_code == 200 and content == b"":
+            raise IngestError("empty_complete_body", "validation", document_id=document_id)
+        if (evidence.body_state == "complete" and content is None) or (
+            evidence.body_state == "unavailable" and content is not None
+        ):
+            raise IngestError("body_completeness_mismatch", "validation", document_id=document_id)
+        if candidate is not None and evidence.status_code != 304:
+            raise IngestError("cache_binding_invalid", "validation", document_id=document_id)
         body = raw_store.archive(content) if content is not None else None
         if body is not None:
             log_event(
@@ -201,18 +317,71 @@ def record_response(
                 stage="archive",
             )
         reference = RawResponseReference(
-            **evidence.model_dump(exclude={"page_type", "source_document_id"}),
+            **{
+                field: getattr(evidence, field)
+                for field in RawResponseReference.model_fields
+                if field not in {"body_path", "body_sha256"}
+            },
             body_path=body.path if body else None,
             body_sha256=body.sha256 if body else None,
         )
         with engine.begin() as connection:
+            resource_id = _resource(connection, evidence)
+            values = dict(
+                **reference.model_dump(mode="json"),
+                page_type=evidence.page_type,
+                document_id=document_id,
+                resource_id=resource_id,
+                body_state="complete" if body else "unavailable",
+                vary=evidence.vary,
+                cache_control=evidence.cache_control,
+                content_encoding=evidence.content_encoding,
+            )
+            baseline = None
+            if candidate is not None:
+                baseline = validate_binding(connection, candidate, values)
+                values["validated_response_id"] = candidate.response_id
             response_id = connection.execute(
-                raw_responses.insert().values(
-                    **reference.model_dump(mode="json"),
-                    page_type=evidence.page_type,
-                    document_id=document_id,
-                )
+                raw_responses.insert().values(**values)
             ).inserted_primary_key[0]
+            if resource_id is not None and evidence.status_code == 200 and body is not None:
+                resource = (
+                    connection.execute(
+                        sa.select(http_resources).where(http_resources.c.id == resource_id)
+                    )
+                    .mappings()
+                    .one()
+                )
+                latest_id = resource["latest_response_id"]
+                if (
+                    latest_id is None
+                    or evidence.fetched_at >= _response_on(connection, latest_id)["fetched_at"]
+                ):
+                    updates = dict(latest_response_id=response_id)
+                    blocked_id = resource["blocked_by_response_id"]
+                    if (
+                        blocked_id is None
+                        or evidence.fetched_at >= _response_on(connection, blocked_id)["fetched_at"]
+                    ):
+                        updates["blocked_by_response_id"] = None
+                    connection.execute(
+                        http_resources.update()
+                        .where(http_resources.c.id == resource_id)
+                        .values(**updates)
+                    )
+            if baseline is not None and validation_reason(values, baseline) is not None:
+                connection.execute(
+                    http_resources.update()
+                    .where(http_resources.c.id == resource_id)
+                    .values(blocked_by_response_id=response_id)
+                )
+            if evidence.page_type == "list" and (
+                (evidence.status_code == 200 and content)
+                or (baseline is not None and validation_reason(values, baseline) is None)
+            ):
+                advance_source(
+                    connection, evidence.source_id, "last_list_response_at", evidence.fetched_at
+                )
     except RawStoreError as exc:
         raise IngestError(exc.code, "archive", document_id=document_id) from exc
     except SQLAlchemyError as exc:
@@ -246,35 +415,60 @@ def _response(engine: Engine, response_id: int):
     return row
 
 
-def _failure(engine: Engine, error: IngestError, processed_at: int) -> None:
-    """A separate short failure transaction; never touches the previous success."""
+def record_failure_in_transaction(
+    connection: Connection,
+    error: IngestError,
+    processed_at: int,
+    *,
+    failure_due_at: int | None = None,
+) -> None:
+    """Record a finite fetch/parse/commit failure without clearing successful results."""
+    _time(processed_at)
+    validate_error_code(error.code)
+    if failure_due_at is not None:
+        _time(failure_due_at)
+        if failure_due_at < processed_at:
+            raise IngestError("invalid_next_due_time", "validation")
+    document_id = error.document_id
+    if error.response_id is not None:
+        response = _response_on(connection, error.response_id)
+        if document_id is not None and document_id != response["document_id"]:
+            raise IngestError("failure_target_mismatch", "validation")
+        document_id = response["document_id"]
+        _observation(connection, response, None, processed_at)
+    if document_id is not None:
+        target = (
+            connection.execute(sa.select(documents).where(documents.c.id == document_id))
+            .mappings()
+            .one()
+        )
+        _attempt_time(target, processed_at)
+    if error.response_id is not None:
+        connection.execute(
+            raw_responses.update()
+            .where(raw_responses.c.id == error.response_id)
+            .values(last_attempt_at=processed_at, last_error_code=error.code)
+        )
+    if document_id is not None:
+        values = dict(status="failed", last_attempt_at=processed_at, last_error_code=error.code)
+        if failure_due_at is not None:
+            values["next_due_at"] = failure_due_at
+        connection.execute(documents.update().where(documents.c.id == document_id).values(**values))
+
+
+def record_failure(
+    engine: Engine,
+    error: IngestError,
+    processed_at: int,
+    failure_due_at: int | None = None,
+) -> None:
+    """Convenient separate failure transaction, including metadata-only fetch failures."""
     try:
         with engine.begin() as connection:
-            if error.response_id is not None:
-                connection.execute(
-                    raw_responses.update()
-                    .where(raw_responses.c.id == error.response_id)
-                    .values(last_attempt_at=processed_at, last_error_code=error.code)
-                )
-            if error.document_id is not None:
-                row = (
-                    connection.execute(
-                        sa.select(documents).where(documents.c.id == error.document_id)
-                    )
-                    .mappings()
-                    .one()
-                )
-                _attempt_time(row, processed_at)
-                connection.execute(
-                    documents.update()
-                    .where(documents.c.id == error.document_id)
-                    .values(
-                        status="failed",
-                        last_attempt_at=processed_at,
-                        last_error_code=error.code,
-                    )
-                )
-    except SQLAlchemyError as exc:
+            record_failure_in_transaction(
+                connection, error, processed_at, failure_due_at=failure_due_at
+            )
+    except (SQLAlchemyError, IngestError) as exc:
         raise IngestError(
             "failure_state_unavailable",
             "failure_record",
@@ -283,90 +477,141 @@ def _failure(engine: Engine, error: IngestError, processed_at: int) -> None:
         ) from exc
 
 
-def save_notice(engine: Engine, response_id: int, notice: ParsedNotice, processed_at: int) -> int:
-    """Commit the idempotent version and success pointer together, or neither."""
+def _automatic_body_reason(connection: Connection, body) -> str | None:
+    if body["status_code"] != 200 or body["body_state"] != "complete" or body["body_path"] is None:
+        return "baseline_not_complete_200"
+    if body["resource_id"] is None:
+        return "cache_profile_unknown"
+    resource = (
+        connection.execute(
+            sa.select(http_resources).where(http_resources.c.id == body["resource_id"])
+        )
+        .mappings()
+        .one()
+    )
+    if (
+        body["source_id"] != resource["source_id"]
+        or body["requested_url"] != resource["request_uri"]
+    ):
+        return "baseline_key_mismatch"
+    if resource["latest_response_id"] != body["id"]:
+        return "baseline_superseded"
+    if resource["blocked_by_response_id"] is not None:
+        return "cache_validation_blocked"
+    if body["document_id"] is not None:
+        latest = connection.execute(
+            sa.select(raw_responses.c.id)
+            .where(
+                raw_responses.c.document_id == body["document_id"],
+                raw_responses.c.status_code == 200,
+                raw_responses.c.body_path.is_not(None),
+            )
+            .order_by(raw_responses.c.fetched_at.desc(), raw_responses.c.id.desc())
+            .limit(1)
+        ).scalar_one()
+        if latest != body["id"]:
+            return "obsolete_document_body"
+    return None
+
+
+def save_notice_in_transaction(
+    connection: Connection,
+    response_id: int,
+    notice: ParsedNotice,
+    processed_at: int,
+    *,
+    observed_response_id: int | None = None,
+    next_due_at: int | None = None,
+    automatic: bool = False,
+    ingestion_run_id: str | None = None,
+) -> int:
+    """Version, success pointer, due and resource marks share the caller's transaction."""
     _time(processed_at)
-    response = _response(engine, response_id)
+    if next_due_at is not None:
+        _time(next_due_at)
+        if next_due_at < processed_at:
+            raise IngestError("invalid_next_due_time", "validation")
+    response = _response_on(connection, response_id)
+    validate_processing_run(
+        connection, response["source_id"], ingestion_run_id, processed_at, notice.parser_version
+    )
     document_id = response["document_id"]
     if response["page_type"] != "notice" or document_id is None:
         raise IngestError("response_not_notice", "validation", response_id=response_id)
     if response["status_code"] != 200 or response["body_path"] is None:
         raise IngestError("response_not_valid_html", "validation", response_id=response_id)
-    if processed_at < response["fetched_at"]:
-        raise IngestError("processing_before_fetch", "validation", response_id=response_id)
+    observed = _observation(connection, response, observed_response_id, processed_at)
+    if automatic and (reason := _automatic_body_reason(connection, response)) is not None:
+        raise IngestError(reason, "cache", response_id=response_id)
+    target = (
+        connection.execute(sa.select(documents).where(documents.c.id == document_id))
+        .mappings()
+        .one()
+    )
+    _attempt_time(target, processed_at)
+    if (
+        notice.source_document_id != target["source_document_id"]
+        or response["source_id"] != target["source_id"]
+        or str(notice.page_url) != response["final_url"]
+    ):
+        raise IngestError(
+            "identity_mismatch", "validation", response_id=response_id, document_id=document_id
+        )
     digest = notice.content.content_sha256()
-    normalized_content = notice.content.model_dump(mode="json")
+    connection.execute(
+        insert(notice_versions)
+        .values(
+            document_id=document_id,
+            raw_response_id=response_id,
+            content_sha256=digest,
+            parser_version=notice.parser_version,
+            parsed_at=processed_at,
+            title=notice.content.title,
+            published_date=notice.content.published_date,
+            normalized_content=notice.content.model_dump(mode="json"),
+        )
+        .on_conflict_do_nothing(
+            index_elements=[
+                notice_versions.c.document_id,
+                notice_versions.c.content_sha256,
+                notice_versions.c.parser_version,
+            ]
+        )
+    )
+    version_id = connection.execute(
+        sa.select(notice_versions.c.id).where(
+            notice_versions.c.document_id == document_id,
+            notice_versions.c.content_sha256 == digest,
+            notice_versions.c.parser_version == notice.parser_version,
+        )
+    ).scalar_one()
+    values = dict(
+        status="processed",
+        current_version_id=version_id,
+        last_attempt_at=processed_at,
+        last_success_at=processed_at,
+        last_error_code=None,
+    )
+    if next_due_at is not None:
+        values["next_due_at"] = next_due_at
+    connection.execute(documents.update().where(documents.c.id == document_id).values(**values))
+    _processing_marks(connection, response, observed, processed_at, notice.parser_version)
+    return version_id
+
+
+def save_notice(
+    engine: Engine, response_id: int, notice: ParsedNotice, processed_at: int, **options
+) -> int:
+    """Convenient atomic wrapper; composed callers use save_notice_in_transaction."""
     try:
         with engine.begin() as connection:
-            target = (
-                connection.execute(sa.select(documents).where(documents.c.id == document_id))
-                .mappings()
-                .one()
-            )
-            _attempt_time(target, processed_at)
-            if (
-                notice.source_document_id != target["source_document_id"]
-                or response["source_id"] != target["source_id"]
-                or str(notice.page_url) != response["final_url"]
-            ):
-                raise IngestError(
-                    "identity_mismatch",
-                    "validation",
-                    response_id=response_id,
-                    document_id=document_id,
-                )
-            statement = (
-                insert(notice_versions)
-                .values(
-                    document_id=document_id,
-                    raw_response_id=response_id,
-                    content_sha256=digest,
-                    parser_version=notice.parser_version,
-                    parsed_at=processed_at,
-                    title=notice.content.title,
-                    published_date=notice.content.published_date,
-                    normalized_content=normalized_content,
-                )
-                .on_conflict_do_nothing(
-                    index_elements=[
-                        notice_versions.c.document_id,
-                        notice_versions.c.content_sha256,
-                        notice_versions.c.parser_version,
-                    ]
-                )
-            )
-            connection.execute(statement)
-            version_id = connection.execute(
-                sa.select(notice_versions.c.id).where(
-                    notice_versions.c.document_id == document_id,
-                    notice_versions.c.content_sha256 == digest,
-                    notice_versions.c.parser_version == notice.parser_version,
-                )
-            ).scalar_one()
-            connection.execute(
-                documents.update()
-                .where(documents.c.id == document_id)
-                .values(
-                    status="processed",
-                    current_version_id=version_id,
-                    last_attempt_at=processed_at,
-                    last_success_at=processed_at,
-                    last_error_code=None,
-                )
-            )
-            connection.execute(
-                raw_responses.update()
-                .where(raw_responses.c.id == response_id)
-                .values(last_attempt_at=processed_at, last_error_code=None)
+            return save_notice_in_transaction(
+                connection, response_id, notice, processed_at, **options
             )
     except SQLAlchemyError as exc:
         raise IngestError(
-            "database_write_failed",
-            "success_commit",
-            response_id=response_id,
-            document_id=document_id,
+            "database_write_failed", "success_commit", response_id=response_id
         ) from exc
-    return version_id
 
 
 def process_response(
@@ -377,20 +622,31 @@ def process_response(
     *,
     notice_parser: Callable[[PageInput], ParsedNotice] = parse_notice,
     list_parser: Callable[[PageInput], ListPage] = parse_list,
+    list_parser_version: str = PARSER_VERSION,
     expected_source_id: str | None = None,
     run_id: str | None = None,
+    next_due_at: int | None = None,
+    failure_due_at: int | None = None,
+    origin: Origin = "unknown",
+    ingestion_run_id: str | None = None,
+    automatic: bool = False,
 ) -> ProcessingResult:
-    """Replay existing evidence with current rules; no checksum shortcuts or new fetch."""
+    """Explicit replay permits history. Automatic callers require the latest matching body."""
     _time(processed_at)
-    response = _response(engine, response_id)
-    document_id = response["document_id"]
-    if expected_source_id is not None and response["source_id"] != expected_source_id:
+    for due in (next_due_at, failure_due_at):
+        if due is not None:
+            _time(due)
+            if due < processed_at:
+                raise IngestError("invalid_next_due_time", "validation")
+    observed = _response(engine, response_id)
+    document_id = observed["document_id"]
+    if expected_source_id is not None and observed["source_id"] != expected_source_id:
         raise IngestError("source_mismatch", "validation", response_id=response_id)
-    if response["page_type"] is None:
+    if observed["page_type"] is None:
         raise IngestError("legacy_response_type_unknown", "validation", response_id=response_id)
-    if processed_at < response["fetched_at"]:
+    if processed_at < observed["fetched_at"]:
         raise IngestError("processing_before_fetch", "validation", response_id=response_id)
-    if response["last_attempt_at"] is not None and processed_at < response["last_attempt_at"]:
+    if observed["last_attempt_at"] is not None and processed_at < observed["last_attempt_at"]:
         raise IngestError("stale_processing_time", "validation", response_id=response_id)
     if document_id is not None:
         with engine.connect() as connection:
@@ -400,30 +656,78 @@ def process_response(
                 .one()
             )
             _attempt_time(target, processed_at)
+    body = observed
     error = None
     try:
-        if response["body_path"] is None:
-            raise IngestError("response_has_no_body", "archive")
-        if response["status_code"] != 200:
+        reason = None
+        if observed["status_code"] not in {200, 304}:
             raise IngestError("http_status_not_200", "validation")
-        content = raw_store.read(response["body_path"], response["body_sha256"])
+        if observed["status_code"] == 304 and observed["validated_response_id"] is not None:
+            body = _response(engine, observed["validated_response_id"])
+            with engine.connect() as connection:
+                _observation(connection, body, response_id, processed_at)
+                resource = (
+                    connection.execute(
+                        sa.select(http_resources).where(http_resources.c.id == body["resource_id"])
+                    )
+                    .mappings()
+                    .one()
+                )
+            reason = reuse_reason(body, resource) or validation_reason(observed, body)
+        elif observed["status_code"] == 304 and automatic:
+            reason = "cache_binding_missing"
+        if automatic and reason is None:
+            with engine.connect() as connection:
+                reason = _automatic_body_reason(connection, body)
+        if reason is not None:
+            raise IngestError(reason, "cache")
+        if body["body_path"] is None:
+            raise IngestError("response_has_no_body", "archive")
+        if body["status_code"] != 200:
+            raise IngestError("http_status_not_200", "validation")
+        content = raw_store.read(body["body_path"], body["body_sha256"])
         if not content:
             raise IngestError("parse_empty_page", "parse")
-        page = PageInput(content=content, page_url=response["final_url"])
-        if response["page_type"] == "list":
+        page = PageInput(content=content, page_url=body["final_url"])
+        if body["page_type"] == "list":
             listing = list_parser(page)
             count = discover_page(
-                engine, response["source_id"], listing, processed_at, response_id=response_id
+                engine,
+                body["source_id"],
+                listing,
+                processed_at,
+                response_id=body["id"],
+                observed_response_id=response_id,
+                parser_version=list_parser_version,
+                origin=origin,
+                ingestion_run_id=ingestion_run_id,
+                automatic=automatic,
             )
             result = ProcessingResult(
                 response_id,
                 discovered_count=count,
                 next_page_url=str(listing.next_page_url) if listing.next_page_url else None,
+                pagination=listing.pagination,
+                body_response_id=body["id"],
             )
         else:
             notice = notice_parser(page)
-            version_id = save_notice(engine, response_id, notice, processed_at)
-            result = ProcessingResult(response_id, document_id=document_id, version_id=version_id)
+            version_id = save_notice(
+                engine,
+                body["id"],
+                notice,
+                processed_at,
+                observed_response_id=response_id,
+                next_due_at=next_due_at,
+                automatic=automatic,
+                ingestion_run_id=ingestion_run_id,
+            )
+            result = ProcessingResult(
+                response_id,
+                document_id=document_id,
+                version_id=version_id,
+                body_response_id=body["id"],
+            )
     except ParseError as exc:
         error = IngestError(f"parse_{exc.code}", "parse")
         error.__cause__ = exc
@@ -435,31 +739,51 @@ def process_response(
         error.__cause__ = exc
     except IngestError as exc:
         error = exc
+    except SQLAlchemyError as exc:
+        error = IngestError("database_read_failed", "evidence")
+        error.__cause__ = exc
     if error is not None:
         error.response_id, error.document_id = response_id, document_id
         log_event(
             logging.getLogger("signalnest"),
             Event.PROCESSING_FAILED,
             level=logging.ERROR,
-            source_id=response["source_id"],
+            source_id=observed["source_id"],
             response_id=response_id,
             document_id=document_id,
             stage=error.stage,
             error_code=error.code,
             run_id=run_id,
         )
-        _failure(engine, error, processed_at)
+        record_failure(engine, error, processed_at, failure_due_at)
+        if automatic and (
+            error.stage in {"archive", "cache"} or error.code == "response_has_no_body"
+        ):
+            return ProcessingResult(
+                response_id,
+                outcome="full_fetch_required",
+                document_id=document_id,
+                body_response_id=body["id"] if body["status_code"] == 200 else None,
+                error_code=error.code,
+            )
         raise error
     log_event(
         logging.getLogger("signalnest"),
         Event.PAGE_PROCESSED,
-        source_id=response["source_id"],
+        source_id=observed["source_id"],
         response_id=response_id,
         document_id=document_id,
         stage="success_commit",
         run_id=run_id,
     )
     return result
+
+
+def process_cached_response(
+    engine: Engine, raw_store: RawStore, response_id: int, processed_at: int, **options
+) -> ProcessingResult:
+    """Automatic latest-body recovery, including a bound 304; never chooses old success."""
+    return process_response(engine, raw_store, response_id, processed_at, automatic=True, **options)
 
 
 def import_page(
@@ -470,13 +794,17 @@ def import_page(
     processed_at: int,
     *,
     run_id: str | None = None,
+    candidate: CacheCandidate | None = None,
+    **processing_options,
 ) -> ProcessingResult:
     """Import an explicit observation, preserving its supplied fetch timestamp."""
     _time(processed_at)
     if processed_at < evidence.fetched_at:
         raise IngestError("processing_before_fetch", "validation")
     try:
-        response_id = record_response(engine, raw_store, evidence, content, run_id=run_id)
+        response_id = record_response(
+            engine, raw_store, evidence, content, candidate=candidate, run_id=run_id
+        )
     except IngestError as exc:
         if exc.stage in {"archive", "evidence"} and exc.document_id is not None:
             log_event(
@@ -489,8 +817,10 @@ def import_page(
                 error_code=exc.code,
                 run_id=run_id,
             )
-            _failure(engine, exc, processed_at)
+            record_failure(engine, exc, processed_at)
         raise
-    if evidence.status_code == 304:
+    if evidence.status_code == 304 and candidate is None:
         return ProcessingResult(response_id, outcome="evidence_only")
-    return process_response(engine, raw_store, response_id, processed_at, run_id=run_id)
+    return process_response(
+        engine, raw_store, response_id, processed_at, run_id=run_id, **processing_options
+    )

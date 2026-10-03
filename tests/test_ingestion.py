@@ -1,10 +1,13 @@
 """Offline integration with immutable fixtures, real SQLite and fault injection."""
 
+import json
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 import sqlalchemy as sa
+from bs4 import BeautifulSoup
 from pydantic import ValidationError
 
 from signalnest.config import StorageSettings
@@ -16,6 +19,7 @@ from signalnest.ingestion import (
     import_page,
     process_response,
     record_response,
+    save_notice,
 )
 from signalnest.parsing import PARSER_VERSION, parse_list, parse_notice
 from signalnest.rawstore import RawStore
@@ -532,3 +536,105 @@ def test_directory_sync_failure_after_publish_has_no_reference_and_can_retry(
     assert result.version_id
     assert len(calls) == 4  # New file/dir first attempt, existing file/dir on retry.
     assert target(env)["status"] == "processed"
+
+
+@pytest.mark.parametrize(
+    "name,current,count,terminal",
+    [
+        ("student-notices-home-20261001", 1, 25, False),
+        ("student-notices-last-20261001", 24, 13, True),
+    ],
+)
+def test_new_real_lists_import_and_reparse_return_pagination(env, name, current, count, terminal):
+    # Explicit client timestamp from the research metadata, not the current import clock.
+    meta = json.loads((FIXTURES / "ingestion" / f"{name}.json").read_text())
+    fetched_at = int(datetime.fromisoformat(meta["completed_at_utc"]).timestamp())
+    observation = evidence(
+        "list",
+        meta["final_url"],
+        fetched_at=fetched_at,
+        requested_url=meta["requested_url"],
+        status_code=meta["status_code"],
+    )
+    result = import_page(
+        env.engine,
+        env.store,
+        observation,
+        raw(f"ingestion/{name}.html"),
+        fetched_at + 1,
+    )
+    assert result.discovered_count == count
+    assert result.pagination.current_page == current
+    assert result.pagination.total_pages == 24
+    assert result.pagination.is_last_page == terminal
+    assert result.pagination.terminal_evidence == ("disabled_next_and_last" if terminal else None)
+    assert (result.next_page_url is None) == terminal
+    assert len(rows(env, documents)) == count
+    replay = process_response(env.engine, env.store, result.response_id, fetched_at + 2)
+    assert replay.pagination == result.pagination
+    assert replay.next_page_url == result.next_page_url
+    assert len(rows(env, raw_responses)) == 1
+    assert rows(env, raw_responses)[0]["fetched_at"] == fetched_at
+
+
+@pytest.mark.parametrize(
+    "fault,code",
+    [
+        ("missing", "parse_missing_structure"),
+        ("conflict", "parse_invalid_pagination"),
+    ],
+)
+def test_invalid_pagination_keeps_evidence_but_discovers_no_entries(env, fault, code):
+    tree = BeautifulSoup(raw("student-notices-page1.html"), "html.parser")
+    if fault == "missing":
+        tree.select_one(".page").decompose()
+    else:
+        tree.select_one(".p_next")["class"] = ["p_next", "p_next_d"]
+    with pytest.raises(IngestError) as caught:
+        import_page(env.engine, env.store, evidence("list", LIST_URL), str(tree).encode(), 101)
+    assert caught.value.code == code
+    assert rows(env, documents) == []
+    response = rows(env, raw_responses)[0]
+    assert response["last_error_code"] == code
+    assert response["last_attempt_at"] == 101
+    assert env.store.read(response["body_path"], response["body_sha256"])
+    with pytest.raises(IngestError) as retry:
+        process_response(env.engine, env.store, caught.value.response_id, 102)
+    assert retry.value.code == code
+    assert rows(env, documents) == []
+    assert len(rows(env, raw_responses)) == 1
+
+
+def test_rediscovering_only_known_entries_retains_nonterminal_evidence(discovered):
+    env = discovered
+    result = import_page(
+        env.engine,
+        env.store,
+        evidence("list", LIST_URL),
+        raw("student-notices-page1.html"),
+        102,
+    )
+    assert len(rows(env, documents)) == 50
+    assert result.discovered_count == 25
+    assert result.pagination.current_page == 1
+    assert not result.pagination.is_last_page
+    assert result.pagination.terminal_evidence is None
+    assert result.next_page_url
+
+
+def test_global_v2_reparse_retains_v1_detail_artifact_with_same_digest(discovered):
+    env = discovered
+    response_id = record_response(env.engine, env.store, evidence(), raw())
+    notice = parse_notice(PageInput(content=raw(), page_url=NOTICE_URL))
+    old = notice.model_copy(update={"parser_version": "whu-student-notices-v1"})
+    old_id = save_notice(env.engine, response_id, old, 102)
+    result = process_response(env.engine, env.store, response_id, 103)
+    assert result.version_id != old_id
+    versions = rows(env, notice_versions)
+    assert [version["parser_version"] for version in versions] == [
+        "whu-student-notices-v1",
+        "whu-student-notices-v2",
+    ]
+    assert versions[0]["content_sha256"] == versions[1]["content_sha256"]
+    assert target(env)["current_version_id"] == result.version_id
+    assert len(rows(env, raw_responses)) == 3  # Two original lists plus the reused detail evidence.

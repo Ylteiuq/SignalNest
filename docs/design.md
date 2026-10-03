@@ -9,7 +9,11 @@
 - `schema.py`：同步 SQLAlchemy Core 表定义，导入只构建内存元数据，不建表。
 - `storage.py`：惰性 engine、SQLite 连接设置与 Alembic 初始化/升级。
 - `rawstore.py`：原始 bytes 的摘要、原子发布与验证读取；不访问数据库。构造 RawStore 不操作文件。
-- `ingestion.py`：响应证据登记、整页通知发现、版本与成功状态提交、失败登记及离线流程。业务入口不依赖 CLI，不获取 HTTP。
+- `ingestion.py`：响应证据登记、整页通知发现、版本/due/成功状态提交、失败登记及离线流程；提供可组合 Connection 入口。业务入口不依赖 CLI，不获取 HTTP。
+- `cache.py`：固定请求 profile、精确 URI 候选、304 绑定校验与可恢复原文查询；没有 HTTP 缓存代理或网络请求。
+- `ingestion_state.py`：来源/运行事实、扫描完成声明校验和待办查询；不决定遍历或调度。
+- `instance_lock.py`：数据库旁的 POSIX advisory 写入锁；只在显式写入操作获取。
+- `errors.py`：有限业务错误与时间/错误代码校验。
 - `migrations/`：随 Python 包安装的固定历史迁移，升级与工作目录无关。
 - `contracts.py`：不可变 Pydantic 输入/输出契约、规范化 JSON 与内容摘要，无 I/O。
 - `fetching.py`：创建同步 HTTPX Client，不主动请求；不接触 Parser 或数据库。
@@ -25,11 +29,11 @@ HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，�
 ## 最小数据契约
 
 - `PageInput`：原始页面 bytes 与 page_url；不包含 Client/Session 等运行依赖。
-- `ListEntry` / `ListPage`：源内稳定身份、绝对详情 URL、标题、日期、条目集合与下一页 URL。source_id 由协调层从配置注入；本栏目空列表必须调查，不能默认为正常。
+- `ListEntry` / `ListPage`：源内稳定身份、绝对详情 URL、标题、日期、条目集合、顶层下一页 URL 和必需的 PaginationEvidence。source_id 由协调层从配置注入；本栏目空列表必须调查，不能默认为正常。entries / next_page_url 的读取方式不变，手工构造 ListPage 须补充分页证据。
 - `ParsedNotice` / `NoticeContent`：稳定身份、页面 URL、parser_version，以及标题、日期、正文 HTML/文本、链接/图片/附件引用。HTML 保留结构但未做展示安全处理，不能直接当作可信网页渲染。图片型正文允许 body_text 为空，Parser 必须验证正文有可见文字或有效图片引用。
 - `AttachmentReference`：名称、URL、可选源文件 ID（本站建议 owner:wbfileid）和访问状态。默认 not_checked，仅有证据时标为 manual_required；不下载或绕过验证码。
 - `RawResponseReference`：URL、获取时间（UTC 秒）、HTTP 状态、白名单头和正文路径/摘要。路径与摘要必须成对出现，路径限定为相对的 raw/<sha256>.bin，304 禁止正文引用；契约不操作磁盘，由 RawStore 验证实际文件。
-- `ResponseInput`：已取得原文的明确来源，包含页面类型、source_id、URL、fetched_at、状态码和白名单头；详情必须给出源内身份、列表禁止给出目标。没有获取时间默认值，也不猜文件名。
+- `ResponseInput`：已取得原文的明确来源，包含页面类型、source_id、URL、fetched_at、状态码、完整性声明、请求 profile 和白名单响应头；详情必须给出源内身份、列表禁止给出目标。没有获取时间默认值，也不猜文件名。
 
 契约拒绝未知字段、空必要字段、相对/非 HTTP(S)/含凭据 URL；引用集合使用 tuple，避免内容被随意修改。Parser 负责相对 URL 解析、路由身份提取和本站必要字段校验，不能只靠类型校验判断解析成功。
 
@@ -47,13 +51,16 @@ stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。
 | --- | --- |
 | `documents` | 稳定身份、详情 URL、发现时标题、发现/尝试/成功时间、最新处理状态、错误代码、下次到期时间，以及最近成功版本指针。`(source_id, source_document_id)` 唯一。 |
 | `raw_responses` | 导入的响应证据：URL、状态、原获取时间、白名单头、原始路径/摘要、page_type、详情 document_id、最近处理时间/错误。列表无目标；详情绑定已发现通知。304 无正文。旧记录类型/目标可空。 |
+| `http_resources` | source/完整 URI/profile 唯一、最新完整 200、禁止复用的 304 证据、成功处理原文/规则/时间；没有详情 due。 |
+| `source_ingestion_state` | 列表尝试/正文证据/登记分别记录，完整扫描与 bootstrap 完成独立，持久冷却。 |
+| `ingestion_runs` | 固定 origin/Parser、起止时间、独立覆盖与运行结果；遗留 running 可恢复为 interrupted。 |
 | `notice_versions` | 通知的规范化内容 JSON、标题、发布日期、解析时间、解析器版本、规范化内容 SHA-256 和原始响应外键。`(document_id, content_sha256, parser_version)` 唯一。 |
 
 `alembic_version` 是迁移工具的版本表，不是业务表。没有用户、搜索、推荐、发送或反馈表；信息源来自 TOML，暂不建立只有静态配置用途的 source 表。
 
 本站 `source_document_id` 约定为 `栏目ID:文章ID`（如 `1517:128231`），Parser 已统一新旧链接。标题、URL 和内容摘要不替代稳定身份。原始字节摘要与规范化内容摘要分别计算，不能混用。
 
-版本唯一键包含解析器版本：相同原文可用新 Parser 重解析，即使规范化内容恰好相同，也保留新解析器产物。相同 Parser 与相同内容不会产生重复版本。内容从 A 变为 B 后又回到 A 时，可复用 A 并更新 `current_version_id`；不能按最大版本 ID 判断当前正文。版本中的原始响应引用指向首次生成该产物的证据，并非每次复查事件；当前不提供完整处理尝试审计表。
+版本唯一键包含解析器版本：相同原文可用新 Parser 重解析，即使规范化内容恰好相同，也保留新解析器产物。相同 Parser 与相同内容不会产生重复版本。内容从 A 变为 B 后又回到 A 时，可复用 A 并更新 `current_version_id`；不能按最大版本 ID 判断当前正文。版本中的原始响应引用指向首次生成该产物的证据，并非每次复查事件；当前不提供完整处理尝试审计表；首次 discovery_origin/first_discovery_run_id 保持，旧记录 unknown。
 
 `current_version_id` 通过复合外键保证属于该通知；为支持该双向引用，当前元数据的外键排序使用 `use_alter`，但 SQLite 初始迁移显式内联创建所有外键，不依赖不受支持的 ALTER ADD CONSTRAINT。`schema.py` 不用于 `create_all`。
 
@@ -87,7 +94,7 @@ raw_responses.last_attempt_at 是最近一次处理完成/失败的时间，last
 
 暂不自动删除孤立文件或临时文件。停止所有写入并备份后，对照 `SELECT DISTINCT body_path FROM raw_responses WHERE body_path IS NOT NULL` 与 raw 目录中 `<64位小写摘要>.bin`；未引用的是孤立候选，`.tmp-*` 是未完成发布候选。先验证/调查再决定人工清理，不以文件修改时间或是否存在版本作为删除依据：解析失败和列表证据也需要保留。
 
-0002 在 raw_responses 上增量 ADD COLUMN，避免启用外键时重建被 notice_versions 引用的表。page_type/document_id 的检查和外键保持目标明确；未迁移的旧记录保持 NULL，不凭 URL 自动赋予身份。最近处理时间/错误用于列表和详情的恢复诊断。本次没有新业务表，不修改 0001。
+0002 在 raw_responses 上增量 ADD COLUMN，避免启用外键时重建被 notice_versions 引用的表。page_type/document_id 的检查和外键保持目标明确；未迁移的旧记录保持 NULL，不凭 URL 自动赋予身份。最近处理时间/错误用于列表和详情的恢复诊断。0003 继续 ADD COLUMN，并增加缓存/来源/运行事实表，0001/0002 冻结；不补猜旧 profile 或原文完整性。具体字段、恢复行为及 SQLite 外键取舍见 [持久状态设计](ingestion-state.md)。
 
 ## 可复用的离线业务入口
 
@@ -99,9 +106,11 @@ raw_responses.last_attempt_at 是最近一次处理完成/失败的时间，last
 | `discover_page(engine, source_id, ListPage, discovered_at)` | 每页全部条目事务性 upsert；最新列表 URL/标题覆盖，首次发现/处理状态/成功版本/错误不重置。返回条目处理数，不是新增通知数。 |
 | `save_notice(engine, response_id, ParsedNotice, processed_at)` | 校验证据/目标/Parser 身份和最终 URL，按版本唯一键写入或复用，并与成功状态一起提交；低层入口要求调用者已验证原文并成功解析。 |
 | `process_response(engine, raw_store, response_id, processed_at)` | 复用原获取证据，验证文件、完整解析、写入成功或失败状态；用于 reparse，也供 HTTP 层处理刚登记的响应。 |
-| `import_page(engine, raw_store, ResponseInput, bytes_or_none, processed_at)` | 上述归档/登记/处理的组合；304 仅返回 evidence_only。 |
+| `import_page(engine, raw_store, ResponseInput, bytes_or_none, processed_at)` | 上述归档/登记/处理的组合；无显式绑定的 304 返回 evidence_only。 |
 
 process_response 可注入纯 notice_parser/list_parser 函数以支持规则升级和离线测试，无工厂/插件配置。默认仍使用本站固定 Parser。每次调用执行完整解析，原文相同不会跳过失败或新版本规则。两个入口类型、获取时间与通知身份均显式提供；CLI 不等于又发生一次 HTTP 请求。
+
+列表处理的 ProcessingResult 与 CLI JSON 均增加 pagination，保留原 next_page_url；它是 Parser 通过验证的同一个证据对象。详情与 evidence_only 的 304 没有列表证据，pagination 为 None/null，不表示末页。分页对象不持久化到 schema；重新解析归档列表时重新验证并返回证据。证据错误发生在条目事务之前，原文与分类错误可保留，不能登记半页或清除既有成功状态。
 
 预期错误统一为 IngestError，提供 code/stage/response_id/document_id；Parser 分类加 `parse_` 前缀，文件错误为 raw_path_invalid/raw_missing/raw_digest_mismatch/raw_not_regular/raw_io_or_unsafe_path。身份不一致为 identity_mismatch；数据库读/写失败为 database_read_failed/database_write_failed；失败登记失败为 failure_state_unavailable。未发现目标、类型未知、无正文、非 200、来源不符或时间倒退都有明确代码。只存代码，不存整段异常。未经预期的程序缺陷仍抛出原异常，不转换为解析成功或空结果；不能据此假定失败状态已经保存。
 
@@ -119,15 +128,42 @@ process_response 可注入纯 notice_parser/list_parser 函数以支持规则升
 
 ## 已完成的 WHU Parser
 
-`PARSER_VERSION = "whu-student-notices-v1"`。选择器、提取语义与规范化规则固定在代码中；修改任何影响结果的规则时更新版本。不读取运行中可变的规则配置，也没有插件系统或原始摘要短路。每次调用重新构建 HTML 树、完整验证，不因前一次成功/失败改变后续结果。
+`PARSER_VERSION = "whu-student-notices-v2"`。本次升级列表分页验证，沿用一个站点规则版本，不另建版本框架。详情产物也标为 v2，虽然详情选择器、提取、规范化与 NoticeContent 摘要规则均未变化；两份详情 fixture 的内容及摘要与 v1 相同。重新解析已存 v1 详情，现有唯一键允许同内容摘要的 v2 产物共存并成为当前版本，旧产物保留。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
 
-列表只读取唯一的 `div.list_txt > ul.am-list`，逐条验证其 li / a / span / i。条目失败时整页抛错，item_index 标记位置；不返回部分成功。空列表异常；不硬编码页长 25。保留原始条目顺序和置前旧日期通知，不去重或按日期过滤。下一页来自列表所在区域的 `.page .p_pages .p_next a`；明确禁用标记或没有下一页时返回 None，活动“下页”链接损坏时抛错，不当作末页。
+列表只读取唯一的 `div.list_txt > ul.am-list`，逐条验证其 li / a / span / i。条目失败时整页抛错，item_index 标记位置；不返回部分成功。空列表异常；不硬编码页长 25。保留原始条目顺序和置前旧日期通知，不去重或按日期过滤。分页须独立通过下面的源级证据验证；next_page_url 仅在确认末页时返回 None，缺失结构或活动链接损坏绝不当作末页。
 
 文章身份限本源 `uc.whu.edu.cn` 的 `/info/1517/<正整数>.htm` 和 `/2022/show.jsp?wbtreeid=1517&wbnewsid=<正整数>`。查询顺序与无关参数不影响身份；必要参数缺失、空值、重复参数（即使重复值相同）、新路由查询身份冲突、其他栏目/主机/路径都明确失败。旧路由 urltype 若提供，必须为 news.NewsContentUrl。普通正文外链不受文章身份规则限制。
 
 详情确认外层 `.news_show`、直接标题区 `.title_nei` 及其中唯一 b / i，并在该区域读取唯一 `#vsb_content > .v_news_content`。fixture 内有嵌套的 .news_show，所以不要求正文直接属于最外层。标题需有文字/数字，日期严格来自“时间：YYYY-MM-DD”可见字段并校验日历有效性。缺少、重复或不识别的结构不会用全页标题/其他日期猜测。
 
 附件只取通知区 `.fj > ul` 的每个 li 中唯一 a，记录可见名称及绝对 URL。WHU download.jsp 从唯一 owner 与 wbfileid 提取 `owner:wbfileid`；不强制 wbfileid 长度为 32（真实样本有不同长度），但要求字母/数字。普通附件链接可保留而无源文件标识。access 一律 not_checked，看到链接不证明可下载或需要验证码，不抓取文件。
+
+## 列表分页证据与覆盖边界
+
+依据 [采集设计研究](../research/ingestion-design.md) 与四份现有列表原文：旧/新首页为 1/24，旧第二页为 2/24，新末页为 24/24，条目分别 25/25/25/13。最大可见数字并非通用总页数标准；只在本模板的数字/尾页控制相互支持时接受。不会从静态文件名（末页恰为 1.htm）、条目数量、发布日期或通知是否已知推断页码/终止。
+
+PaginationEvidence 为不可变 Pydantic 契约：
+
+| 字段 | 来源与含义 |
+| --- | --- |
+| current_page | 唯一无锚 span.p_no_d 的可见正整数。 |
+| total_pages | 经尾页控制验证的最大可见数字，当前页不得超过它。 |
+| is_last_page | 当前数字等于 total，并同时具备禁用 next/last 证据；不是扫描完成标记。 |
+| terminal_evidence | 末页固定为 disabled_next_and_last，非末页为 None。 |
+| last_page_url | 非末页活动“尾页”的实际 URL；末页禁用无链接，为 None。 |
+
+next_page_url 保留在 ListPage 顶层，避免两个字段重复储存同一事实。契约拒绝“末页有 next”“非末页无 next”、错误页码范围或与 is_last_page 不一致的证据；不能手工构造缺证据的伪成功结果。
+
+源级验证规则：
+
+1. 列表所在父区域内恰有一个 .page，其直接子节点恰有一个 .p_pages；缺失、重复（包括嵌套重复）或未知层级失败。当前没有可信的无分页单页模板，不自动补成 1/1。
+2. span.p_no / span.p_no_d 数字为严格正整数，唯一且按显示顺序递增，从 1 开始；数字间有跳跃时须有实际 p_dot 省略号。当前标记唯一、无锚，其他数字有唯一直接链接，不能将两个数字指向同一 URL 或将活动数字指向当前页。没有总页数常量或每页条目限制。
+3. 非末页须 current<total，唯一活动 next/last 的文本分别为“下页”/“尾页”。last URL 须与最高数字的锚一致；current+1 数字可见时，next URL 须与它一致，不能改指另一可见页。next 目标来自实际 href，绝不按文件编号计算。若下个数字未显示，具体跳页最终由协调器验证。
+4. 末页须 current=total，唯一 p_next_d / p_last_d 同时无锚且文本匹配；活动/禁用类冲突、禁用节点带锚、缺少任一控制或与数字声明矛盾均失败。13 条仅是该 fixture 的行数，不是证据。
+5. 所有分页目标以及输入最终列表 URL 都要求 HTTPS、uc.whu.edu.cn、默认 443、无凭据/query/fragment，且路径精确为 /tzgg/xstz.htm 或 /tzgg/xstz/<正整数>.htm；拒绝 next 自链和反斜杠等不支持形式。先检查原始 href，避免 URL 拼接抹去空查询/片段。普通正文引用仍沿用原 HTTP(S) 契约。
+6. 分页区域及祖先、必要数字/控制/省略号及其后代若明确 hidden、aria-hidden=true 或内联 display:none / visibility:hidden，不能作为可见证据，抛 invalid_pagination。不计算外部 CSS，不执行脚本，无法承诺浏览器布局意义上的可见性。
+
+这些证据只说明这一份页面的声明有效。后续协调器应从首页开始，沿 next 实际目标发送请求；分别维护请求 URI 和最终 URI 的已访问集合，拒绝循环；要求每页 current 恰为前页+1、total 不漂移，并保存初始 last_page_url 与实际尾页目标核对。预算中止、解析/入库失败或跨页漂移都不能宣布扫描完成。只有连续覆盖到明确末页、每页事务成功及按扫描策略复核后才能判定 complete，仍不保证站点同一时刻的一致快照。列表 304、全已知页或旧日期不改变这些职责。本次没有网络遍历、缓存、扫描游标或完成状态表。
 
 ## 固定规范化规则与范围
 
@@ -153,6 +189,9 @@ process_response 可注入纯 notice_parser/list_parser 函数以支持规则升
 | ambiguous_identity | 身份参数重复或与路径身份冲突（包括附件标识） |
 | empty_list | 本来源列表容器没有条目 |
 | meaningless_body | 清洗后没有有意义文字或有效图片引用 |
+| invalid_pagination | 数字声明、链接对应关系或活动/禁用状态相互矛盾，或必要证据明确隐藏 |
+
+分页缺失/重复节点为 missing_structure，非法整数或来源 URL 为 invalid_field；field 可为 pagination/current_page/page_numbers/next_page_url/last_page_url/page_url。错误对象不携带整页 HTML。离线业务层继续保存 parse_<code>，保持原证据、短事务与失败恢复语义。
 
 Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页因缺少本站结构/字段失败，而非因全页含某个关键词失败。
 
@@ -167,12 +206,12 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 - 解析失败记录分类并保留最近成功版本；同一原文以后仍可重试，规则升级后仍可重新解析。
 - 如将来跳过重复处理，必须有对应原文和 parser_version 的已成功解析结果，不能只看原始摘要。内容摘要不含 parser_version；现有数据库唯一键另含版本，所以新版规则产物即使摘要相同也可保留。
 
-这里已实现原文写入与离线短事务协调，未实现成功游标、任务队列或通知 outbox，没有增加业务表。调研中的状态/调度/outbox 建议不会自动成为本阶段的 schema 要求。
+本节点实现离线原文、短事务及最小传输/运行事实；没有任务队列、分页续扫游标或通知 outbox。研究建议精简为三张运行事实表，省去双份详情 due、run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；这些不属于本节点。完整扫描接口只接受协调器声明，不代替实际链验证。
 
 ## 下一阶段：单次可靠 HTTP 采集
 
-1. 按新研究结果确定分页覆盖与完成条件，区分普通增量、首次历史导入及停机恢复，不改成遇已知条目即停止。
+1. 使用已实现的分页证据协调跨页连续性、目标/循环/总页数漂移检查，并落实扫描覆盖与完成条件；区分普通增量、首次历史导入及停机恢复，不改成遇已知条目即停止。
 2. 实现同步串行获取：记录实际客户端获取时间，限制响应体大小和重定向、目标校验、超时/限速/有限重试，网络等待在事务外；通过 ResponseInput/record_response 登记证据。
-3. 明确 ETag/Last-Modified 条件请求与可信基线：304 无新正文，只有已存在且验证可读的旧原文才可重解析；无可用基线需按获取策略处理，不能生成空基线。
-4. 将已登记响应交给 process_response，独立从 SQLite 查询待处理/失败详情与未来到期复查；列表 304 不阻止这些工作。不用内存列表或最大版本 ID 作为成功事实。
-5. 用离线 HTTP MockTransport 验证分页移动、304/基线丢失、限速和传输失败；另安排真实终止进程/重启实验，不能把当前故障注入等同于该实验。之后进入调度与 Email，最后真实运行观察。
+3. 使用 select_cache_candidate 固定候选并发送正确条件头；每跳重新选择实际 URI 的 profile/基线，record_response 将 304 显式绑定；full_fetch_required 触发有预算的完整回退，不能生成空基线。
+4. 自动恢复调用 process_cached_response，显式历史重算用 process_response；元数据失败通过 record_failure/连接入口登记，给出详情 next_due_at；独立从 SQLite 查询待处理/失败详情与到期复查；列表 304 不阻止这些工作。不用内存列表或最大版本 ID 作为成功事实。
+5. 整个写入运行持有 writer_lock，创建 run、登记 attempt/冷却，页面提交后独立记录覆盖和运行结果；用离线 HTTP MockTransport 验证分页移动、304/基线丢失、限速和传输失败；另安排真实终止进程/重启实验，不能把当前故障注入等同于该实验。之后进入调度与 Email，最后真实运行观察。

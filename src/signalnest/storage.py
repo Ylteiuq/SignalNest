@@ -13,6 +13,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from signalnest.config import StorageSettings
+from signalnest.instance_lock import WriterLockError, writer_lock
 
 
 class StorageError(RuntimeError):
@@ -74,6 +75,17 @@ def migration_config() -> Config:
 
 
 def initialize_storage(settings: StorageSettings) -> str:
+    """Explicit upgrade protected against every cooperating writer for this database."""
+    if not settings.data_dir.is_absolute() or not settings.database.is_absolute():
+        raise StorageError("存储路径必须为绝对路径，请先加载配置")
+    try:
+        with writer_lock(settings.database, create_parent=True):
+            return _initialize_storage(settings)
+    except WriterLockError as exc:
+        raise StorageError(f"写入锁不可用：{exc.code}") from exc
+
+
+def _initialize_storage(settings: StorageSettings) -> str:
     """Create local directories and upgrade to head, preserving existing records.
 
     Filesystem directories may remain after a failure; schema changes are transactional.
