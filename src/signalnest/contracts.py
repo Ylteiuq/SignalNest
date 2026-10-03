@@ -34,6 +34,24 @@ class Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+def header_value(value: str) -> str:
+    if any(ord(character) < 32 or ord(character) == 127 for character in value):
+        raise ValueError("request header contains control characters")
+    return value
+
+
+class RequestProfile(Contract):
+    """Every supported representation header; the HTTP caller must send these exact values."""
+
+    user_agent: Annotated[NonemptyText, AfterValidator(header_value)]
+    accept: Annotated[NonemptyText, AfterValidator(header_value)]
+    accept_encoding: Literal["identity"] = "identity"
+
+    def sha256(self) -> str:
+        encoded = json.dumps(self.model_dump(), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 class PageInput(Contract):
     """Response bytes plus final page URL, also usable for replaying fixtures."""
 
@@ -50,10 +68,43 @@ class ListEntry(Contract):
     published_date: date
 
 
+class PaginationEvidence(Contract):
+    """Validated visible declarations, not a guarantee of complete cross-page coverage."""
+
+    current_page: int = Field(ge=1, strict=True)
+    total_pages: int = Field(ge=1, strict=True)
+    is_last_page: bool = Field(strict=True)
+    terminal_evidence: Literal["disabled_next_and_last"] | None = None
+    # Disabled last has no link; retain an active last target for the coordinator.
+    last_page_url: WebUrl | None = None
+
+    @model_validator(mode="after")
+    def consistent(self) -> "PaginationEvidence":
+        if self.current_page > self.total_pages:
+            raise ValueError("current page must not exceed total pages")
+        if self.is_last_page != (self.current_page == self.total_pages):
+            raise ValueError("last-page flag must agree with visible page numbers")
+        if self.is_last_page:
+            if self.terminal_evidence is None or self.last_page_url is not None:
+                raise ValueError("last page requires disabled next/last evidence and no last link")
+        elif self.terminal_evidence is not None or self.last_page_url is None:
+            raise ValueError(
+                "non-terminal page requires an active last link, without terminal evidence"
+            )
+        return self
+
+
 class ListPage(Contract):
     # For this source, an empty page must be investigated rather than treated as success.
     entries: tuple[ListEntry, ...] = Field(min_length=1)
     next_page_url: WebUrl | None = None
+    pagination: PaginationEvidence
+
+    @model_validator(mode="after")
+    def next_matches_evidence(self) -> "ListPage":
+        if self.pagination.is_last_page != (self.next_page_url is None):
+            raise ValueError("next-page URL must agree with terminal evidence")
+        return self
 
 
 class AttachmentReference(Contract):

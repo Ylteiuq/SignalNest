@@ -16,11 +16,12 @@ from signalnest.contracts import (
     ListPage,
     NoticeContent,
     PageInput,
+    PaginationEvidence,
     ParsedNotice,
     WebUrl,
 )
 
-PARSER_VERSION = "whu-student-notices-v1"
+PARSER_VERSION = "whu-student-notices-v2"
 _WEB_URL = TypeAdapter(WebUrl)
 _BLOCKS = frozenset(
     {
@@ -59,6 +60,7 @@ class ParseErrorCode(StrEnum):
     AMBIGUOUS_IDENTITY = "ambiguous_identity"
     EMPTY_LIST = "empty_list"
     MEANINGLESS_BODY = "meaningless_body"
+    INVALID_PAGINATION = "invalid_pagination"
 
 
 class ParseError(ValueError):
@@ -175,32 +177,134 @@ def _identity(url: WebUrl) -> str:
     return f"{category}:{article}"
 
 
-def _next_page(container: Tag, base: str) -> WebUrl | None:
-    panels = container.parent.select(".page .p_pages")
-    if not panels:
-        return None
-    if len(panels) != 1:
-        raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field="pagination")
-    markers = panels[0].select(".p_next, .p_next_d")
-    if not markers:
-        if any(_text(a) == "下页" for a in panels[0].select("a")):
-            raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field="pagination")
-        return None
-    if len(markers) != 1:
-        raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field="pagination")
-    marker = markers[0]
-    anchors = marker.select("a")
-    if "p_next_d" in marker.get("class", []) and not anchors:
-        return None
-    anchor = _one(marker, "a", "next_page_url")
-    if _text(anchor) != "下页":
-        raise ParseError(ParseErrorCode.INVALID_FIELD, field="next_page_url")
-    url = _required_url(anchor.get("href"), base, "next_page_url")
-    if url.host != "uc.whu.edu.cn" or not re.fullmatch(
-        r"/tzgg/xstz(?:\.htm|/[1-9][0-9]*\.htm)", url.path or ""
+def _list_url(value: str | None, base: str, field: str) -> WebUrl:
+    # urljoin can erase an empty query/fragment; reject unsupported syntax first.
+    if value is not None and any(character in value for character in "\\?#"):
+        raise ParseError(ParseErrorCode.INVALID_FIELD, field=field)
+    url = _required_url(value, base, field)
+    if (
+        url.scheme != "https"
+        or url.host != "uc.whu.edu.cn"
+        or url.port != 443
+        or url.query is not None
+        or url.fragment is not None
+        or not re.fullmatch(r"/tzgg/xstz(?:\.htm|/[1-9][0-9]*\.htm)", url.path or "")
     ):
-        raise ParseError(ParseErrorCode.INVALID_FIELD, field="next_page_url")
+        raise ParseError(ParseErrorCode.INVALID_FIELD, field=field)
     return url
+
+
+def _page_number(node: Tag, field: str) -> int:
+    value = _text(node)
+    if not re.fullmatch(r"[1-9][0-9]*", value):
+        raise ParseError(ParseErrorCode.INVALID_FIELD, field=field)
+    try:
+        return int(value)
+    except ValueError:  # Includes excessively long, untrusted integer strings.
+        raise ParseError(ParseErrorCode.INVALID_FIELD, field=field) from None
+
+
+def _page_control(panel: Tag, kind: str, label: str, base: str) -> WebUrl | None:
+    field = f"{kind}_page_url"
+    active, disabled = f"p_{kind}", f"p_{kind}_d"
+    marker = _one(panel, f".{active}, .{disabled}", field)
+    classes = marker.get("class", [])
+    is_disabled = disabled in classes
+    if (
+        marker.name != "span"
+        or marker.parent is not panel
+        or (active in classes) == is_disabled
+        or ("p_fun" in classes and is_disabled)
+        or ("p_fun_d" in classes and not is_disabled)
+        or _text(marker) != label
+    ):
+        raise ParseError(ParseErrorCode.INVALID_PAGINATION, field=field)
+    if is_disabled:
+        if marker.select("a"):
+            raise ParseError(ParseErrorCode.INVALID_PAGINATION, field=field)
+        return None
+    anchor = _one(marker, ":scope > a", field)
+    if len(marker.select("a")) != 1:
+        raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field=field)
+    return _list_url(anchor.get("href"), base, field)
+
+
+def _pagination(container: Tag, base: str) -> tuple[PaginationEvidence, WebUrl | None]:
+    # Require the observed sibling region; no paginator is never evidence of termination.
+    region = _one(container.parent, ".page", "pagination")
+    panel = _one(region, ".p_pages", "pagination")
+    if region.parent is not container.parent or panel.parent is not region:
+        raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field="pagination")
+    # Explicitly hidden markers cannot support a visible page declaration.
+    evidence_nodes = [region, panel, *region.parents]
+    for marker in panel.select(".p_no, .p_no_d, .p_dot, .p_next, .p_next_d, .p_last, .p_last_d"):
+        evidence_nodes.extend((marker, *marker.find_all(True)))
+    if any(_hidden(node) for node in evidence_nodes):
+        raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="pagination")
+    current = _one(panel, ".p_no_d", "current_page")
+    current_page = _page_number(current, "current_page")
+    page_url = _list_url(base, base, "page_url")
+    numbers: dict[int, WebUrl | None] = {}
+    previous = 0
+    for node in panel.select(".p_no, .p_no_d"):
+        classes = node.get("class", [])
+        if (
+            node.name != "span"
+            or node.parent is not panel
+            or ("p_no" in classes and "p_no_d" in classes)
+        ):
+            raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="page_numbers")
+        number = _page_number(node, "current_page" if node is current else "page_numbers")
+        if number <= previous:
+            raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="page_numbers")
+        if previous and number > previous + 1:
+            # Visible gaps need the template's explicit ellipsis, not a missing page label.
+            sibling = node.find_previous_sibling()
+            if (
+                sibling is None
+                or "p_dot" not in sibling.get("class", [])
+                or _text(sibling) != "..."
+            ):
+                raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="page_numbers")
+        if node is current:
+            if node.select("a"):
+                raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="current_page")
+            numbers[number] = None
+        else:
+            anchor = _one(node, ":scope > a", "page_numbers")
+            if len(node.select("a")) != 1:
+                raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field="page_numbers")
+            numbers[number] = _list_url(anchor.get("href"), base, "page_numbers")
+        previous = number
+    if next(iter(numbers)) != 1:
+        raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="page_numbers")
+    # A URL claiming two different visible page numbers is contradictory evidence.
+    targets = [url for url in numbers.values() if url is not None]
+    if len(set(targets)) != len(targets) or page_url in targets:
+        raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="page_numbers")
+    total_pages = max(numbers)
+    next_url = _page_control(panel, "next", "下页", base)
+    last_url = _page_control(panel, "last", "尾页", base)
+    is_last = current_page == total_pages
+    if is_last:
+        if next_url is not None or last_url is not None:
+            raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="pagination")
+    else:
+        if next_url is None or last_url is None or last_url != numbers[total_pages]:
+            raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="pagination")
+        if next_url == page_url:
+            raise ParseError(ParseErrorCode.INVALID_FIELD, field="next_page_url")
+        if (current_page + 1 in numbers and next_url != numbers[current_page + 1]) or any(
+            url == next_url and number != current_page + 1 for number, url in numbers.items()
+        ):
+            raise ParseError(ParseErrorCode.INVALID_PAGINATION, field="next_page_url")
+    return PaginationEvidence(
+        current_page=current_page,
+        total_pages=total_pages,
+        is_last_page=is_last,
+        terminal_evidence="disabled_next_and_last" if is_last else None,
+        last_page_url=last_url,
+    ), next_url
 
 
 def parse_list(page: PageInput) -> ListPage:
@@ -230,7 +334,8 @@ def parse_list(page: PageInput) -> ListPage:
             )
         except ParseError as exc:
             raise ParseError(exc.code, field=exc.field, item_index=index) from None
-    return ListPage(entries=tuple(entries), next_page_url=_next_page(container, base))
+    pagination, next_url = _pagination(container, base)
+    return ListPage(entries=tuple(entries), next_page_url=next_url, pagination=pagination)
 
 
 def _attachments(region: Tag, base: str) -> tuple[AttachmentReference, ...]:

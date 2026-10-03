@@ -37,7 +37,18 @@ def notice_html(
     )
 
 
-def list_html(href="../info/1517/128231.htm", title="学生通知", day="2026-09-30", extra=""):
+LIST_PAGINATION = (
+    '<div class="page"><span class="p_pages"><span class="p_no_d">1</span>'
+    '<span class="p_no"><a href="xstz/800.htm">2</a></span>'
+    '<span class="p_no"><a href="xstz/27.htm">3</a></span>'
+    '<span class="p_next"><a href="xstz/800.htm">下页</a></span>'
+    '<span class="p_last"><a href="xstz/27.htm">尾页</a></span></span></div>'
+)
+
+
+def list_html(href="../info/1517/128231.htm", title="学生通知", day="2026-09-30", extra=None):
+    if extra is None:
+        extra = LIST_PAGINATION
     return (
         '<div class="nei_right"><div class="list_txt"><ul class="am-list">'
         f'<li><a href="{href}"><span>{title}</span><i>{day}</i></a></li>'
@@ -151,7 +162,11 @@ def test_bad_identity_fails_without_silent_row_loss(url, code):
 def test_list_scope_relative_urls_variable_count_and_terminal_page():
     outside = '<nav><a href="/info/1517/9.htm">导航</a></nav>'
     terminal = (
-        '<div class="page"><span class="p_pages"><span class="p_next_d">下页</span></span></div>'
+        '<div class="page"><span class="p_pages">'
+        '<span class="p_no"><a href="../xstz.htm">1</a></span>'
+        '<span class="p_no"><a href="700.htm">2</a></span>'
+        '<span class="p_no_d">3</span><span class="p_next_d">下页</span>'
+        '<span class="p_last_d">尾页</span></span></div>'
     )
     result = parse_list(
         html_page(
@@ -165,7 +180,9 @@ def test_list_scope_relative_urls_variable_count_and_terminal_page():
     assert result.entries[0].source_document_id == "1517:1"
     assert str(result.entries[0].detail_url) == "https://uc.whu.edu.cn/info/1517/1.htm"
     assert result.next_page_url is None
-    assert parse_list(html_page(list_html(), LIST_URL)).next_page_url is None
+    assert result.pagination.is_last_page
+    assert result.pagination.terminal_evidence == "disabled_next_and_last"
+    assert not parse_list(html_page(list_html(), LIST_URL)).pagination.is_last_page
 
 
 @pytest.mark.parametrize(
@@ -177,7 +194,9 @@ def test_list_scope_relative_urls_variable_count_and_terminal_page():
     ],
 )
 def test_bad_next_page_is_not_treated_as_terminal(marker):
-    pagination = f'<div class="page"><span class="p_pages">{marker}</span></div>'
+    pagination = LIST_PAGINATION.replace(
+        '<span class="p_next"><a href="xstz/800.htm">下页</a></span>', marker
+    )
     assert_error(
         parse_list,
         html_page(list_html(extra=pagination), LIST_URL),

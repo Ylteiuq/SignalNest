@@ -11,6 +11,7 @@ from signalnest.contracts import (
     ListPage,
     NoticeContent,
     PageInput,
+    PaginationEvidence,
     ParsedNotice,
     RawResponseReference,
 )
@@ -78,12 +79,73 @@ def test_list_page_resolved_links_and_identity():
         title=" 通知 ",
         published_date="2026-09-04",
     )
-    page = ListPage(entries=[entry], next_page_url="https://uc.whu.edu.cn/tzgg/xstz/23.htm")
+    page = ListPage(
+        entries=[entry],
+        next_page_url="https://uc.whu.edu.cn/tzgg/xstz/23.htm",
+        pagination=PaginationEvidence(
+            current_page=1,
+            total_pages=24,
+            is_last_page=False,
+            last_page_url="https://uc.whu.edu.cn/tzgg/xstz/1.htm",
+        ),
+    )
     assert page.entries == (entry,)
     assert entry.title == "通知"
-    assert ListPage(entries=[entry]).next_page_url is None
+    terminal = PaginationEvidence(
+        current_page=24,
+        total_pages=24,
+        is_last_page=True,
+        terminal_evidence="disabled_next_and_last",
+    )
+    assert ListPage(entries=[entry], pagination=terminal).next_page_url is None
     with pytest.raises(ValidationError):
         entry.title = "changed"
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"current_page": 0},
+        {"total_pages": 0},
+        {"current_page": 25},
+        {"current_page": True},
+        {"total_pages": "24"},
+        {"is_last_page": 1},
+        {"is_last_page": True},
+        {"terminal_evidence": "disabled_next_and_last"},
+        {"last_page_url": None},
+    ],
+)
+def test_pagination_contract_rejects_contradictions(overrides):
+    values = dict(
+        current_page=1,
+        total_pages=24,
+        is_last_page=False,
+        last_page_url="https://uc.whu.edu.cn/tzgg/xstz/1.htm",
+    )
+    with pytest.raises(ValidationError):
+        PaginationEvidence(**(values | overrides))
+
+
+def test_list_requires_pagination_and_next_agrees_with_evidence():
+    entry = ListEntry(
+        source_document_id="1517:128231",
+        detail_url=URL,
+        title="通知",
+        published_date="2026-09-04",
+    )
+    terminal = PaginationEvidence(
+        current_page=24,
+        total_pages=24,
+        is_last_page=True,
+        terminal_evidence="disabled_next_and_last",
+    )
+    with pytest.raises(ValidationError):
+        ListPage(entries=[entry])
+    with pytest.raises(ValidationError):
+        ListPage(entries=[entry], pagination=terminal, next_page_url=URL)
+    with pytest.raises(ValidationError):
+        PaginationEvidence(current_page=24, total_pages=24, is_last_page=True)
 
 
 @pytest.mark.parametrize(
