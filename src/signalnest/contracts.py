@@ -35,8 +35,8 @@ class Contract(BaseModel):
 
 
 def header_value(value: str) -> str:
-    if any(ord(character) < 32 or ord(character) == 127 for character in value):
-        raise ValueError("request header contains control characters")
+    if any(ord(character) < 32 or ord(character) > 126 for character in value):
+        raise ValueError("request header must contain printable ASCII characters only")
     return value
 
 

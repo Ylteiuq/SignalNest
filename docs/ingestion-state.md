@@ -1,6 +1,6 @@
 # 单次采集的持久状态与事务接口
 
-本节点只实现离线状态/证据接口，不发送 HTTP、决定分页遍历、重试或复查周期。研究探针不是这些生产接口的验证结果。继续单实例、串行写入；没有任务队列、租约或 outbox。
+本文的状态/证据接口不发送 HTTP，不决定分页遍历或复查周期。后续有界获取已实现于 fetching.py，交接与重试策略见 [Fetcher 设计](fetching.md)；采集协调器仍未实现。研究探针不是这些生产接口的验证结果。继续单实例、串行写入；没有任务队列、租约或 outbox。
 
 ## 最小数据
 
@@ -14,9 +14,9 @@
 
 ## 条件验证
 
-RequestProfile 固定 User-Agent、Accept、Accept-Encoding=identity；拒绝控制字符，没有 Cookie/Auth。URI 保留完整查询顺序和参数，不按文章身份合并。每跳的实际请求分别登记；requested/final 不同的响应不具有本节点的条件复用资格。
+RequestProfile 固定 User-Agent、Accept、Accept-Encoding=identity；UA/Accept 仅 printable ASCII，没有 Cookie/Auth。Fetcher 直接发送该 profile 的精确值，避免客户端默认 Accept-Encoding 与缓存键不一致。URI 保留完整查询顺序和参数，不按文章身份合并。每跳的实际请求分别登记；requested/final 不同的响应不具有本节点的条件复用资格。
 
-完整非空 200、明确 profile、已发布正文引用、已知支持的 Vary（User-Agent/Accept/Accept-Encoding）、无 no-store、未压缩及有效验证器，才可选作条件候选。private/no-cache 不禁止条件验证。本节点不实现通用 HTTP 缓存；未知 Vary、Vary:*、不支持的编码、无效验证器或表示配置变化要求完整获取。新的不合格完整 200 也阻止退回旧基线。200 原始头保持不变；304 的缺省头可沿用，明确冲突的验证头/Vary 或 no-store 保守要求完整获取，不合并更新验证器。
+完整非空 200、明确 profile、已发布正文引用、已知支持的 Vary（User-Agent/Accept/Accept-Encoding）、无 no-store、未压缩及有效验证器，才可选作条件候选。private/no-cache 不禁止条件验证。本节点不实现通用 HTTP 缓存；未知 Vary、Vary:*、不支持的编码、无效验证器或表示配置变化要求完整获取。新的不合格完整 200 也阻止退回旧基线。200 原始头保持不变；304 的缺省头可沿用，明确冲突的验证头/Vary、压缩编码或 no-store 保守要求完整获取，不合并更新验证器。
 
 资源另保存 blocked_by_response_id：不兼容的已绑定 304 会持久化阻断后续条件选择，重启也不会继续发送旧验证器；新的完整 200 清除阻断。该指针只影响传输复用，不删除归档、不冒充业务处理成功。
 
@@ -47,7 +47,7 @@ RequestProfile 固定 User-Agent、Accept、Accept-Encoding=identity；拒绝控
 | finish_run_in_transaction | 独立记录 succeeded/partial_failure/failed/interrupted；未完成的 coverage 记 interrupted，已 complete 保持。 |
 | pending_documents / pending_resources | 数据库查询重建待处理/失败/到期，以及最新原文或 Parser 版本尚未成功处理的资源；没有持久队列、批次配额或重试循环。 |
 
-下一轮顺序：持有 writer_lock → start_run → attempt/读取冷却 → 选择候选 → 有界 HTTP（事务外，每跳重新选择）→ record_response → process_cached_response 或明确 record_failure → 所有列表事务及复核成立后记录 coverage → 独立处理详情 → finish_run。304/首页成功不跳过数据库待办。
+下一轮协调顺序：持有 writer_lock → start_run → attempt → HttpFetcher（读取冷却、选择候选、事务外有界 HTTP、每跳重选）→ 按发送顺序 record_response → process_cached_response 或明确 record_failure → 所有列表事务及复核成立后记录 coverage → 独立处理详情 → finish_run。304/首页成功不跳过数据库待办。
 
 ## 写入保护与迁移
 

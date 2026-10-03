@@ -1,8 +1,10 @@
 """Conservative exact-URI conditional candidates; never sends HTTP or guesses a baseline."""
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
+from typing import Literal
 
 import sqlalchemy as sa
 from pydantic import TypeAdapter, ValidationError
@@ -12,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from signalnest.contracts import RequestProfile, WebUrl
 from signalnest.errors import IngestError
 from signalnest.rawstore import RawStore, RawStoreError
-from signalnest.schema import http_resources, raw_responses
+from signalnest.schema import documents, http_resources, raw_responses
 
 _URI = TypeAdapter(WebUrl)
 _ETAG = re.compile(r'(?:W/)?"[\x21\x23-\x7e\x80-\xff]*"\Z')
@@ -106,6 +108,8 @@ def reuse_reason(response, resource) -> str | None:
 
 
 def validation_reason(observed, body) -> str | None:
+    if observed["content_encoding"] not in {None, "", "identity"}:
+        return "encoding_unsupported"
     if observed["vary"] is not None and _vary(observed["vary"]) != _vary(body["vary"]):
         return "vary_changed"
     if _no_store(observed["cache_control"]):
@@ -162,7 +166,14 @@ def validate_binding(connection: Connection, candidate: CacheCandidate, observed
 
 
 def select_cache_candidate(
-    engine: Engine, raw_store: RawStore, source_id: str, uri: str, profile: RequestProfile
+    engine: Engine,
+    raw_store: RawStore,
+    source_id: str,
+    uri: str,
+    profile: RequestProfile,
+    *,
+    page_type: Literal["list", "notice"] | None = None,
+    source_document_id: str | None = None,
 ) -> CacheSelection:
     uri = request_uri(uri)
     try:
@@ -184,9 +195,9 @@ def select_cache_candidate(
                 return CacheSelection(reason="cache_validation_blocked")
             body = (
                 connection.execute(
-                    sa.select(raw_responses).where(
-                        raw_responses.c.id == resource["latest_response_id"]
-                    )
+                    sa.select(raw_responses, documents.c.source_document_id)
+                    .outerjoin(documents, documents.c.id == raw_responses.c.document_id)
+                    .where(raw_responses.c.id == resource["latest_response_id"])
                 )
                 .mappings()
                 .one()
@@ -195,6 +206,10 @@ def select_cache_candidate(
         raise IngestError("database_read_failed", "cache") from exc
     if resource["request_profile"] != profile.model_dump():
         return CacheSelection(reason="profile_mismatch")
+    if page_type is not None and (
+        body["page_type"] != page_type or body["source_document_id"] != source_document_id
+    ):
+        return CacheSelection(reason="baseline_target_mismatch")
     reason = reuse_reason(body, resource)
     if reason is not None:
         return CacheSelection(reason=reason)
@@ -207,6 +222,58 @@ def select_cache_candidate(
     return CacheSelection(
         CacheCandidate(resource["id"], body["id"], body["etag"], body["last_modified"])
     )
+
+
+def check_not_modified(
+    engine: Engine,
+    raw_store: RawStore,
+    source_id: str,
+    uri: str,
+    profile: RequestProfile,
+    candidate: CacheCandidate,
+    observed: Mapping,
+) -> str | None:
+    """Recheck the selected file/key and 304 headers before returning an HTTP result.
+
+    observed is ResponseInput.model_dump(mode="json"). No evidence is written here;
+    record_response still validates the binding in its own short transaction.
+    """
+    selection = select_cache_candidate(
+        engine,
+        raw_store,
+        source_id,
+        uri,
+        profile,
+        page_type=observed["page_type"],
+        source_document_id=observed["source_document_id"],
+    )
+    if selection.candidate != candidate:
+        return selection.reason or "baseline_superseded"
+    try:
+        with engine.connect() as connection:
+            body = (
+                connection.execute(
+                    sa.select(raw_responses, documents.c.source_document_id)
+                    .outerjoin(documents, documents.c.id == raw_responses.c.document_id)
+                    .where(raw_responses.c.id == candidate.response_id)
+                )
+                .mappings()
+                .one()
+            )
+    except SQLAlchemyError as exc:
+        raise IngestError("database_read_failed", "cache") from exc
+    if (
+        observed["status_code"] != 304
+        or observed["source_id"] != source_id
+        or observed["requested_url"] != body["requested_url"]
+        or observed["final_url"] != body["final_url"]
+        or observed["request_profile"] != profile.model_dump()
+        or observed["page_type"] != body["page_type"]
+        or observed["source_document_id"] != body["source_document_id"]
+        or observed["fetched_at"] < body["fetched_at"]
+    ):
+        return "cache_binding_invalid"
+    return validation_reason(observed, body)
 
 
 def pending_resources(engine: Engine, source_id: str, parser_version: str):

@@ -1,6 +1,6 @@
 # SignalNest
 
-单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化闭环及 HTTP 衔接状态接口已完成**；目前不会采集校园网站或发送邮件。
+单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化、HTTP 状态接口及有界 Fetcher 已完成**；尚无采集命令，不会自动采集校园网站或发送邮件。
 
 ## 安装与检查
 
@@ -24,7 +24,7 @@ cp config.example.toml signalnest.toml
 uv run --locked signalnest config-check --config signalnest.toml
 ```
 
-普通配置为 TOML，包含数据目录、数据库文件路径、信息源、HTTP 超时、请求间隔与 User-Agent。请求间隔是相邻请求间隔，不是轮询周期；未来协调层负责执行，当前没有采集循环。没有尚未使用的邮件/模型密钥配置，未来密钥使用环境变量。
+普通配置为 TOML，包含数据目录、数据库文件路径、信息源、HTTP 超时、请求间隔与 User-Agent。请求间隔是相邻物理请求的间隔，不是轮询周期；Fetcher 在一次运行内执行，当前没有采集循环。没有尚未使用的邮件/模型密钥配置，未来密钥使用环境变量。
 
 **data_dir 和 database 都相对于配置文件所在目录解析**，database 不相对于 data_dir。配置文件路径本身由调用者定位；绝对路径保持绝对路径，`~` 展开为主目录，符号链接配置以目标文件所在目录为准。
 
@@ -85,7 +85,7 @@ uv run --locked signalnest reparse --config "$trial_dir/signalnest.toml" --respo
 
 ## 单次 HTTP 的离线衔接接口
 
-本节点不发 HTTP。新增可独立调用的接口详见 [持久状态设计](docs/ingestion-state.md)：
+这些证据/业务接口不发送 HTTP，详见 [持久状态设计](docs/ingestion-state.md)。获取由下节的 Fetcher 提供，尚未接入采集协调器：
 
 - `select_cache_candidate` 按 source + 实际请求完整 URI + 固定 RequestProfile 选择具体 200，并校验文件。无候选或原文丢失/损坏时返回 `requires_full_fetch`，不能取最近成功版本代替。
 - `record_response(..., candidate=...)` 将无正文 304 绑定到请求前选定的 200。新的完整 200 即使解析失败也成为最新传输原文；旧成功内容保留。URI 查询不排序、不删除；旧路由与新路由、不同 profile 不共用验证器。
@@ -99,15 +99,27 @@ uv run --locked signalnest reparse --config "$trial_dir/signalnest.toml" --respo
 
 写入锁支持 macOS/Linux POSIX，本次实测 macOS；Windows 未支持。数据库路径别名解析到同一锁，硬链接数据库和符号链接锁文件拒绝。帮助/config-check 不获取锁；外部不遵守 advisory lock 的程序不受保护。文件/Parser 均在事务外，正常回滚与锁释放不证明断电耐久性。
 
+## 有界 HTTP 获取接口
+
+`HttpFetcher(engine, raw_store, settings.http, source_id=...)` 是库入口；构造不发送请求，调用者持有 writer_lock、在一次运行内复用实例，并用上下文管理器关闭 Client。`fetch(FetchTarget(uri=..., page_type="list"))` 获取一个资源；详情显式指定 page_type="notice" 与 source_document_id。没有 `crawl-once` 命令。
+
+`FetchResult.outcome` 为 complete、bodyless、transport_failure 或 deferred；`attempts` 保留每个实际 GET 的时间、ResponseInput、完整 bytes/None、304 的具体 candidate 与有限错误。调用者须按顺序登记所有已收到的响应，然后调用既有业务处理接口。Fetcher 自己只校验缓存文件和保存冷却，不归档响应或提交通知成功。
+
+默认 profile 的 User-Agent 来自配置，Accept=text/html、Accept-Encoding=identity；也可显式提供 RequestProfile，实际三个请求头始终完全一致，拒绝不能直接发送的非 ASCII profile 值。Cookie/Auth 不发送；TLS 验证开启，环境代理关闭，底层重试为 0。手动跳转限本站 HTTPS 443、支持的列表路径或同身份详情路由，每跳重新选择自己的验证器。
+
+完整 200 正文流式计数，默认最多 2 MiB，拒绝压缩编码、短读、空正文与非 HTML 类型；站点结构仍由 Parser 验证。默认两次额外尝试、三跳重定向、单资源 60 秒、全实例 600 秒/120 次物理请求；HTTP 超时按剩余预算收紧。异常 304 最多一次完整 GET 修复，共用额外尝试/间隔/运行预算。429 与适用的 Retry-After 保存完整 not-before，最多本次等 15 秒，其他同来源 URL 与重启也须遵守。期限是协作预算，不能承诺同步 DNS/read 内的精确硬终止。
+
+交接表、错误分类、保守策略及限制见 [Fetcher 设计](docs/fetching.md)。本交付全部离线验证，没有校园网站实采；跨页扫描、证据登记与业务失败恢复的整条协调流程属于下一交付。
+
 ## 日志与当前边界
 
 命令结果写 stdout；结构化事件日志写 stderr，包含 UTC 时间、级别、事件名和可选 source_id/run_id/document_id/response_id/stage/error_code。错误诊断也写 stderr，因此错误输出不是纯 JSON 流。日志不包含原始配置、URL、异常正文或网页正文；只在 CLI 显式配置 SignalNest 的 logger，不修改 root logger。
 
-已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、同步 HTTP 客户端配置、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析及结构化日志。
+已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析及结构化日志。
 
-尚未实现：真实 HTTP 获取、重试/限速与分页协调、调度、Email、历史搜索、LLM/Embedding/RAG/Agent。HTTP 客户端不自动发送请求；Parser 返回结果也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
+尚未实现：单次采集协调器/CLI、完整/受限扫描、复查策略、调度、Email、历史搜索、LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
 
-fixture 驱动的 Parser 与离线闭环已完成；后续依次为：**单次可靠 HTTP 采集 → 调度与 Email → 真实运行观察**。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。当前离线导入不产生邮件事件。
+fixture 驱动的 Parser 与离线闭环已完成；本轮分为三个交付：**有界 Fetcher（已完成）→ 单次采集协调器与 CLI → 整条恢复验证、真实终止实验及少量低频实采**。每个交付完成后停下报备。随后先定时执行并观察，再设计 Email 记录与补偿。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。当前离线导入不产生邮件事件。
 
 列表 304 不代表没有待补抓详情或到期复查任务；“遇到已知通知就停止分页”不能保证完整性。模块边界、规范化规则、错误分类和后续集成约定见 [设计说明](docs/design.md)。
 
@@ -171,3 +183,7 @@ print(notice.source_document_id, notice.content.content_sha256())
 2026-10-02 HTTP 衔接状态阶段：macOS 26.6.2 arm64、CPython 3.12.14、SQLite 3.53.1，依赖未变。完整 pytest **375 项离线测试通过**（保留 315 项、新增 60 项）；`ruff check src tests`、`ruff format --check src tests`（35 个 Python 文件）与 `git diff --check` 通过。0002→0003 保留旧通知/版本/原文/响应，旧缓存资格未知；重复初始化与迁移异常回滚通过。测试覆盖 304 精确绑定及头冲突、丢失/损坏原文的完整获取结果、新 200 解析失败不回退、规则升级/获取时间保留、业务/资源/due/冷却组合回滚、重开库重建待办、完整覆盖与运行部分失败独立，以及所有 CLI 写入争锁。
 
 两个真实 POSIX 子进程验证争锁拒绝、正常退出及 SIGTERM 后锁可再次获取；这仅验证 OS 锁释放，不是数据库进程崩溃恢复实验。数据库中断仍是正常进程内 SQL 触发器/异常注入与关闭重开；未验证真实网络、HTTP 条件头发送/回退、数据库 kill/断电或 Linux/Windows。核对 28 个 research/Parser/rawstore/0001/0002 文件摘要不变，保留之前分页节点修改。全仓库 Ruff 再次执行，仍只有前述研究脚本 21 项 lint 与 2 个格式问题，按边界未修改；没有提交、推送或创建 PR。
+
+2026-10-03 有界 Fetcher 交付：macOS 26.6.2 arm64、CPython 3.12.14、SQLite 3.53.1、HTTPX 0.28.1，依赖未变。`uv sync --locked --offline`、完整 pytest **530 项通过**（原有 375 项、新增 155 项）、`ruff check src tests`、`ruff format --check src tests`（36 个 Python 文件）及 `git diff --check` 通过；CLI 帮助/示例配置检查仍正确。新增测试使用 MockTransport、自定义 SyncByteStream 和假时钟，连接真实归档/缓存/SQLite 服务：精确 profile/条件头、Cookie/Auth 排除、响应关闭、原始流上限/部分失败、唯一重试层、手动目标校验/循环/累计跳数、共同请求/运行预算、304 完整回退、最新失败原文重处理、原获取时间/新规则保留、完整 Retry-After、冷却写入故障及关闭重开库后的冷却。
+
+没有真实 HTTP 请求、TLS/DNS/slow-drip 测量、整条采集协调器、数据库杀进程或断电实验；协作 deadline 不是硬期限，损坏归档不会自动覆盖。research/fixture、Parser、rawstore、schema、历史迁移和锁文件保持不变，无新增依赖；下一交付再连接扫描、详情与运行摘要。全仓库研究脚本问题保留，开发检查范围仍为 src/tests。

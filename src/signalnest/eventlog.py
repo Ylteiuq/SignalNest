@@ -17,6 +17,9 @@ class Event(StrEnum):
     RESPONSE_RECORDED = "response_recorded"
     PAGE_PROCESSED = "page_processed"
     PROCESSING_FAILED = "processing_failed"
+    FETCH_STARTED = "fetch_started"
+    FETCH_RETRIED = "fetch_retried"
+    FETCH_FINISHED = "fetch_finished"
 
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")

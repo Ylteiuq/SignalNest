@@ -1,6 +1,6 @@
 # SignalNest 设计与离线持久化
 
-项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储与离线入库/重新解析已完成。当前协调范围仅为已有 bytes 的处理，尚无 HTTP 获取或分页扫描协调。
+项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析与有界 HTTP Fetcher 已完成。尚无单次采集命令或分页扫描协调。
 
 ## 模块边界
 
@@ -16,15 +16,17 @@
 - `errors.py`：有限业务错误与时间/错误代码校验。
 - `migrations/`：随 Python 包安装的固定历史迁移，升级与工作目录无关。
 - `contracts.py`：不可变 Pydantic 输入/输出契约、规范化 JSON 与内容摘要，无 I/O。
-- `fetching.py`：创建同步 HTTPX Client，不主动请求；不接触 Parser 或数据库。
+- `fetching.py`：显式的有界同步 HTTP GET、固定 profile、流式上限、唯一重试层、手动跳转、缓存验证与持久冷却；不调用 Parser、不归档、不提交业务成功。构造不发送请求。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
 - `eventlog.py`：标准库 JSON 日志，CLI 显式启用；不在导入时配置日志。
 
-HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；后续获取器负责验证目标 URL/重定向与获取响应。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，尚无完整重试或采集流程。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
+HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；Fetcher 校验目标 URL/每次跳转、收紧剩余超时并流式读取。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，重试只在 Fetcher 一层执行，尚无采集协调流程。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
 
 已实现的站点函数签名为 `parse_list(page: PageInput) -> ListPage` 和 `parse_notice(page: PageInput) -> ParsedNotice`。页面输入包含内容字节与最终页面 URL，以最终 URL 解析相对地址；函数只返回结构化数据，不访问网络或数据库。
 
-未来 HTTP 协调层负责 request_interval、列表遍历、详情补抓和重试，复用已有归档/业务入口。没有占位采集命令、空 coordinator 或插件工厂。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
+Fetcher 执行单次有界获取的请求间隔和重试；未来 HTTP 协调层负责列表遍历、详情补抓与复查策略，复用 Fetcher 和已有归档/业务入口。没有占位采集命令、空 coordinator 或插件工厂。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
+
+有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。此次不改变数据库 schema、Parser 版本或内容摘要。RequestProfile 收紧为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
 
 ## 最小数据契约
 
@@ -211,7 +213,7 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 ## 下一阶段：单次可靠 HTTP 采集
 
 1. 使用已实现的分页证据协调跨页连续性、目标/循环/总页数漂移检查，并落实扫描覆盖与完成条件；区分普通增量、首次历史导入及停机恢复，不改成遇已知条目即停止。
-2. 实现同步串行获取：记录实际客户端获取时间，限制响应体大小和重定向、目标校验、超时/限速/有限重试，网络等待在事务外；通过 ResponseInput/record_response 登记证据。
-3. 使用 select_cache_candidate 固定候选并发送正确条件头；每跳重新选择实际 URI 的 profile/基线，record_response 将 304 显式绑定；full_fetch_required 触发有预算的完整回退，不能生成空基线。
+2. 复用已实现的 HttpFetcher，在同一个运行实例内共享请求/时间预算与间隔；按顺序将各 attempt 的 ResponseInput/完整 bytes/candidate 交给 record_response，包括跳转、重试与失败元数据。传输失败没有响应时直接登记目标错误，不伪造状态码。
+3. Fetcher 已选择具体候选、发送精确 profile/条件头并在异常 304 时有界修复。协调器仍须处理登记后至业务处理前原文再失效的 full_fetch_required，将修复限定为一次、共享既有运行预算并保留证据；不能在外层再套无界重试或生成空基线。
 4. 自动恢复调用 process_cached_response，显式历史重算用 process_response；元数据失败通过 record_failure/连接入口登记，给出详情 next_due_at；独立从 SQLite 查询待处理/失败详情与到期复查；列表 304 不阻止这些工作。不用内存列表或最大版本 ID 作为成功事实。
-5. 整个写入运行持有 writer_lock，创建 run、登记 attempt/冷却，页面提交后独立记录覆盖和运行结果；用离线 HTTP MockTransport 验证分页移动、304/基线丢失、限速和传输失败；另安排真实终止进程/重启实验，不能把当前故障注入等同于该实验。之后进入调度与 Email，最后真实运行观察。
+5. 整个写入运行持有 writer_lock，创建 run、登记 attempt/冷却，页面提交后独立记录覆盖和运行结果；用离线 HTTP MockTransport 验证分页移动、304/基线丢失、限速和传输失败；另安排真实终止进程/重启实验，不能把当前故障注入等同于该实验。整条恢复测试通过后，以临时目录低频实采少量页面并比较两次运行；之后先定时执行并观察，再设计 Email 记录与补偿。

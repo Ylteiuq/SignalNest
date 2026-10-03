@@ -16,6 +16,7 @@ def test_client_configuration_and_no_implicit_requests(monkeypatch):
     real_client = httpx.Client
     requests = []
     options = {}
+    transport_options = {}
 
     def respond(request):
         requests.append(request)
@@ -23,9 +24,14 @@ def test_client_configuration_and_no_implicit_requests(monkeypatch):
 
     def client_with_mock_transport(**kwargs):
         options.update(kwargs)
-        return real_client(**kwargs, transport=httpx.MockTransport(respond))
+        return real_client(**kwargs)
+
+    def mock_transport(**kwargs):
+        transport_options.update(kwargs)
+        return httpx.MockTransport(respond)
 
     monkeypatch.setattr(httpx, "Client", client_with_mock_transport)
+    monkeypatch.setattr(httpx, "HTTPTransport", mock_transport)
     with make_client(settings) as client:
         assert requests == []
         assert client.timeout.connect == settings.connect_timeout_seconds
@@ -36,10 +42,15 @@ def test_client_configuration_and_no_implicit_requests(monkeypatch):
         assert response.status_code == 302
         assert len(requests) == 1
         assert requests[0].headers["User-Agent"] == "SignalNest/0.1"
+        assert requests[0].headers["Accept"] == "text/html"
+        assert requests[0].headers["Accept-Encoding"] == "identity"
     assert client.is_closed
     assert options["verify"] is True
     assert options["trust_env"] is False
     assert options["limits"].max_connections == 1
+    assert transport_options["retries"] == 0
+    assert transport_options["verify"] is True
+    assert transport_options["trust_env"] is False
 
 
 def test_explicit_parser_backend_with_existing_fixture():
