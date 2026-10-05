@@ -1,11 +1,11 @@
-# SignalNest 设计与离线持久化
+# SignalNest 设计与采集持久化
 
-项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析与有界 HTTP Fetcher 已完成。尚无单次采集命令或分页扫描协调。
+项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策与只读诊断已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。新增外部定时部署模板，没有 Python 常驻调度器或邮件发送。
 
 ## 模块边界
 
 - `config.py`：读取并校验普通 TOML，不创建存储。
-- `cli.py`：配置、显式初始化、本地 JSON 元数据/HTML 导入、按响应 ID 重新解析和退出码；帮助/配置校验不连接数据库。
+- `cli.py`：配置、显式初始化、本地 JSON 元数据/HTML 导入、按响应 ID 重新解析、单次采集参数及退出码；帮助/配置校验不连接数据库或获取锁。
 - `schema.py`：同步 SQLAlchemy Core 表定义，导入只构建内存元数据，不建表。
 - `storage.py`：惰性 engine、SQLite 连接设置与 Alembic 初始化/升级。
 - `rawstore.py`：原始 bytes 的摘要、原子发布与验证读取；不访问数据库。构造 RawStore 不操作文件。
@@ -17,16 +17,19 @@
 - `migrations/`：随 Python 包安装的固定历史迁移，升级与工作目录无关。
 - `contracts.py`：不可变 Pydantic 输入/输出契约、规范化 JSON 与内容摘要，无 I/O。
 - `fetching.py`：显式的有界同步 HTTP GET、固定 profile、流式上限、唯一重试层、手动跳转、缓存验证与持久冷却；不调用 Parser、不归档、不提交业务成功。构造不发送请求。
+- `crawling.py`：`CrawlOptions`、`crawl_once` 与 `CrawlSummary`；持有整个运行的实例锁，复用 Fetcher/原文/缓存/业务接口，验证实际跨页覆盖，独立处理数据库详情待办并收尾。不隐式迁移，不保存分页续扫游标。
+- `runtime_policy.py`：到期候选分组/公平批次、上海日历复查档及有限错误延期；显式保守重算旧成功 due 的短事务入口。不取网页、不改 Parser、不引入第二套调度真相。
+- `status.py`：已有数据库的一致只读快照与有限诊断；不修正状态、不获取锁、不读取 raw 或发送请求。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
 - `eventlog.py`：标准库 JSON 日志，CLI 显式启用；不在导入时配置日志。
 
-HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；Fetcher 校验目标 URL/每次跳转、收紧剩余超时并流式读取。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，重试只在 Fetcher 一层执行，尚无采集协调流程。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
+HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；Fetcher 校验目标 URL/每次跳转、收紧剩余超时并流式读取。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，重试只在 Fetcher 一层执行，协调器不另套重试。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
 
 已实现的站点函数签名为 `parse_list(page: PageInput) -> ListPage` 和 `parse_notice(page: PageInput) -> ParsedNotice`。页面输入包含内容字节与最终页面 URL，以最终 URL 解析相对地址；函数只返回结构化数据，不访问网络或数据库。
 
-Fetcher 执行单次有界获取的请求间隔和重试；未来 HTTP 协调层负责列表遍历、详情补抓与复查策略，复用 Fetcher 和已有归档/业务入口。没有占位采集命令、空 coordinator 或插件工厂。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
+Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责列表遍历、详情补抓与复查，复用已有归档/业务入口。没有插件工厂、任务平台或第二套业务成功状态。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
 
-有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。此次不改变数据库 schema、Parser 版本或内容摘要。RequestProfile 收紧为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
+有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。此次不改变数据库 schema、Parser 版本或内容摘要。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
 
 ## 最小数据契约
 
@@ -43,9 +46,9 @@ Fetcher 执行单次有界获取的请求间隔和重试；未来 HTTP 协调层
 
 ## 日志
 
-CLI 在参数解析后才配置 signalnest logger，帮助和包导入不触发配置。除配置/初始化事件，还记录 raw_archived、response_recorded、page_processed、processing_failed。每次命令有 run_id；字段白名单为 time、level、event 及 source_id/run_id/document_id/response_id/stage/error_code。身份和阶段/错误仅接受有限长度安全字符；原始消息、args、异常栈、任意 extra、URL、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容。服务函数通过 signalnest logger 发出事件，调用者自行显式配置日志。
+CLI 在参数解析后才配置 signalnest logger，帮助和包导入不触发配置。除配置/初始化事件，还记录 raw_archived、response_recorded、page_processed、processing_failed、fetch_started/retried/finished 和 crawl_started/finished。每次命令有 run_id；字段白名单为 time、level、event 及 source_id/run_id/document_id/response_id/stage/error_code。身份和阶段/错误仅接受有限长度安全字符；原始消息、args、异常栈、任意 extra、URL、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容。服务函数通过 signalnest logger 发出事件，调用者自行显式配置日志。
 
-stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。日志只输出标准流，无文件 handler、后台线程或全局 root logger 改动。字段白名单不是秘密识别器，调用者仍不得把密钥塞进身份字段。
+stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。日志只输出标准流，无文件 handler、后台线程或全局 root logger 改动。新增 status_read、policy_applied、detail_group_finished 事件；分组事件只增加 attempted/succeeded/failed/remaining_due/unserved/oldest_overdue_seconds 的非负整数白名单。字段白名单不是秘密识别器，调用者仍不得把密钥塞进身份字段。外部日志轮转和一致备份见 [运维文档](operations.md)。
 
 ## 已实现的数据模型
 
@@ -72,7 +75,7 @@ stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。
 - `processed`：最近一次处理成功；必须有尝试时间、成功时间和属于该通知的版本指针，无错误代码。
 - `failed`：最近一次处理失败；必须有尝试时间和错误代码。首次失败没有成功时间/版本；复查失败保留已有成功时间与版本。
 
-所有操作时间为 UTC Unix 秒整数；发布日期为页面展示的日历日期，不从 HTTP Last-Modified 推导。`next_due_at` 可空，支持后续重启后补抓/复查；此阶段没有调度器。错误字段存简短分类代码，不存网页正文或可能含秘密的完整异常文本。
+所有操作时间为 UTC Unix 秒整数；发布日期为页面展示的日历日期，不从 HTTP Last-Modified 推导。`next_due_at` 是详情唯一到期来源；离线成功记录若为空，首次进入 `crawl_once` 时事务性设为运行开始时间，明确加入联网复查。成功用本次上海日历年龄选择 24 小时/7 天/30 天档，失败用有限错误延期，due 与业务状态同事务。旧 due 的政策更新必须显式保守重算，不推迟逾期或消除失败退避；不猜旧 discovery_origin。外部 timer 触发仍是有界单次运行。错误字段存简短分类代码，不存网页正文或可能含秘密的完整异常文本；规则与诊断见 [政策说明](runtime-policy.md)。
 
 处理顺序已实现：先归档并独立登记响应证据，事务结束后读取/验证原文并解析，再用一个短事务提交幂等版本、通知成功状态和响应处理摘要；失败单独短事务记录错误，不覆盖成功产物。数据库约束验证引用、必要字段和幂等性；Parser 验证站点内容，RawStore 验证原始路径和摘要。列表全部条目及该响应处理摘要也在同一事务内提交。
 
@@ -80,7 +83,7 @@ raw_responses.last_attempt_at 是最近一次处理完成/失败的时间，last
 
 处理时间使用当前真实处理时刻，或调用者显式给出的 UTC 秒。不得早于 fetched_at、该响应或目标通知的最近处理时间，拒绝时不回退状态。首次 discovered_at 为第一次本地登记时间，重复发现保留。每次成功处理显式设置 current_version_id，包括重新解析历史原文；版本 parsed_at 保留首次创建该产物的时间，最新尝试时间另存通知和响应。
 
-按照 [SQLAlchemy SQLite 事务说明](https://docs.sqlalchemy.org/en/20/dialects/sqlite.html) 配置连接；通过 [Alembic 共享连接接口](https://alembic.sqlalchemy.org/en/latest/cookbook.html#sharing-a-connection-across-one-or-more-programmatic-migration-commands) 执行升级。每个应用连接开启 SQLite 外键检查，等待锁上限 5 秒，显式 BEGIN 使 DDL 和版本号更新一起回滚；不添加 WAL、后台队列或连接并发机制。迁移由 CLI 显式运行，导入不迁移。生产升级应先备份，历史迁移冻结后通过新增 revision 演进；使用 SQLite batch migration 时需评估版本表与通知表的双向外键，不能盲目采纳自动生成代码。
+按照 [SQLAlchemy SQLite 事务说明](https://docs.sqlalchemy.org/en/20/dialects/sqlite.html) 配置连接；通过 [Alembic 共享连接接口](https://alembic.sqlalchemy.org/en/latest/cookbook.html#sharing-a-connection-across-one-or-more-programmatic-migration-commands) 执行升级。每个应用连接开启 SQLite 外键检查，等待锁上限 5 秒，显式 BEGIN 使 DDL 和版本号更新一起回滚；不添加 WAL、后台队列或连接并发机制。迁移由 CLI 显式运行，导入和采集不迁移。生产升级应先备份，历史迁移冻结后通过新增 revision 演进；使用 SQLite batch migration 时需评估版本表与通知表的双向外键，不能盲目采纳自动生成代码。
 
 ## 原始文件与跨介质一致性
 
@@ -114,7 +117,7 @@ process_response 可注入纯 notice_parser/list_parser 函数以支持规则升
 
 列表处理的 ProcessingResult 与 CLI JSON 均增加 pagination，保留原 next_page_url；它是 Parser 通过验证的同一个证据对象。详情与 evidence_only 的 304 没有列表证据，pagination 为 None/null，不表示末页。分页对象不持久化到 schema；重新解析归档列表时重新验证并返回证据。证据错误发生在条目事务之前，原文与分类错误可保留，不能登记半页或清除既有成功状态。
 
-预期错误统一为 IngestError，提供 code/stage/response_id/document_id；Parser 分类加 `parse_` 前缀，文件错误为 raw_path_invalid/raw_missing/raw_digest_mismatch/raw_not_regular/raw_io_or_unsafe_path。身份不一致为 identity_mismatch；数据库读/写失败为 database_read_failed/database_write_failed；失败登记失败为 failure_state_unavailable。未发现目标、类型未知、无正文、非 200、来源不符或时间倒退都有明确代码。只存代码，不存整段异常。未经预期的程序缺陷仍抛出原异常，不转换为解析成功或空结果；不能据此假定失败状态已经保存。
+预期错误统一为 IngestError，提供 code/stage/response_id/document_id；Parser 分类加 `parse_` 前缀，文件错误为 raw_path_invalid/raw_missing/raw_digest_mismatch/raw_not_regular/raw_io_or_unsafe_path。身份不一致为 identity_mismatch；数据库读/写失败为 database_read_failed/database_write_failed；失败登记失败为 failure_state_unavailable，运行收尾无法登记为 run_finalization_unavailable。未发现目标、类型未知、无正文、非 200、来源不符或时间倒退都有明确代码。只存代码，不存整段异常。未经预期的程序缺陷仍抛出原异常，不转换为解析成功或空结果；不能据此假定失败状态已经保存。
 
 业务函数中的程序缺陷直接传播；CLI 最后边界将非预期异常转为非零退出和无异常正文的 unexpected_error 诊断，明确不确认失败登记已完成。
 
@@ -124,13 +127,13 @@ process_response 可注入纯 notice_parser/list_parser 函数以支持规则升
 
 列表返回 304 不代表没有待补抓详情或到期复查任务。列表检查与详情处理队列必须独立推进。
 
-“遇到已知通知就停止分页”不能作为完整性的保证；置顶、顺序变化和分页移动会使重叠页策略漏报。普通运行的覆盖范围必须明确，周期完整核对及停机恢复策略将在可靠采集阶段实现。
+“遇到已知通知就停止分页”不能作为完整性的保证；置顶、顺序变化和分页移动会使重叠页策略漏报。当前每次扫描明确选择 full/limited，沿实际 next 继续处理已知页；外部 timer 分别触发普通两页轮询和每日完整核对，不据有限运行推断 full 尝试。
 
 普通运行关注增量及待处理任务；首次历史导入建立历史基线，不能默认把所有旧通知当作新提醒。未来通知策略需独立决定历史导入、首次发现和正文更新是否触发邮件，本阶段没有发送行为。
 
 ## 已完成的 WHU Parser
 
-`PARSER_VERSION = "whu-student-notices-v2"`。本次升级列表分页验证，沿用一个站点规则版本，不另建版本框架。详情产物也标为 v2，虽然详情选择器、提取、规范化与 NoticeContent 摘要规则均未变化；两份详情 fixture 的内容及摘要与 v1 相同。重新解析已存 v1 详情，现有唯一键允许同内容摘要的 v2 产物共存并成为当前版本，旧产物保留。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
+`PARSER_VERSION = "whu-student-notices-v2"`。分页证据阶段升级列表验证，沿用一个站点规则版本，不另建版本框架；本次协调器未改规则或版本。详情产物也标为 v2，虽然详情选择器、提取、规范化与 NoticeContent 摘要规则均未变化；两份详情 fixture 的内容及摘要与 v1 相同。重新解析已存 v1 详情，现有唯一键允许同内容摘要的 v2 产物共存并成为当前版本，旧产物保留。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
 
 列表只读取唯一的 `div.list_txt > ul.am-list`，逐条验证其 li / a / span / i。条目失败时整页抛错，item_index 标记位置；不返回部分成功。空列表异常；不硬编码页长 25。保留原始条目顺序和置前旧日期通知，不去重或按日期过滤。分页须独立通过下面的源级证据验证；next_page_url 仅在确认末页时返回 None，缺失结构或活动链接损坏绝不当作末页。
 
@@ -165,7 +168,9 @@ next_page_url 保留在 ListPage 顶层，避免两个字段重复储存同一�
 5. 所有分页目标以及输入最终列表 URL 都要求 HTTPS、uc.whu.edu.cn、默认 443、无凭据/query/fragment，且路径精确为 /tzgg/xstz.htm 或 /tzgg/xstz/<正整数>.htm；拒绝 next 自链和反斜杠等不支持形式。先检查原始 href，避免 URL 拼接抹去空查询/片段。普通正文引用仍沿用原 HTTP(S) 契约。
 6. 分页区域及祖先、必要数字/控制/省略号及其后代若明确 hidden、aria-hidden=true 或内联 display:none / visibility:hidden，不能作为可见证据，抛 invalid_pagination。不计算外部 CSS，不执行脚本，无法承诺浏览器布局意义上的可见性。
 
-这些证据只说明这一份页面的声明有效。后续协调器应从首页开始，沿 next 实际目标发送请求；分别维护请求 URI 和最终 URI 的已访问集合，拒绝循环；要求每页 current 恰为前页+1、total 不漂移，并保存初始 last_page_url 与实际尾页目标核对。预算中止、解析/入库失败或跨页漂移都不能宣布扫描完成。只有连续覆盖到明确末页、每页事务成功及按扫描策略复核后才能判定 complete，仍不保证站点同一时刻的一致快照。列表 304、全已知页或旧日期不改变这些职责。本次没有网络遍历、缓存、扫描游标或完成状态表。
+这些证据只说明这一份页面的声明有效。`crawl_once` 从首页开始，沿 next 实际目标发送请求；维护跨页实际请求/最终 URI 集合（包含重定向路径），拒绝重复；要求 current 从 1 连续到 total、总数和活动尾页目标一致，并核对实际末页路径包含初始尾页目标。条目提交成功后才计入页面覆盖；后续发现跨页漂移不会撤销已正确登记的条目，但不能宣布 complete。
+
+full 模式还以 `revalidate=True` 发送首页复核，比较最终 URI 与完整 `ListPage`（有序身份/标题/日期/URL、下一页及分页证据）；失败、变化或预算不足均不推进完整扫描成功时间。全部通过后才构造 `ScanCompletion`，再用短事务提交覆盖。limited 从不声明 complete，详情批次独立于扫描覆盖：列表中断/304 后仍查询 SQLite；服务端冷却或全局网络预算则停止所有请求。首页复核不能证明站点同一时刻的一致快照，也不能发现扫描期间其他页短暂变化。少量实采仅运行 limited，没有验证真实全站覆盖；长期观察仍待后续。单次策略与统计定义见 [协调器设计](crawling.md)。
 
 ## 固定规范化规则与范围
 
@@ -201,19 +206,19 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 
 [可靠性报告](../research/changedetection-io-reliability.md) 和 [SignalNest 决策报告](../research/changedetection-io-signalnest-decisions.md) 提醒必须分开三个概念：原始字节摘要只标识取得的采集证据；规范化内容摘要标识解析产物；parser_version 标识规则。原文相同不证明上次解析成功。报告中关于上游崩溃窗口/raw-checksum shortcut 的后果是源码推断，尚未运行验证；本实现借鉴风险边界，不宣称复现上游缺陷，也未复制上游代码。
 
-离线业务层已遵守，后续 HTTP 协调层也须遵守：
+离线业务层与单次 HTTP 协调层均遵守：
 
 - 原始响应入档仅表示取得采集证据，不推进成功游标或成功状态。
 - Parser 返回表示解析与字段验证成功；协调层仍须将版本及成功状态提交后才算持久化成功。
 - 解析失败记录分类并保留最近成功版本；同一原文以后仍可重试，规则升级后仍可重新解析。
 - 如将来跳过重复处理，必须有对应原文和 parser_version 的已成功解析结果，不能只看原始摘要。内容摘要不含 parser_version；现有数据库唯一键另含版本，所以新版规则产物即使摘要相同也可保留。
 
-本节点实现离线原文、短事务及最小传输/运行事实；没有任务队列、分页续扫游标或通知 outbox。研究建议精简为三张运行事实表，省去双份详情 due、run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；这些不属于本节点。完整扫描接口只接受协调器声明，不代替实际链验证。
+现有离线原文、短事务及最小传输/运行事实已足够连接协调器，无需新增 schema。没有任务队列、分页续扫游标或通知 outbox。研究建议精简为三张运行事实表，省去双份详情 due、持久 run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；计数在持锁的本次运行中计算。完整扫描状态接口只接受声明，实际链验证由 `crawl_once` 在调用前完成。
 
-## 下一阶段：单次可靠 HTTP 采集
+## 已完成的恢复验证与后续边界
 
-1. 使用已实现的分页证据协调跨页连续性、目标/循环/总页数漂移检查，并落实扫描覆盖与完成条件；区分普通增量、首次历史导入及停机恢复，不改成遇已知条目即停止。
-2. 复用已实现的 HttpFetcher，在同一个运行实例内共享请求/时间预算与间隔；按顺序将各 attempt 的 ResponseInput/完整 bytes/candidate 交给 record_response，包括跳转、重试与失败元数据。传输失败没有响应时直接登记目标错误，不伪造状态码。
-3. Fetcher 已选择具体候选、发送精确 profile/条件头并在异常 304 时有界修复。协调器仍须处理登记后至业务处理前原文再失效的 full_fetch_required，将修复限定为一次、共享既有运行预算并保留证据；不能在外层再套无界重试或生成空基线。
-4. 自动恢复调用 process_cached_response，显式历史重算用 process_response；元数据失败通过 record_failure/连接入口登记，给出详情 next_due_at；独立从 SQLite 查询待处理/失败详情与到期复查；列表 304 不阻止这些工作。不用内存列表或最大版本 ID 作为成功事实。
-5. 整个写入运行持有 writer_lock，创建 run、登记 attempt/冷却，页面提交后独立记录覆盖和运行结果；用离线 HTTP MockTransport 验证分页移动、304/基线丢失、限速和传输失败；另安排真实终止进程/重启实验，不能把当前故障注入等同于该实验。整条恢复测试通过后，以临时目录低频实采少量页面并比较两次运行；之后先定时执行并观察，再设计 Email 记录与补偿。
+新增 9 项跨运行集成回归连接真实归档、缓存、Parser 与 SQLite；5 项真实 SIGKILL 实验在原文登记后、业务提交前、覆盖提交前和运行收尾前终止生产协调器，再由全新进程重建待办，验证成功版本、组合事务与覆盖事实。HTTP 在这些测试中仍是模拟的，不能称作断电验证。
+
+随后临时目录低频实采三轮，共 9 次真实 GET。首页 304 的 Vary 缩减触发保守完整回退，第二轮请求预算中断，第三轮沿用原库继续处理。最终 25 个身份、4 个版本、21 条待办，未登记完整扫描成功；观察已固化为离线回归。实验边界、持久结果和复现方式见 [恢复验证记录](recovery-validation.md)。
+
+采集三交付完成后已增加 [处理政策与诊断](runtime-policy.md) 及 [一个定时部署模板](operations.md)。没有新增 schema、持久配额/优先级、扫描模式字段或后台 Python 调度器；后续在目标机观察，再设计 Email 发送记录与补偿。本节点不安装定时器或发送邮件。

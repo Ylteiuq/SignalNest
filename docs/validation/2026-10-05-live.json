@@ -1,0 +1,354 @@
+{
+  "validation_date": "2026-10-05",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "kind": "live_http_with_production_cli_and_temporary_storage",
+  "trial_dir": "/private/tmp/signalnest-live-20261005-gqqwm_q1",
+  "source_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+  "profile": {
+    "user_agent": "SignalNest/0.1 (bounded verification)",
+    "accept": "text/html",
+    "accept_encoding": "identity"
+  },
+  "limits": {
+    "max_pages": 1,
+    "max_requests": 3,
+    "run_seconds": 40,
+    "resource_seconds": 15,
+    "max_body_bytes": 1048576,
+    "request_interval_seconds": 5
+  },
+  "runs": [
+    {
+      "run": 1,
+      "max_details": 2,
+      "returncode": 0,
+      "summary": {
+        "run_id": "cfd56c3bd3d94ccd8e414e87205e7fd5",
+        "source_id": "whu-undergrad-student",
+        "origin": "bootstrap",
+        "scan_mode": "limited",
+        "result": "succeeded",
+        "coverage": "limited",
+        "coverage_error_code": "page_limit",
+        "error_code": null,
+        "started_at": 1791176839,
+        "finished_at": 1791176849,
+        "pages_committed": 1,
+        "home_rechecked": false,
+        "scanned_entries": 25,
+        "new_documents": 25,
+        "legacy_rechecks_scheduled": 0,
+        "details_attempted": 2,
+        "details_succeeded": 2,
+        "details_failed": 0,
+        "physical_requests": 3,
+        "remaining_due": 23,
+        "remaining_unprocessed": 23
+      }
+    },
+    {
+      "run": 2,
+      "max_details": 2,
+      "returncode": 1,
+      "summary": {
+        "run_id": "ce07fe3968644bcd97a49e5728b0c886",
+        "source_id": "whu-undergrad-student",
+        "origin": "bootstrap",
+        "scan_mode": "limited",
+        "result": "interrupted",
+        "coverage": "limited",
+        "coverage_error_code": "page_limit",
+        "error_code": "request_limit",
+        "started_at": 1791176855,
+        "finished_at": 1791176865,
+        "pages_committed": 1,
+        "home_rechecked": false,
+        "scanned_entries": 25,
+        "new_documents": 0,
+        "legacy_rechecks_scheduled": 0,
+        "details_attempted": 1,
+        "details_succeeded": 1,
+        "details_failed": 0,
+        "physical_requests": 3,
+        "remaining_due": 22,
+        "remaining_unprocessed": 22
+      }
+    },
+    {
+      "run": 3,
+      "max_details": 1,
+      "returncode": 0,
+      "summary": {
+        "run_id": "6979ea86b49041c08ff2d9235aa115d6",
+        "source_id": "whu-undergrad-student",
+        "origin": "bootstrap",
+        "scan_mode": "limited",
+        "result": "succeeded",
+        "coverage": "limited",
+        "coverage_error_code": "page_limit",
+        "error_code": null,
+        "started_at": 1791177007,
+        "finished_at": 1791177017,
+        "pages_committed": 1,
+        "home_rechecked": false,
+        "scanned_entries": 25,
+        "new_documents": 0,
+        "legacy_rechecks_scheduled": 0,
+        "details_attempted": 1,
+        "details_succeeded": 1,
+        "details_failed": 0,
+        "physical_requests": 3,
+        "remaining_due": 21,
+        "remaining_unprocessed": 21
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": 1,
+      "page_type": "list",
+      "requested_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "final_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "fetched_at": 1791176839,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f.bin",
+      "body_sha256": "bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"56af-65cab367f6c62-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:51:23 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 2,
+      "page_type": "notice",
+      "requested_url": "https://uc.whu.edu.cn/info/1517/128591.htm",
+      "final_url": "https://uc.whu.edu.cn/info/1517/128591.htm",
+      "fetched_at": 1791176844,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/a052085e46c45ed77349145bf119467b3ca9f0a6653d469a082f3e27bfaa155f.bin",
+      "body_sha256": "a052085e46c45ed77349145bf119467b3ca9f0a6653d469a082f3e27bfaa155f",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"14b28-65cab3e9655c0-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:53:39 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 3,
+      "page_type": "notice",
+      "requested_url": "https://uc.whu.edu.cn/info/1517/128581.htm",
+      "final_url": "https://uc.whu.edu.cn/info/1517/128581.htm",
+      "fetched_at": 1791176849,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/45b362dad3955626034d04ed4a73a777575467921c41bfa3de16d9fc8368cfc6.bin",
+      "body_sha256": "45b362dad3955626034d04ed4a73a777575467921c41bfa3de16d9fc8368cfc6",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"c3f3-65cab41687fed-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:54:26 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 4,
+      "page_type": "list",
+      "requested_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "final_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "fetched_at": 1791176855,
+      "status_code": 304,
+      "body_state": "unavailable",
+      "body_path": null,
+      "body_sha256": null,
+      "validated_response_id": 1,
+      "last_error_code": "cache_repair_required",
+      "etag": "\"56af-65cab367f6c62-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:51:23 GMT",
+      "vary": "User-Agent",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 5,
+      "page_type": "list",
+      "requested_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "final_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "fetched_at": 1791176860,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f.bin",
+      "body_sha256": "bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"56af-65cab367f6c62-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:51:23 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 6,
+      "page_type": "notice",
+      "requested_url": "https://uc.whu.edu.cn/info/1517/128551.htm",
+      "final_url": "https://uc.whu.edu.cn/info/1517/128551.htm",
+      "fetched_at": 1791176865,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/5a9bd7252301e5d49df7747c47489fe8723e6d755ed21d0047f417f5df677df3.bin",
+      "body_sha256": "5a9bd7252301e5d49df7747c47489fe8723e6d755ed21d0047f417f5df677df3",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"b542-65c873a363338-gzip\"",
+      "last_modified": "Mon, 28 Sep 2026 08:55:27 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 7,
+      "page_type": "list",
+      "requested_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "final_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "fetched_at": 1791177007,
+      "status_code": 304,
+      "body_state": "unavailable",
+      "body_path": null,
+      "body_sha256": null,
+      "validated_response_id": 5,
+      "last_error_code": "cache_repair_required",
+      "etag": "\"56af-65cab367f6c62-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:51:23 GMT",
+      "vary": "User-Agent",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 8,
+      "page_type": "list",
+      "requested_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "final_url": "https://uc.whu.edu.cn/tzgg/xstz.htm",
+      "fetched_at": 1791177012,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f.bin",
+      "body_sha256": "bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"56af-65cab367f6c62-gzip\"",
+      "last_modified": "Wed, 30 Sep 2026 03:51:23 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    },
+    {
+      "id": 9,
+      "page_type": "notice",
+      "requested_url": "https://uc.whu.edu.cn/info/1517/128491.htm",
+      "final_url": "https://uc.whu.edu.cn/info/1517/128491.htm",
+      "fetched_at": 1791177017,
+      "status_code": 200,
+      "body_state": "complete",
+      "body_path": "raw/52dc6487a03c720a128a85042119aa282380c8bc2b1ddd60d4f5f67306701295.bin",
+      "body_sha256": "52dc6487a03c720a128a85042119aa282380c8bc2b1ddd60d4f5f67306701295",
+      "validated_response_id": null,
+      "last_error_code": null,
+      "etag": "\"af20-65c3233b0a7fb-gzip\"",
+      "last_modified": "Thu, 24 Sep 2026 03:29:05 GMT",
+      "vary": "User-Agent,Accept-Encoding",
+      "cache_control": "private, max-age=600"
+    }
+  ],
+  "final_counts": {
+    "documents": 25,
+    "versions": 4,
+    "responses": 9,
+    "raw_files": 5,
+    "remaining_due": 21
+  },
+  "successful_documents": [
+    {
+      "source_document_id": "1517:128591",
+      "current_version_id": 1
+    },
+    {
+      "source_document_id": "1517:128581",
+      "current_version_id": 2
+    },
+    {
+      "source_document_id": "1517:128551",
+      "current_version_id": 3
+    },
+    {
+      "source_document_id": "1517:128491",
+      "current_version_id": 4
+    }
+  ],
+  "versions": [
+    {
+      "id": 1,
+      "document_id": 1,
+      "raw_response_id": 2,
+      "content_sha256": "498af554ab826c8b8b407a989f14329ade103e1ee93a39e1d169bc4860d23f00",
+      "parser_version": "whu-student-notices-v2"
+    },
+    {
+      "id": 2,
+      "document_id": 2,
+      "raw_response_id": 3,
+      "content_sha256": "0e9f76adb3a0910af4fd9a747d818b3b8d1e15d8b909d97c0cd12480f9935dec",
+      "parser_version": "whu-student-notices-v2"
+    },
+    {
+      "id": 3,
+      "document_id": 3,
+      "raw_response_id": 6,
+      "content_sha256": "b87264b79f815a6f90bd2ff377ccd2c7cc2fcb7fa98caf94ed8fea891da8143b",
+      "parser_version": "whu-student-notices-v2"
+    },
+    {
+      "id": 4,
+      "document_id": 4,
+      "raw_response_id": 9,
+      "content_sha256": "530d31c266c58bdc2a07c98591d92e364bddcd347a958f1deff61b4ad104f968",
+      "parser_version": "whu-student-notices-v2"
+    }
+  ],
+  "raw_lengths": {
+    "bc85f99eb81ff44d3cc7eadaeba90f30412bfe7dab324d54e2ee4233379be87f": 22191,
+    "a052085e46c45ed77349145bf119467b3ca9f0a6653d469a082f3e27bfaa155f": 84776,
+    "45b362dad3955626034d04ed4a73a777575467921c41bfa3de16d9fc8368cfc6": 50163,
+    "5a9bd7252301e5d49df7747c47489fe8723e6d755ed21d0047f417f5df677df3": 46402,
+    "52dc6487a03c720a128a85042119aa282380c8bc2b1ddd60d4f5f67306701295": 44832
+  },
+  "request_start_intervals_seconds": [
+    5.006,
+    5.008,
+    5.377,
+    5.011,
+    5.008,
+    142.085,
+    5.01,
+    5.008
+  ],
+  "comparison": {
+    "first_and_recovery_runs_succeeded": true,
+    "second_stopped_at_request_budget": true,
+    "all_runs_limited": true,
+    "no_complete_scan_time": true,
+    "stable_identity_set": true,
+    "subsequent_new_documents_zero": true,
+    "existing_success_pointers_preserved": true,
+    "no_duplicate_versions": true,
+    "foreign_keys_ok": true,
+    "sqlite_integrity_ok": true,
+    "all_archived_bodies_verified": true,
+    "raw_files_equal_unique_bodies": true,
+    "request_caps_respected": true
+  },
+  "observations": [
+    "The server varied 200 on User-Agent,Accept-Encoding but 304 only on User-Agent.",
+    "Conservative validation fetched full 200 after each Vary-changing 304.",
+    "Run 2 stopped at the shared physical request limit; run 3 resumed with one detail.",
+    "All scans were deliberately limited; no full scan success was recorded."
+  ]
+}

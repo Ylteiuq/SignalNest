@@ -627,6 +627,8 @@ def process_response(
     run_id: str | None = None,
     next_due_at: int | None = None,
     failure_due_at: int | None = None,
+    notice_due: Callable[[ParsedNotice, int], int] | None = None,
+    error_due: Callable[[IngestError, int], int | None] | None = None,
     origin: Origin = "unknown",
     ingestion_run_id: str | None = None,
     automatic: bool = False,
@@ -712,13 +714,15 @@ def process_response(
             )
         else:
             notice = notice_parser(page)
+            # Policy sees validated notice outside the transaction; due commits with success.
+            due = notice_due(notice, processed_at) if notice_due is not None else next_due_at
             version_id = save_notice(
                 engine,
                 body["id"],
                 notice,
                 processed_at,
                 observed_response_id=response_id,
-                next_due_at=next_due_at,
+                next_due_at=due,
                 automatic=automatic,
                 ingestion_run_id=ingestion_run_id,
             )
@@ -755,7 +759,8 @@ def process_response(
             error_code=error.code,
             run_id=run_id,
         )
-        record_failure(engine, error, processed_at, failure_due_at)
+        due = error_due(error, processed_at) if error_due is not None else failure_due_at
+        record_failure(engine, error, processed_at, due)
         if automatic and (
             error.stage in {"archive", "cache"} or error.code == "response_has_no_body"
         ):

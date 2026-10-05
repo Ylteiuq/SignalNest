@@ -151,6 +151,21 @@ class FetchResult:
         return self.attempts[-1] if self.attempts else None
 
 
+@dataclass(frozen=True)
+class _FetchContinuation:
+    target: FetchTarget
+    uri: str
+    resource_deadline: float
+    visited: frozenset[str]
+    redirects: int
+    retries: int
+    repaired: bool
+    ready_at: float
+    unconditional: bool
+    force_full: bool
+    revalidate: bool
+
+
 class Clock(Protocol):
     def time(self) -> float: ...
     def monotonic(self) -> float: ...
@@ -302,6 +317,11 @@ class _BodyRejected(Exception):
         self.code = code
 
 
+class _BeforeSendDeferred(Exception):
+    def __init__(self, code: FetchCode):
+        self.code = code
+
+
 class HttpFetcher:
     """A single serial run. No transaction remains open during sleep or HTTP/file I/O."""
 
@@ -318,6 +338,7 @@ class HttpFetcher:
         clock: Clock = time,
         jitter: Callable[[], float] = lambda: random.uniform(0.0, 0.5),
         run_id: str | None = None,
+        before_request: Callable[[FetchTarget, int], None] | None = None,
     ):
         if not source_id.strip():
             raise ValueError("source_id must not be empty")
@@ -326,10 +347,15 @@ class HttpFetcher:
         self.profile = profile or default_profile(self.settings)
         self.limits = limits or FetchLimits()
         self.clock, self.jitter, self.run_id = clock, jitter, run_id
+        # A caller can commit attempt intent before sending. It must return from
+        # its short transaction before HTTP begins; errors propagate without send.
+        self.before_request = before_request
         self.client = make_client(self.settings, profile=self.profile, transport=transport)
         self.run_deadline = clock.monotonic() + self.limits.run_seconds
         self.requests_sent = 0
         self._last_started: float | None = None
+        self._repair_result: FetchResult | None = None
+        self._repair_continuation: _FetchContinuation | None = None
 
     def __enter__(self):
         return self
@@ -439,19 +465,33 @@ class HttpFetcher:
         return bytes(body)
 
     def _exchange(
-        self, uri: str, target: FetchTarget, candidate: CacheCandidate | None, deadline: float
+        self,
+        uri: str,
+        target: FetchTarget,
+        candidate: CacheCandidate | None,
+        deadline: float,
+        *,
+        revalidate: bool,
     ) -> tuple[FetchAttempt, bool, str | None]:
-        remaining = min(deadline, self.run_deadline) - self.clock.monotonic()
         headers = {
             "User-Agent": self.profile.user_agent,
             "Accept": self.profile.accept,
             "Accept-Encoding": self.profile.accept_encoding,
         }
+        if revalidate:
+            headers["Cache-Control"] = "no-cache"
         if candidate is not None:
             if candidate.etag is not None:
                 headers["If-None-Match"] = candidate.etag
             if candidate.last_modified is not None:
                 headers["If-Modified-Since"] = candidate.last_modified
+        intent_at = self._utc()
+        if self.before_request is not None:
+            self.before_request(target, intent_at)
+        # The callback is local I/O and also consumes the cooperative budget.
+        if code := self._budget_code(deadline):
+            raise _BeforeSendDeferred(code)
+        remaining = min(deadline, self.run_deadline) - self.clock.monotonic()
         timeout = {
             "connect": min(remaining, self.settings.connect_timeout_seconds),
             "read": min(remaining, self.settings.read_timeout_seconds),
@@ -587,19 +627,90 @@ class HttpFetcher:
         )
         return attempt, retryable, location
 
-    def fetch(self, target: FetchTarget, *, unconditional: bool = False) -> FetchResult:
-        """No nested retry layer. Redirect/retry/304 repair spends the shared run budget."""
+    def fetch(
+        self,
+        target: FetchTarget,
+        *,
+        unconditional: bool = False,
+        revalidate: bool = False,
+    ) -> FetchResult:
+        """Fetch one resource; revalidation requests origin freshness on every hop.
+
+        The returned successful 304 can be repaired once before another fetch, if
+        its archived baseline becomes unavailable before business processing.
+        """
         if self.client.is_closed:
             raise RuntimeError("Fetcher is closed")
-        attempts = []
+        self._repair_result = self._repair_continuation = None
         resource_deadline = self.clock.monotonic() + self.limits.resource_seconds
         try:
             uri = _target_uri(target.uri, target)
         except ValueError:
             return FetchResult("bodyless", error_code=FetchCode.INVALID_TARGET)
-        visited, redirects, retries, repaired = {uri}, 0, 0, False
-        ready_at = self.clock.monotonic()
-        force_full = unconditional
+        return self._run_fetch(
+            _FetchContinuation(
+                target,
+                uri,
+                resource_deadline,
+                frozenset({uri}),
+                0,
+                0,
+                False,
+                self.clock.monotonic(),
+                unconditional,
+                unconditional,
+                revalidate,
+            )
+        )
+
+    def repair(self, result: FetchResult) -> FetchResult:
+        """Resume the latest successful 304 after a post-fetch baseline read failure.
+
+        Only new physical attempts are returned. The original resource deadline,
+        retry/redirect allowance and run/request budget remain in force; this does
+        not create a second retry layer. Eligibility is consumed even if no send
+        is possible, and expires when any subsequent fetch starts.
+        """
+        state = self._repair_continuation
+        if self.client.is_closed or result is not self._repair_result or state is None:
+            raise ValueError("repair requires this Fetcher's latest successful 304, once")
+        self._repair_result = self._repair_continuation = None
+        if code := self._budget_code(state.resource_deadline):
+            return FetchResult("deferred", error_code=code)
+        if state.retries >= self.limits.max_retries:
+            return FetchResult("bodyless", error_code=FetchCode.CACHE_REPAIR_REQUIRED)
+        retries = state.retries + 1
+        log_event(
+            logging.getLogger("signalnest"),
+            Event.FETCH_RETRIED,
+            source_id=self.source_id,
+            run_id=self.run_id,
+            stage="cache_repair",
+            error_code=FetchCode.CACHE_REPAIR_REQUIRED,
+        )
+        return self._run_fetch(
+            replace(
+                state,
+                repaired=True,
+                unconditional=True,
+                force_full=True,
+                retries=retries,
+                ready_at=self._retry_ready_at(retries),
+            )
+        )
+
+    def _retry_ready_at(self, retries: int) -> float:
+        jitter = self.jitter()
+        if not math.isfinite(jitter) or not 0 <= jitter <= 0.5:
+            raise ValueError("jitter must be in [0, 0.5]")
+        return self.clock.monotonic() + self.limits.backoff_seconds * 2 ** (retries - 1) + jitter
+
+    def _run_fetch(self, state: _FetchContinuation) -> FetchResult:
+        attempts = []
+        target, uri, resource_deadline = state.target, state.uri, state.resource_deadline
+        visited = set(state.visited)
+        redirects, retries, repaired = state.redirects, state.retries, state.repaired
+        ready_at, unconditional, force_full = state.ready_at, state.unconditional, state.force_full
 
         def finish(outcome, code=None, not_before=None):
             log_event(
@@ -610,7 +721,23 @@ class HttpFetcher:
                 stage=outcome,
                 error_code=code,
             )
-            return FetchResult(outcome, tuple(attempts), code, not_before)
+            result = FetchResult(outcome, tuple(attempts), code, not_before)
+            if outcome == "bodyless" and code is None and not repaired:
+                self._repair_result = result
+                self._repair_continuation = _FetchContinuation(
+                    target,
+                    uri,
+                    resource_deadline,
+                    frozenset(visited),
+                    redirects,
+                    retries,
+                    repaired,
+                    ready_at,
+                    unconditional,
+                    force_full,
+                    state.revalidate,
+                )
+            return result
 
         while True:
             code, not_before = self._gate(resource_deadline, ready_at)
@@ -637,7 +764,12 @@ class HttpFetcher:
             # File verification also spends the cooperative time budget.
             if code := self._budget_code(resource_deadline):
                 return finish("deferred", code)
-            attempt, retryable, location = self._exchange(uri, target, candidate, resource_deadline)
+            try:
+                attempt, retryable, location = self._exchange(
+                    uri, target, candidate, resource_deadline, revalidate=state.revalidate
+                )
+            except _BeforeSendDeferred as exc:
+                return finish("deferred", exc.code)
             attempts.append(attempt)
             status = attempt.metadata.status_code if attempt.metadata is not None else None
             if attempt.error_code in {
@@ -712,12 +844,7 @@ class HttpFetcher:
                 )
                 return finish(outcome, attempts[-1].error_code, attempt.not_before_at)
             retries += 1
-            jitter = self.jitter()
-            if not math.isfinite(jitter) or not 0 <= jitter <= 0.5:
-                raise ValueError("jitter must be in [0, 0.5]")
-            ready_at = (
-                self.clock.monotonic() + self.limits.backoff_seconds * 2 ** (retries - 1) + jitter
-            )
+            ready_at = self._retry_ready_at(retries)
             log_event(
                 logging.getLogger("signalnest"),
                 Event.FETCH_RETRIED,

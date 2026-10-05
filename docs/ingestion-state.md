@@ -1,6 +1,6 @@
 # 单次采集的持久状态与事务接口
 
-本文的状态/证据接口不发送 HTTP，不决定分页遍历或复查周期。后续有界获取已实现于 fetching.py，交接与重试策略见 [Fetcher 设计](fetching.md)；采集协调器仍未实现。研究探针不是这些生产接口的验证结果。继续单实例、串行写入；没有任务队列、租约或 outbox。
+本文的状态/证据接口不发送 HTTP，不决定分页遍历或复查周期。有界获取已实现于 fetching.py，交接与重试策略见 [Fetcher 设计](fetching.md)；`crawl_once` 已调用这些接口，见 [协调器设计](crawling.md) 与 [恢复验证记录](recovery-validation.md)。研究探针不是这些生产接口的验证结果。继续单实例、串行写入；没有任务队列、租约或 outbox。
 
 ## 最小数据
 
@@ -47,10 +47,10 @@ RequestProfile 固定 User-Agent、Accept、Accept-Encoding=identity；UA/Accept
 | finish_run_in_transaction | 独立记录 succeeded/partial_failure/failed/interrupted；未完成的 coverage 记 interrupted，已 complete 保持。 |
 | pending_documents / pending_resources | 数据库查询重建待处理/失败/到期，以及最新原文或 Parser 版本尚未成功处理的资源；没有持久队列、批次配额或重试循环。 |
 
-下一轮协调顺序：持有 writer_lock → start_run → attempt → HttpFetcher（读取冷却、选择候选、事务外有界 HTTP、每跳重选）→ 按发送顺序 record_response → process_cached_response 或明确 record_failure → 所有列表事务及复核成立后记录 coverage → 独立处理详情 → finish_run。304/首页成功不跳过数据库待办。
+现有协调顺序：持有 writer_lock → start_run → attempt → HttpFetcher（读取冷却、选择候选、事务外有界 HTTP、每跳重选）→ 按发送顺序 record_response → process_cached_response 或明确 record_failure → 所有列表事务及复核成立后记录 coverage → 独立处理详情 → finish_run。304/首页成功不跳过数据库待办。
 
 ## 写入保护与迁移
 
-`writer_lock(database)` 用解析后数据库旁的固定 `.lock` 文件及 POSIX flock 非阻塞锁。锁文件不删除；存在不代表占用。数据库符号链接别名解析到同一锁，数据库硬链接和锁文件符号链接拒绝，避免路径别名绕过保护。初始化/升级、CLI import-page/reparse 统一遵守，库调用者覆盖整个写入运行使用此锁。帮助/config-check 不获取锁。支持 macOS/Linux POSIX，Windows 未支持；外部不遵守 advisory lock 的程序不受此锁保护。
+`writer_lock(database)` 用解析后数据库旁的固定 `.lock` 文件及 POSIX flock 非阻塞锁。锁文件不删除；存在不代表占用。数据库符号链接别名解析到同一锁，数据库硬链接和锁文件符号链接拒绝，避免路径别名绕过保护。初始化/升级、CLI import-page/reparse 及 `crawl_once` 统一遵守，库调用者覆盖整个写入运行使用此锁。帮助/config-check 不获取锁。支持 macOS/Linux POSIX，Windows 未支持；外部不遵守 advisory lock 的程序不受此锁保护。
 
 0003 只用 ADD COLUMN 与新表，不重建被 notice_versions 引用且启用外键的 raw_responses/documents；0001/0002 冻结。旧数据/引用不变，未知字段保持 unknown/NULL，不自动填充缓存或历史来源。原文与 SQLite 仍不是跨介质事务；正常异常回滚和进程退出释放锁，不等于断电耐久性保证。

@@ -20,6 +20,11 @@ class Event(StrEnum):
     FETCH_STARTED = "fetch_started"
     FETCH_RETRIED = "fetch_retried"
     FETCH_FINISHED = "fetch_finished"
+    CRAWL_STARTED = "crawl_started"
+    CRAWL_FINISHED = "crawl_finished"
+    DETAIL_GROUP_FINISHED = "detail_group_finished"
+    STATUS_READ = "status_read"
+    POLICY_APPLIED = "policy_applied"
 
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")
@@ -45,6 +50,17 @@ class JsonFormatter(logging.Formatter):
         for key in ("source_id", "run_id", "document_id", "response_id", "stage", "error_code"):
             value = _identifier(getattr(record, key, None))
             if value is not None:
+                payload[key] = value
+        for key in (
+            "attempted",
+            "succeeded",
+            "failed",
+            "remaining_due",
+            "unserved",
+            "oldest_overdue_seconds",
+        ):
+            value = getattr(record, key, None)
+            if type(value) is int and value >= 0:
                 payload[key] = value
         return json.dumps(payload, ensure_ascii=False)
 
@@ -74,6 +90,12 @@ def log_event(
     response_id: int | None = None,
     stage: str | None = None,
     error_code: str | None = None,
+    attempted: int | None = None,
+    succeeded: int | None = None,
+    failed: int | None = None,
+    remaining_due: int | None = None,
+    unserved: int | None = None,
+    oldest_overdue_seconds: int | None = None,
 ) -> None:
     """Context is identifiers only; never pass configuration values or page contents."""
     if not isinstance(event, Event):
@@ -88,5 +110,11 @@ def log_event(
             "response_id": response_id,
             "stage": stage,
             "error_code": error_code,
+            "attempted": attempted,
+            "succeeded": succeeded,
+            "failed": failed,
+            "remaining_due": remaining_due,
+            "unserved": unserved,
+            "oldest_overdue_seconds": oldest_overdue_seconds,
         },
     )

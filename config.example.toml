@@ -12,3 +12,36 @@ connect_timeout_seconds = 10.0
 read_timeout_seconds = 30.0
 request_interval_seconds = 2.0
 user_agent = "SignalNest/0.1"
+
+# Policies apply to crawl-once and scheduled-run; frequency belongs to the external timer.
+# Foreground means never successfully processed IDs from this run's first two valid pages.
+[runtime]
+foreground_slots = 12
+history_slots = 4
+recheck_slots = 4
+recent_days = 7
+middle_days = 30
+recent_recheck_seconds = 86400
+middle_recheck_seconds = 604800
+old_recheck_seconds = 2592000
+transient_failure_seconds = 1800
+access_failure_seconds = 86400
+parse_failure_seconds = 21600
+missing_failure_seconds = 604800
+
+# These budgets are used by scheduled-run. Manual crawl-once keeps explicit CLI budgets.
+[runtime.regular]
+max_pages = 2
+max_details = 20
+max_requests = 64
+run_seconds = 600.0
+resource_seconds = 60.0
+max_body_bytes = 2097152
+
+[runtime.full]
+max_pages = 64
+max_details = 0
+max_requests = 96
+run_seconds = 600.0
+resource_seconds = 60.0
+max_body_bytes = 2097152

@@ -1,6 +1,6 @@
 # 有界 HTTP Fetcher
 
-本交付实现同步、串行获取器；不实现列表遍历、业务协调器或采集 CLI。构造/导入不会发送请求。测试只使用模拟传输；真正的恢复实验与少量实采属于后续交付。
+同步、串行获取器现已由 `crawl_once` 与 `signalnest crawl-once` 接入。Fetcher 本身不承担列表遍历或业务提交；构造/导入不会发送请求。默认测试使用模拟传输；后续已完成真实子进程恢复实验和少量实采，实际结果及限制见 [恢复验证记录](recovery-validation.md)。
 
 ## 交接与职责
 
@@ -8,7 +8,13 @@
 
 `fetch(FetchTarget(...)) -> FetchResult` 区分 complete（完整、非空 200 HTML）、bodyless（304 或只有元数据的状态/拒绝）、transport_failure（连接/读取失败）、deferred（冷却或预算阻止继续）。这些均不是业务成功。结果保留按发送顺序排列的 FetchAttempt：实际开始/结束 UTC 时间，收到响应时的 ResponseInput，完整 bytes 或 None，本次选中的具体 304 candidate，有限错误代码及 not-before。没有收到响应就没有 ResponseInput，不伪造状态或 fetched_at。收到头的客户端 UTC 时间作为 fetched_at，与服务器 Date 无关。
 
-Fetcher 只读缓存原文并持久化服务端冷却，不归档响应、不调用 Parser、不提交业务状态。后续协调器须按顺序将每个有元数据的 attempt 交给 record_response（包括跳转、重试和异常 304），仅传完整 bytes，304 传 candidate；正常 200/304 再调用 process_cached_response。传输失败没有 HTTP 状态，由协调器登记目标失败。不能只登记最终成功响应。公开入口还有 default_profile、make_client、FetchLimits；fetch(..., unconditional=True) 显式禁止条件头，不绕过冷却或运行预算。
+Fetcher 只读缓存原文并持久化服务端冷却，不归档响应、不调用 Parser、不提交业务状态。`crawl_once` 按顺序将每个有元数据的 attempt 交给 record_response（包括跳转、重试和异常 304），仅传完整 bytes，304 传 candidate；正常 200/304 再调用 process_cached_response。传输失败没有 HTTP 状态，由协调器登记目标失败。不能只登记最终成功响应。公开入口还有 default_profile、make_client、FetchLimits；fetch(..., unconditional=True) 显式禁止条件头，不绕过冷却或运行预算。
+
+`fetch(..., revalidate=True)` 在所有跳转、重试及修复请求中发送 `Cache-Control: no-cache`，要求重新验证表示；仍可发送与精确 URI/profile 对应的条件头。该字段不改变表示 profile，User-Agent、Accept 与 Accept-Encoding 始终与 RequestProfile 完全一致。协调器用此选项复核首页。
+
+`repair(result)` 处理返回有效 304 后、业务读取前原文丢失或损坏的窗口。它只接受本实例最近一次成功 bodyless 304 的同一个结果对象，且只能调用一次；新的 fetch 会使旧结果失效。它在最终实际 URI 上继续无条件获取，复用原单资源期限、已消耗的重试/跳转额度以及运行请求预算，修复本身消耗一次重试。返回值只包含新增的物理请求，不能重复登记原结果。重试额度用尽返回 cache_repair_required；期限或请求额度用尽返回 deferred。不能在外层新建无限重试循环。
+
+构造参数 `before_request(target, intent_at)` 是可选的发送前回调；协调器用短事务保存列表尝试意图。回调必须先结束事务，HTTP 随后才开始；回调失败直接传播，不发送、不增加请求计数。`intent_at` 是回调前的 UTC 意图时间，FetchAttempt.started_at 是回调返回后实际发送的起点，ResponseInput.fetched_at 是实际收到响应的时间。回调耗时也计入预算；若它耗尽期限，保留已提交的尝试意图，但不制造物理请求或响应证据。
 
 | outcome | 正文与证据 | 后续动作 |
 | --- | --- | --- |
@@ -32,6 +38,6 @@ Fetcher 只读缓存原文并持久化服务端冷却，不归档响应、不调
 
 Retry-After 支持非负 ASCII 秒数与 UTC HTTP-date。429 总是持久延期；缺失/无效值保守等待 30 分钟。带 Retry-After 的重试状态或跳转同样保存完整 not-before；最多在本次等 15 秒，超过等待/剩余预算即延期，不截短服务器要求。不可表示的巨大值将冷却置为 SQLite 最大时间，明确报告，须人工核实；冷却登记失败抛系统错误，不返回假装已登记的延期。每次发送前读取持久冷却；重启和更换同来源 URL 不能绕过。
 
-后续协调器负责运行记录、列表尝试/覆盖证明、每个 attempt 的证据登记、详情 due 与失败状态。Fetcher 不能证明列表完整扫描；首页 304 也不消除详情待办。记录后至处理前原文再损坏的竞争窗口仍由 process_cached_response 的 full_fetch_required 表达，协调器须把它计入同一次有界获取计划，不能无限套重试。
+`crawl_once` 负责运行记录、列表尝试/覆盖证明、每个 attempt 的证据登记、详情 due 与失败状态。Fetcher 不能证明列表完整扫描；首页 304 也不消除详情待办。记录后至处理前原文再损坏的竞争窗口由 process_cached_response 的 full_fetch_required 表达，协调器调用上述 repair 接口继续同一次有界获取。
 
-本交付借鉴 research/ingestion-design 的表示键、单层重试、每跳重选与持久等待边界；研究探针不替代应用验证。不增加响应诊断正文、持久 request-start 字段、传输任务表或新的数据库迁移。规则版本/内容摘要仍由 Parser 负责，完全未改。本次 MockTransport + 自定义原始流 + 假时钟连接真实 RawStore/缓存/SQLite，验证策略和关闭路径；未验证真实 TLS/DNS/slow-drip、硬内存/墙钟限制、杀进程或断电。
+本交付借鉴 research/ingestion-design 的表示键、单层重试、每跳重选与持久等待边界；研究探针不替代应用验证。不增加响应诊断正文、持久 request-start 字段、传输任务表或新的数据库迁移。规则版本/内容摘要仍由 Parser 负责，完全未改。MockTransport + 自定义原始流 + 假时钟连接真实 RawStore/缓存/SQLite，验证策略和关闭路径；后续真实 GET 保持 TLS 校验开启，SIGKILL 实验中的 HTTP 仍为模拟。没有真实 slow-drip、硬内存/墙钟限制或断电验证，少量 GET 也不能代表所有网络故障。

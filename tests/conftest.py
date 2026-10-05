@@ -1,9 +1,25 @@
 """All in-process tests are offline; subprocess tests exercise local CLI commands only."""
 
+import logging
 import socket
 from types import SimpleNamespace
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def restore_cli_logger():
+    """Do not leave a CLI handler pointing at a closed pytest capture stream."""
+    logger = logging.getLogger("signalnest")
+    original = (logger.handlers[:], logger.level, logger.propagate)
+    yield
+    for handler in logger.handlers[:]:
+        if handler not in original[0]:
+            logger.removeHandler(handler)
+            handler.close()
+    logger.handlers = original[0]
+    logger.setLevel(original[1])
+    logger.propagate = original[2]
 
 
 @pytest.fixture(autouse=True)
