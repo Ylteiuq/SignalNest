@@ -1,0 +1,13 @@
+[Unit]
+Description=SignalNest daily bounded full scan
+
+[Timer]
+OnCalendar=*-*-* 01:15:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=0
+# Reactivation may trigger ONE missed daily run, never every missed interval.
+Persistent=true
+Unit=signalnest@full.service
+
+[Install]
+WantedBy=timers.target

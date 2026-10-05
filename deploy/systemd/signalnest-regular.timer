@@ -1,0 +1,12 @@
+[Unit]
+Description=SignalNest ordinary collection every 30 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00,30:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=0
+Persistent=false
+Unit=signalnest@regular.service
+
+[Install]
+WantedBy=timers.target
