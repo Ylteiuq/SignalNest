@@ -1,0 +1,4101 @@
+{
+  "note": "Explicit current-schema fictional Profile; not S01-S11 gold evaluation or accuracy.",
+  "recorded_at": "2026-10-06T06:01:43.883988+00:00",
+  "git_head": "1c827773544027850912148007d55a6300d41d0b",
+  "source_sha256": {
+    "src/signalnest/contracts.py": "358f49be516bb1f271858911e682032d130b05b21faf8212f2131ed9f68bbce1",
+    "src/signalnest/parsing.py": "97aed2ba24b05003f0dde3daf49cb9fa21e851d7cab9314c255e9c600b97d579",
+    "src/signalnest/notifications/contracts.py": "1a38f0e174fcb366ab228bbc8f6f69000ff6c0a16d8c5ced50432ef910f0dccb",
+    "src/signalnest/notifications/decision.py": "4c2f01f58b35b0abf381d782d76812dbe00b206ace4795eca82bb1cac007d92d",
+    "src/signalnest/notifications/facts.py": "db410cd638eb1168774c101e1c479905817c1f32a646f0ddce2d287535b202ac"
+  },
+  "python": "3.12.14",
+  "dependencies": {
+    "httpx": "0.28.1",
+    "beautifulsoup4": "4.15.0",
+    "pydantic": "2.13.5"
+  },
+  "results": [
+    {
+      "audit_id": "A01",
+      "fixture_case": "S04",
+      "fixture_sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2026-09-11T08:00:00+08:00"
+      },
+      "evaluated_at": "2026-09-10T09:00:00+08:00",
+      "topics": [
+        "research",
+        "course_enrollment",
+        "exchange",
+        "scholarship",
+        "research",
+        "competition",
+        "course_enrollment"
+      ],
+      "facts_opens_at": "2026-09-07T00:00:00+08:00",
+      "facts_deadline_at": "2026-09-28T23:59:00+08:00",
+      "decision": {
+        "action": "STORE_ONLY",
+        "needs_review": true,
+        "effective_route": "none",
+        "routing_reason_codes": [
+          "no_mail_action"
+        ],
+        "reason_codes": [
+          "store_only_topic"
+        ],
+        "reasons": [
+          "命中用户选择仅保存的主题。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.research",
+          "retention.topic.course_enrollment",
+          "qualification.student_status.unknown",
+          "qualification.study_level.match",
+          "qualification.other.unknown",
+          "qualification.language.unknown",
+          "decision.store_only_topic",
+          "route.no_mail_action"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "open",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "student_status",
+              "values": [
+                "全日制"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "study_level",
+              "values": [
+                "undergraduate"
+              ],
+              "operator": "one_of",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "undergraduate",
+            "result": "match"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unsupported_condition",
+            "field": "student_status",
+            "message": "Profile 未保存学籍状态。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_audience",
+            "field": "eligibility",
+            "message": "对象声明不属于支持的资格表达式。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "other",
+            "message": "有额外强制条件，首版未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "student_status",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 23,
+            "end": 27,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "title",
+            "start": 30,
+            "end": 32,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 113,
+            "end": 117,
+            "excerpt": "国际交流",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1025,
+            "end": 1028,
+            "excerpt": "奖学金",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 374,
+            "end": 378,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1008,
+            "end": 1010,
+            "excerpt": "大赛",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1034,
+            "end": 1036,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1045,
+            "end": 1061,
+            "excerpt": "选课对象与要求：全日制在校本科生",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1643,
+            "end": 1656,
+            "excerpt": "仅限兑换一次，不可重复申请",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1091,
+            "end": 1096,
+            "excerpt": "CET-4",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1103,
+            "end": 1108,
+            "excerpt": "CET-6",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1111,
+            "end": 1113,
+            "excerpt": "托福",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1117,
+            "end": 1119,
+            "excerpt": "雅思",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 924,
+            "end": 926,
+            "excerpt": "申请",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1246,
+            "end": 1298,
+            "excerpt": "（三）选课时间 ：自通知发布之日起至2026年9月28日23:59前，进入报名链接或者扫码自主选课报名 ",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/__local/0/97/30/779370B30A84E15475807E14F39_09E05359_181C.png"
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/__local/5/ED/93/ADE61A7D4BEA323C5FFCFBBC09D_74864C8C_15A6.png"
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 2,
+            "url": "https://uc.whu.edu.cn/__local/D/C2/0E/2D76616A7414456D9D026CB7C31_069200DD_54B8.png"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=B948E5885786182D998983E18ECC7C84"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=3B1C4C7885626FB945EBFF7AE0075E31"
+          }
+        ],
+        "evaluated_at": "2026-09-10T01:00:00Z",
+        "profile_sha256": "3a1e87d568e4fcc7e0d15c42396ef713494466a21ba68c47f4adf8ed55932f2a",
+        "content_sha256": "348d4b53e66a23cb9d82af3e18bcc145e2e9ea810c786e8b8dc0334852f6bccc",
+        "facts_sha256": "c193a54ad7db4f8eba326de4e0006a4abbc39fa9518fcb4d2b88d919a8a2d6a4",
+        "policy_sha256": "a718bfccac166dd9cfca69439d6a0ce6b1d9b8e310f58c7554cafbbc03123ad0",
+        "input_sha256": "52d045329696350d1d3c28013cf67cb6ecfa19c203ef2d535533059ef103934c",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    },
+    {
+      "audit_id": "A02",
+      "fixture_case": "S04",
+      "fixture_sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": []
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2026-09-11T08:00:00+08:00"
+      },
+      "evaluated_at": "2026-09-10T09:00:00+08:00",
+      "topics": [
+        "research",
+        "course_enrollment",
+        "exchange",
+        "scholarship",
+        "research",
+        "competition",
+        "course_enrollment"
+      ],
+      "facts_opens_at": "2026-09-07T00:00:00+08:00",
+      "facts_deadline_at": "2026-09-28T23:59:00+08:00",
+      "decision": {
+        "action": "PUSH_NOW",
+        "needs_review": true,
+        "effective_route": "immediate",
+        "routing_reason_codes": [
+          "hybrid_immediate"
+        ],
+        "reason_codes": [
+          "high_value_topic"
+        ],
+        "reasons": [
+          "新通知处于最近 7 个上海自然日内，并命中用户高价值主题。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.research",
+          "qualification.student_status.unknown",
+          "qualification.study_level.match",
+          "qualification.other.unknown",
+          "qualification.language.unknown",
+          "decision.high_value_topic",
+          "route.hybrid_immediate"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "open",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "student_status",
+              "values": [
+                "全日制"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "study_level",
+              "values": [
+                "undergraduate"
+              ],
+              "operator": "one_of",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "undergraduate",
+            "result": "match"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unsupported_condition",
+            "field": "student_status",
+            "message": "Profile 未保存学籍状态。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_audience",
+            "field": "eligibility",
+            "message": "对象声明不属于支持的资格表达式。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "other",
+            "message": "有额外强制条件，首版未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "student_status",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 23,
+            "end": 27,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "title",
+            "start": 30,
+            "end": 32,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 113,
+            "end": 117,
+            "excerpt": "国际交流",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1025,
+            "end": 1028,
+            "excerpt": "奖学金",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 374,
+            "end": 378,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1008,
+            "end": 1010,
+            "excerpt": "大赛",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1034,
+            "end": 1036,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1045,
+            "end": 1061,
+            "excerpt": "选课对象与要求：全日制在校本科生",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1643,
+            "end": 1656,
+            "excerpt": "仅限兑换一次，不可重复申请",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1091,
+            "end": 1096,
+            "excerpt": "CET-4",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1103,
+            "end": 1108,
+            "excerpt": "CET-6",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1111,
+            "end": 1113,
+            "excerpt": "托福",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1117,
+            "end": 1119,
+            "excerpt": "雅思",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 924,
+            "end": 926,
+            "excerpt": "申请",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1246,
+            "end": 1298,
+            "excerpt": "（三）选课时间 ：自通知发布之日起至2026年9月28日23:59前，进入报名链接或者扫码自主选课报名 ",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/__local/0/97/30/779370B30A84E15475807E14F39_09E05359_181C.png"
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/__local/5/ED/93/ADE61A7D4BEA323C5FFCFBBC09D_74864C8C_15A6.png"
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 2,
+            "url": "https://uc.whu.edu.cn/__local/D/C2/0E/2D76616A7414456D9D026CB7C31_069200DD_54B8.png"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=B948E5885786182D998983E18ECC7C84"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=3B1C4C7885626FB945EBFF7AE0075E31"
+          }
+        ],
+        "evaluated_at": "2026-09-10T01:00:00Z",
+        "profile_sha256": "3dffd4d419ff5c5ea7d7870f195a3f50dacf0200351b7fdada61d7dda6bbfdd5",
+        "content_sha256": "348d4b53e66a23cb9d82af3e18bcc145e2e9ea810c786e8b8dc0334852f6bccc",
+        "facts_sha256": "c193a54ad7db4f8eba326de4e0006a4abbc39fa9518fcb4d2b88d919a8a2d6a4",
+        "policy_sha256": "b2135466457f184c94bec403c79ae647c561a0c3f7e478517b2e2c4a47f9279d",
+        "input_sha256": "5e0126acf36f05b7cb46b896bf8ae7bcc00ff38eeb0bee0f3967c0820f165dea",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    },
+    {
+      "audit_id": "A03",
+      "fixture_case": "S04",
+      "fixture_sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": []
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "topics": [
+        "research",
+        "course_enrollment",
+        "exchange",
+        "scholarship",
+        "research",
+        "competition",
+        "course_enrollment"
+      ],
+      "facts_opens_at": "2026-09-07T00:00:00+08:00",
+      "facts_deadline_at": "2026-09-28T23:59:00+08:00",
+      "decision": {
+        "action": "PUSH_NOW",
+        "needs_review": true,
+        "effective_route": "immediate",
+        "routing_reason_codes": [
+          "hybrid_immediate"
+        ],
+        "reason_codes": [
+          "deadline_soon"
+        ],
+        "reasons": [
+          "相关机会已经开放，可信截止在 72 小时内。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.research",
+          "qualification.student_status.unknown",
+          "qualification.study_level.match",
+          "qualification.other.unknown",
+          "qualification.language.unknown",
+          "decision.deadline_soon",
+          "route.hybrid_immediate"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "open",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "student_status",
+              "values": [
+                "全日制"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "study_level",
+              "values": [
+                "undergraduate"
+              ],
+              "operator": "one_of",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "undergraduate",
+            "result": "match"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "language",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unsupported_condition",
+            "field": "student_status",
+            "message": "Profile 未保存学籍状态。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_audience",
+            "field": "eligibility",
+            "message": "对象声明不属于支持的资格表达式。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "language",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "other",
+            "message": "有额外强制条件，首版未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "student_status",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1045,
+                "end": 1061,
+                "excerpt": "选课对象与要求：全日制在校本科生",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1643,
+                "end": 1656,
+                "excerpt": "仅限兑换一次，不可重复申请",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1091,
+                "end": 1096,
+                "excerpt": "CET-4",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1103,
+                "end": 1108,
+                "excerpt": "CET-6",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1111,
+                "end": 1113,
+                "excerpt": "托福",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "language",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1117,
+                "end": 1119,
+                "excerpt": "雅思",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 23,
+            "end": 27,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "title",
+            "start": 30,
+            "end": 32,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 113,
+            "end": 117,
+            "excerpt": "国际交流",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1025,
+            "end": 1028,
+            "excerpt": "奖学金",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 374,
+            "end": 378,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1008,
+            "end": 1010,
+            "excerpt": "大赛",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1034,
+            "end": 1036,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1045,
+            "end": 1061,
+            "excerpt": "选课对象与要求：全日制在校本科生",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1643,
+            "end": 1656,
+            "excerpt": "仅限兑换一次，不可重复申请",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1091,
+            "end": 1096,
+            "excerpt": "CET-4",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1103,
+            "end": 1108,
+            "excerpt": "CET-6",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1111,
+            "end": 1113,
+            "excerpt": "托福",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1117,
+            "end": 1119,
+            "excerpt": "雅思",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 924,
+            "end": 926,
+            "excerpt": "申请",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1246,
+            "end": 1298,
+            "excerpt": "（三）选课时间 ：自通知发布之日起至2026年9月28日23:59前，进入报名链接或者扫码自主选课报名 ",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/__local/0/97/30/779370B30A84E15475807E14F39_09E05359_181C.png"
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/__local/5/ED/93/ADE61A7D4BEA323C5FFCFBBC09D_74864C8C_15A6.png"
+          },
+          {
+            "field": "images",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 2,
+            "url": "https://uc.whu.edu.cn/__local/D/C2/0E/2D76616A7414456D9D026CB7C31_069200DD_54B8.png"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=B948E5885786182D998983E18ECC7C84"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=3B1C4C7885626FB945EBFF7AE0075E31"
+          }
+        ],
+        "evaluated_at": "2026-09-28T01:00:00Z",
+        "profile_sha256": "3dffd4d419ff5c5ea7d7870f195a3f50dacf0200351b7fdada61d7dda6bbfdd5",
+        "content_sha256": "348d4b53e66a23cb9d82af3e18bcc145e2e9ea810c786e8b8dc0334852f6bccc",
+        "facts_sha256": "c193a54ad7db4f8eba326de4e0006a4abbc39fa9518fcb4d2b88d919a8a2d6a4",
+        "policy_sha256": "b2135466457f184c94bec403c79ae647c561a0c3f7e478517b2e2c4a47f9279d",
+        "input_sha256": "cf6cbb4be422a85aa4b10629c5ca418655b4d9a6990c22dc6c9c35e51cc60d27",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    },
+    {
+      "audit_id": "A04",
+      "fixture_case": "S08",
+      "fixture_sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": []
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2024-12-10T08:00:00+08:00"
+      },
+      "evaluated_at": "2024-12-09T09:00:00+08:00",
+      "topics": [
+        "minor",
+        "course_enrollment",
+        "minor",
+        "minor"
+      ],
+      "facts_opens_at": null,
+      "facts_deadline_at": null,
+      "decision": {
+        "action": "DIGEST",
+        "needs_review": true,
+        "effective_route": "digest",
+        "routing_reason_codes": [
+          "digest_action"
+        ],
+        "reason_codes": [
+          "relevant_digest"
+        ],
+        "reasons": [
+          "通知命中关注规则，按普通汇总处理。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "时间待核对：站点发布日期不能代替报名开始或截止时间。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.minor",
+          "qualification.student_status.unknown",
+          "qualification.institution.unknown",
+          "qualification.study_level.unknown",
+          "qualification.entry_year.unknown",
+          "qualification.major.unknown",
+          "qualification.other.unknown",
+          "qualification.gpa.unknown",
+          "decision.relevant_digest",
+          "route.digest_action"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "unknown",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "student_status",
+              "values": [
+                "全日制"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "institution",
+              "values": [
+                "whu"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "whu",
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "study_level",
+              "values": [
+                "undergraduate"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "undergraduate",
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "entry_year",
+              "values": [
+                2023,
+                2022
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "major",
+              "values": [
+                "涉及主修转"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 390,
+                "end": 397,
+                "excerpt": "仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 390,
+                "end": 397,
+                "excerpt": "仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "gpa",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 321,
+                "end": 323,
+                "excerpt": "绩点",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "gpa",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 324,
+                "end": 327,
+                "excerpt": "GPA",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "gpa",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 647,
+                "end": 650,
+                "excerpt": "GPA",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 306,
+                "end": 341,
+                "excerpt": "主修专业全部课程成绩的平均学分绩点（GPA）达到2.5及以上，学有余力",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 346,
+                "end": 397,
+                "excerpt": "辅修专业应与主修专业归属不同的专业大类（主修专业和辅修专业的专业代码前四位不能相同），且仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 428,
+                "end": 448,
+                "excerpt": "辅修专业开设学院制定的其它条件（附件2）",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unsupported_or",
+            "field": "eligibility",
+            "message": "资格含未支持的否定、OR 或例外条件。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "student_status",
+            "message": "Profile 未保存学籍状态。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 390,
+                "end": 397,
+                "excerpt": "仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_audience",
+            "field": "eligibility",
+            "message": "对象声明不属于支持的资格表达式。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 390,
+                "end": 397,
+                "excerpt": "仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "gpa",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 321,
+                "end": 323,
+                "excerpt": "绩点",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "gpa",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 324,
+                "end": 327,
+                "excerpt": "GPA",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "gpa",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 647,
+                "end": 650,
+                "excerpt": "GPA",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unparsed_condition",
+            "field": "eligibility",
+            "message": "编号资格条件尚未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 306,
+                "end": 341,
+                "excerpt": "主修专业全部课程成绩的平均学分绩点（GPA）达到2.5及以上，学有余力",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unparsed_condition",
+            "field": "eligibility",
+            "message": "编号资格条件尚未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 346,
+                "end": 397,
+                "excerpt": "辅修专业应与主修专业归属不同的专业大类（主修专业和辅修专业的专业代码前四位不能相同），且仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unparsed_condition",
+            "field": "eligibility",
+            "message": "编号资格条件尚未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 428,
+                "end": 448,
+                "excerpt": "辅修专业开设学院制定的其它条件（附件2）",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "year_missing",
+            "field": "time",
+            "message": "月日缺少年份，不从发布日期推测。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 457,
+                "end": 490,
+                "excerpt": "1. 报名时间：2024年12月2日9:00至12月9日24:00",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "time_unrecognized",
+            "field": "time",
+            "message": "时间声明没有支持的完整年份日期。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 625,
+                "end": 658,
+                "excerpt": "报名截止后，由辅修专业开设学院按主修专业课程GPA排序确定录取名单",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "time_unrecognized",
+            "field": "time",
+            "message": "时间声明没有支持的完整年份日期。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 718,
+                "end": 746,
+                "excerpt": "辅修第一轮录取结果和第二轮报名时间将另行通知，请及时关注",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "opening_unknown",
+            "field": "time",
+            "message": "报名是否开始尚不能从可见正文核实。",
+            "evidence": []
+          },
+          {
+            "code": "deadline_unknown",
+            "field": "time",
+            "message": "没有唯一可核对的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "media_required",
+            "field": "media",
+            "message": "关键条件或时间指向未解析的媒体。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 441,
+                "end": 446,
+                "excerpt": "条件（附件",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "student_status",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "institution",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "study_level",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "entry_year",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "major",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 234,
+                "end": 301,
+                "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 390,
+                "end": 397,
+                "excerpt": "仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "gpa",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 321,
+                "end": 323,
+                "excerpt": "绩点",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "gpa",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 324,
+                "end": 327,
+                "excerpt": "GPA",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "gpa",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 647,
+                "end": 650,
+                "excerpt": "GPA",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 306,
+                "end": 341,
+                "excerpt": "主修专业全部课程成绩的平均学分绩点（GPA）达到2.5及以上，学有余力",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 346,
+                "end": 397,
+                "excerpt": "辅修专业应与主修专业归属不同的专业大类（主修专业和辅修专业的专业代码前四位不能相同），且仅限报一个专业",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 428,
+                "end": 448,
+                "excerpt": "辅修专业开设学院制定的其它条件（附件2）",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          },
+          {
+            "code": "time_unknown",
+            "field": "deadline",
+            "message": "没有唯一可信的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "opening_unknown",
+            "field": "opening",
+            "message": "无法确认报名是否已经开放。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 12,
+            "end": 14,
+            "excerpt": "辅修",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 818,
+            "end": 820,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 125,
+            "end": 127,
+            "excerpt": "辅修",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 130,
+            "end": 135,
+            "excerpt": "双学士学位",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 234,
+            "end": 301,
+            "excerpt": "报名条件\n1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 390,
+            "end": 397,
+            "excerpt": "仅限报一个专业",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 321,
+            "end": 323,
+            "excerpt": "绩点",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 324,
+            "end": 327,
+            "excerpt": "GPA",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 647,
+            "end": 650,
+            "excerpt": "GPA",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 306,
+            "end": 341,
+            "excerpt": "主修专业全部课程成绩的平均学分绩点（GPA）达到2.5及以上，学有余力",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 346,
+            "end": 397,
+            "excerpt": "辅修专业应与主修专业归属不同的专业大类（主修专业和辅修专业的专业代码前四位不能相同），且仅限报一个专业",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 428,
+            "end": 448,
+            "excerpt": "辅修专业开设学院制定的其它条件（附件2）",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "title",
+            "start": 16,
+            "end": 18,
+            "excerpt": "报名",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 217,
+            "end": 219,
+            "excerpt": "报名",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 457,
+            "end": 490,
+            "excerpt": "1. 报名时间：2024年12月2日9:00至12月9日24:00",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 625,
+            "end": 658,
+            "excerpt": "报名截止后，由辅修专业开设学院按主修专业课程GPA排序确定录取名单",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 718,
+            "end": 746,
+            "excerpt": "辅修第一轮录取结果和第二轮报名时间将另行通知，请及时关注",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=0E5F23451360C1B53C52D1F9432CDD0B"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=058AE10A43CD1D5503C608D59BC6C8E5"
+          },
+          {
+            "field": "body_text",
+            "start": 441,
+            "end": 446,
+            "excerpt": "条件（附件",
+            "index": null,
+            "url": null
+          }
+        ],
+        "evaluated_at": "2024-12-09T01:00:00Z",
+        "profile_sha256": "3dffd4d419ff5c5ea7d7870f195a3f50dacf0200351b7fdada61d7dda6bbfdd5",
+        "content_sha256": "035f2a7772100940c0e15aaa995b30b507ace43eb0e867f08f2e3ac9cdf3f5ec",
+        "facts_sha256": "42d935e6ef96ef850eb15276ed314376c1a49e6f7378b3d25168bbf6eae3c2e4",
+        "policy_sha256": "b2135466457f184c94bec403c79ae647c561a0c3f7e478517b2e2c4a47f9279d",
+        "input_sha256": "18adade3dfdf7550155e4f523d3cf8b6f327e091a39fd8940b44a8d4a957990b",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    },
+    {
+      "audit_id": "A05",
+      "fixture_case": "S06",
+      "fixture_sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": []
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2024-02-25T08:00:00+08:00"
+      },
+      "evaluated_at": "2024-02-24T09:00:00+08:00",
+      "topics": [
+        "research",
+        "research",
+        "research",
+        "research"
+      ],
+      "facts_opens_at": null,
+      "facts_deadline_at": null,
+      "decision": {
+        "action": "DIGEST",
+        "needs_review": true,
+        "effective_route": "digest",
+        "routing_reason_codes": [
+          "digest_action"
+        ],
+        "reason_codes": [
+          "relevant_digest"
+        ],
+        "reasons": [
+          "通知命中关注规则，按普通汇总处理。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "时间待核对：站点发布日期不能代替报名开始或截止时间。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.research",
+          "qualification.other.unknown",
+          "decision.relevant_digest",
+          "route.digest_action"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "unknown",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 131,
+                "end": 150,
+                "excerpt": "面向2024年预立项项目，名单见附件1",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 131,
+                "end": 150,
+                "excerpt": "面向2024年预立项项目，名单见附件1",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 131,
+                "end": 143,
+                "excerpt": "面向2024年预立项项目",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 131,
+                "end": 150,
+                "excerpt": "面向2024年预立项项目，名单见附件1",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_audience",
+            "field": "eligibility",
+            "message": "对象声明不属于支持的资格表达式。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 131,
+                "end": 150,
+                "excerpt": "面向2024年预立项项目，名单见附件1",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unsupported_condition",
+            "field": "project_membership",
+            "message": "正文有当前 Profile 无法核对的条件，不默认为符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 131,
+                "end": 143,
+                "excerpt": "面向2024年预立项项目",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "opening_unknown",
+            "field": "time",
+            "message": "报名是否开始尚不能从可见正文核实。",
+            "evidence": []
+          },
+          {
+            "code": "deadline_unknown",
+            "field": "time",
+            "message": "没有唯一可核对的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "media_required",
+            "field": "media",
+            "message": "关键条件或时间指向未解析的媒体。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 823,
+                "end": 844,
+                "excerpt": "条件：符合“国创计划”重点支持领域（见附件",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 131,
+                "end": 150,
+                "excerpt": "面向2024年预立项项目，名单见附件1",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 131,
+                "end": 143,
+                "excerpt": "面向2024年预立项项目",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          },
+          {
+            "code": "time_unknown",
+            "field": "deadline",
+            "message": "没有唯一可信的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "opening_unknown",
+            "field": "opening",
+            "message": "无法确认报名是否已经开放。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 12,
+            "end": 18,
+            "excerpt": "创新创业训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 169,
+            "end": 173,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 36,
+            "end": 42,
+            "excerpt": "创新创业训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 95,
+            "end": 99,
+            "excerpt": "大创项目",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 131,
+            "end": 150,
+            "excerpt": "面向2024年预立项项目，名单见附件1",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 131,
+            "end": 143,
+            "excerpt": "面向2024年预立项项目",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 26,
+            "end": 28,
+            "excerpt": "申报",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=C8D819E62578B682C06E841F2196C60A"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=99DC156B246F5DB8EEAAB78D06568359"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 2,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=6A98477B921E97FE385212B62C977222"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 3,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=0D5683A4BB5CEEB5F55F45586F4D2CEF"
+          },
+          {
+            "field": "body_text",
+            "start": 823,
+            "end": 844,
+            "excerpt": "条件：符合“国创计划”重点支持领域（见附件",
+            "index": null,
+            "url": null
+          }
+        ],
+        "evaluated_at": "2024-02-24T01:00:00Z",
+        "profile_sha256": "3dffd4d419ff5c5ea7d7870f195a3f50dacf0200351b7fdada61d7dda6bbfdd5",
+        "content_sha256": "d848ec9216a1865cb43bfd743b3aad5b9c1e427009802e1286ebf9c3cc0cbcad",
+        "facts_sha256": "d59d6a89b4cd389cf50fd8c93019d438426fb1db19e067df6eba4855b297b2bd",
+        "policy_sha256": "b2135466457f184c94bec403c79ae647c561a0c3f7e478517b2e2c4a47f9279d",
+        "input_sha256": "8bb3a19dbd0af0d0e9c97fa5fc1425be800e5919212a92b39cbc7bf1a0e6d03e",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    },
+    {
+      "audit_id": "A06",
+      "fixture_case": "S02",
+      "fixture_sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "topics": [
+        "course_enrollment",
+        "course_enrollment",
+        "minor"
+      ],
+      "facts_opens_at": null,
+      "facts_deadline_at": null,
+      "decision": {
+        "action": "STORE_ONLY",
+        "needs_review": true,
+        "effective_route": "none",
+        "routing_reason_codes": [
+          "no_mail_action"
+        ],
+        "reason_codes": [
+          "store_only_topic"
+        ],
+        "reasons": [
+          "命中用户选择仅保存的主题。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "时间待核对：站点发布日期不能代替报名开始或截止时间。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.minor",
+          "retention.topic.course_enrollment",
+          "qualification.other.unknown",
+          "decision.store_only_topic",
+          "route.no_mail_action"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "unknown",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 1162,
+                "end": 1193,
+                "excerpt": "选课成功但不按要求参加课程学习或考试的，该课程成绩将以零分记载",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unsupported_condition",
+            "field": "other",
+            "message": "有额外强制条件，首版未完整理解。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1162,
+                "end": 1193,
+                "excerpt": "选课成功但不按要求参加课程学习或考试的，该课程成绩将以零分记载",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "time_unrecognized",
+            "field": "time",
+            "message": "时间声明没有支持的完整年份日期。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 253,
+                "end": 259,
+                "excerpt": "二、选课时间",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "opening_unknown",
+            "field": "time",
+            "message": "报名是否开始尚不能从可见正文核实。",
+            "evidence": []
+          },
+          {
+            "code": "deadline_unknown",
+            "field": "time",
+            "message": "没有唯一可核对的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "audience_unknown",
+            "field": "eligibility",
+            "message": "没有明确支持的报名对象，不能视为面向全体。",
+            "evidence": []
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 1162,
+                "end": 1193,
+                "excerpt": "选课成功但不按要求参加课程学习或考试的，该课程成绩将以零分记载",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "audience_unknown",
+            "field": "audience",
+            "message": "可见正文未明确报名对象。",
+            "evidence": []
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          },
+          {
+            "code": "time_unknown",
+            "field": "deadline",
+            "message": "没有唯一可信的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "opening_unknown",
+            "field": "opening",
+            "message": "无法确认报名是否已经开放。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 24,
+            "end": 26,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 25,
+            "end": 27,
+            "excerpt": "选课",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 864,
+            "end": 866,
+            "excerpt": "辅修",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 1162,
+            "end": 1193,
+            "excerpt": "选课成功但不按要求参加课程学习或考试的，该课程成绩将以零分记载",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 253,
+            "end": 259,
+            "excerpt": "二、选课时间",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=19CF83492EE199703E92F6DE5149E482"
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 1,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=2247CE7985A5C4A505568321423A74BA"
+          }
+        ],
+        "evaluated_at": "2026-09-28T01:00:00Z",
+        "profile_sha256": "3a1e87d568e4fcc7e0d15c42396ef713494466a21ba68c47f4adf8ed55932f2a",
+        "content_sha256": "641d653509d3ee8ee0e967cc0253dbb89e8a0c572b32e0ebecadc057a4d06f3a",
+        "facts_sha256": "528e5390fea71cf8d1dd4a42dcbfddfc3e4f1521a8c61dbe2a8be0927217321d",
+        "policy_sha256": "a718bfccac166dd9cfca69439d6a0ce6b1d9b8e310f58c7554cafbbc03123ad0",
+        "input_sha256": "83643587a7682af1d90abe80cdb25d23f5375cb88b9ad33aab0443e85c6327ce",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    },
+    {
+      "audit_id": "A07",
+      "fixture_case": "S07",
+      "fixture_sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee",
+      "profile": {
+        "schema_version": 1,
+        "profile_id": "self",
+        "institution": "whu",
+        "study_level": "undergraduate",
+        "college": null,
+        "major": null,
+        "entry_year": null,
+        "interest_topics": [
+          "minor",
+          "research"
+        ],
+        "include_phrases": [],
+        "exclude_topics": [],
+        "high_value_topics": [
+          "minor",
+          "research"
+        ],
+        "store_only_topics": []
+      },
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "previous_facts": null,
+        "previous_action": null,
+        "previous_effective_route": "none",
+        "comparison_known": true,
+        "activation_date_conflict": false,
+        "next_digest_at": "2022-05-15T08:00:00+08:00"
+      },
+      "evaluated_at": "2022-05-14T09:00:00+08:00",
+      "topics": [
+        "research",
+        "research",
+        "research",
+        "research",
+        "competition"
+      ],
+      "facts_opens_at": null,
+      "facts_deadline_at": null,
+      "decision": {
+        "action": "PUSH_NOW",
+        "needs_review": true,
+        "effective_route": "immediate",
+        "routing_reason_codes": [
+          "hybrid_immediate"
+        ],
+        "reason_codes": [
+          "high_value_topic"
+        ],
+        "reasons": [
+          "新通知处于最近 7 个上海自然日内，并命中用户高价值主题。",
+          "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+          "时间待核对：站点发布日期不能代替报名开始或截止时间。",
+          "图片和附件仅保留引用，本次未读取其内容。"
+        ],
+        "matched_rules": [
+          "interest.topic.research",
+          "qualification.institution.match",
+          "qualification.study_level.unknown",
+          "qualification.other.unknown",
+          "decision.high_value_topic",
+          "route.hybrid_immediate"
+        ],
+        "relevance": "matched",
+        "eligibility": "unknown",
+        "time_status": "unknown",
+        "constraint_results": [
+          {
+            "constraint": {
+              "field": "institution",
+              "values": [
+                "whu"
+              ],
+              "operator": "one_of",
+              "evidence": {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "whu",
+            "result": "match"
+          },
+          {
+            "constraint": {
+              "field": "study_level",
+              "values": [
+                "faculty"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "undergraduate",
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "study_level",
+              "values": [
+                "undergraduate"
+              ],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 193,
+                "end": 219,
+                "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": "undergraduate",
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 193,
+                "end": 219,
+                "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 298,
+                "end": 323,
+                "excerpt": "面向国家经济社会发展，具有一定理论和现实意义的选题",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          },
+          {
+            "constraint": {
+              "field": "other",
+              "values": [],
+              "operator": "unsupported",
+              "evidence": {
+                "field": "body_text",
+                "start": 298,
+                "end": 323,
+                "excerpt": "面向国家经济社会发展，具有一定理论和现实意义的选题",
+                "index": null,
+                "url": null
+              }
+            },
+            "actual": null,
+            "result": "unknown"
+          }
+        ],
+        "unknowns": [
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 193,
+                "end": 219,
+                "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_condition",
+            "field": "eligibility",
+            "message": "对象声明含未完整理解的附加内容。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 298,
+                "end": 323,
+                "excerpt": "面向国家经济社会发展，具有一定理论和现实意义的选题",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "unrecognized_audience",
+            "field": "eligibility",
+            "message": "对象声明不属于支持的资格表达式。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 298,
+                "end": 323,
+                "excerpt": "面向国家经济社会发展，具有一定理论和现实意义的选题",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "conflicting_evidence",
+            "field": "eligibility",
+            "message": "同一资格字段有互相冲突的声明。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              },
+              {
+                "field": "body_text",
+                "start": 193,
+                "end": 219,
+                "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "year_missing",
+            "field": "time",
+            "message": "月日缺少年份，不从发布日期推测。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 813,
+                "end": 933,
+                "excerpt": "请有意向的教师填写《武汉大学2023年度大学生创新创业训练计划项目选题征集信息表》，教学单位以学院为单位汇总后提交，科研单位教师可以直接提交，选题接收邮箱whusjjx@whu.edu.cn，邮件主题“单位名称-大创选题信息表”发送至邮箱，",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "opening_unknown",
+            "field": "time",
+            "message": "报名是否开始尚不能从可见正文核实。",
+            "evidence": []
+          },
+          {
+            "code": "deadline_unknown",
+            "field": "time",
+            "message": "没有唯一可核对的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "study_level",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 143,
+                "end": 171,
+                "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "study_level",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 193,
+                "end": 219,
+                "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 193,
+                "end": 219,
+                "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "qualification_unknown",
+            "field": "other",
+            "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+            "evidence": [
+              {
+                "field": "body_text",
+                "start": 298,
+                "end": 323,
+                "excerpt": "面向国家经济社会发展，具有一定理论和现实意义的选题",
+                "index": null,
+                "url": null
+              }
+            ]
+          },
+          {
+            "code": "eligibility_incomplete",
+            "field": "eligibility",
+            "message": "可识别条件不足以确认全部报名资格。",
+            "evidence": []
+          },
+          {
+            "code": "time_unknown",
+            "field": "deadline",
+            "message": "没有唯一可信的完整年份截止时间。",
+            "evidence": []
+          },
+          {
+            "code": "opening_unknown",
+            "field": "opening",
+            "message": "无法确认报名是否已经开放。",
+            "evidence": []
+          }
+        ],
+        "evidence": [
+          {
+            "field": "title",
+            "start": 12,
+            "end": 18,
+            "excerpt": "创新创业训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 213,
+            "end": 217,
+            "excerpt": "科研训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 12,
+            "end": 18,
+            "excerpt": "创新创业训练",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 73,
+            "end": 77,
+            "excerpt": "大创项目",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 732,
+            "end": 734,
+            "excerpt": "竞赛",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 143,
+            "end": 171,
+            "excerpt": "面向全校教师征集2023年大创项目选题，有关事项通知如下",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 193,
+            "end": 219,
+            "excerpt": "面向本科生的、在导师指导下独立完成的自主科研训练活动",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 298,
+            "end": 323,
+            "excerpt": "面向国家经济社会发展，具有一定理论和现实意义的选题",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "title",
+            "start": 2,
+            "end": 4,
+            "excerpt": "征集",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 2,
+            "end": 4,
+            "excerpt": "征集",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "body_text",
+            "start": 813,
+            "end": 933,
+            "excerpt": "请有意向的教师填写《武汉大学2023年度大学生创新创业训练计划项目选题征集信息表》，教学单位以学院为单位汇总后提交，科研单位教师可以直接提交，选题接收邮箱whusjjx@whu.edu.cn，邮件主题“单位名称-大创选题信息表”发送至邮箱，",
+            "index": null,
+            "url": null
+          },
+          {
+            "field": "attachments",
+            "start": null,
+            "end": null,
+            "excerpt": "",
+            "index": 0,
+            "url": "https://uc.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1407739091&wbfileid=3B70397E1B06984A884C950214A58FF5"
+          }
+        ],
+        "evaluated_at": "2022-05-14T01:00:00Z",
+        "profile_sha256": "3dffd4d419ff5c5ea7d7870f195a3f50dacf0200351b7fdada61d7dda6bbfdd5",
+        "content_sha256": "ece75b60e133c025f4c607bffe5f753509aeaac871c55a46931666322262086e",
+        "facts_sha256": "671f441b0a36b4007418f3fce3589c30534430579fd4ff82b811e53667009b45",
+        "policy_sha256": "b2135466457f184c94bec403c79ae647c561a0c3f7e478517b2e2c4a47f9279d",
+        "input_sha256": "ee2fcd1abd19ac2dbffb874e13959a76bb70a946abd81cb6c54ba621ca9ae98d",
+        "facts_extractor_version": "whu-notice-facts-v1",
+        "decision_engine_version": "notification-decision-v1",
+        "rules_version": "notification-rules-v1",
+        "routing_version": "notification-routing-v1"
+      }
+    }
+  ]
+}

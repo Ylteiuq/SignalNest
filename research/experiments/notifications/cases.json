@@ -1,0 +1,364 @@
+{
+  "note": "Historical clock replay; proposals are NOT human gold labels.",
+  "cases": [
+    {
+      "case_id": "S01",
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "metadata": "research/fixtures/current-notice-detail.headers",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": 2025,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "2026级选课对2025级档案；菜单教学科研不能算研究机会",
+      "proposed_action": "STORE_ONLY",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S02",
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "metadata": "research/fixtures/current-notice-detail.headers",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "选课归保存主题；入学年份未知",
+      "proposed_action": "STORE_ONLY",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S03",
+      "fixture": "research/fixtures/legacy-notice-detail.html",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+      "metadata": "research/fixtures/legacy-notice-detail.headers",
+      "sha256": "4e39671b3ceba811baf7ec0c23728596054b585768e02fcddfb0c1500a9260e8",
+      "evaluated_at": "2026-09-04T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "时间表图片与附件细项，当前Profile只保存选课",
+      "proposed_action": "STORE_ONLY",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S04",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "metadata": "research/fixtures/notifications/notice-128291-20261005T133533Z.json",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "真实科研选课截止当日23:59；助教字样不是招聘",
+      "proposed_action": "PUSH_NOW",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S05",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "metadata": "research/fixtures/notifications/notice-128291-20261005T133533Z.json",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "graduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "明确本科对象，对虚构研究生Profile不符合",
+      "proposed_action": "STORE_ONLY",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S06",
+      "fixture": "research/fixtures/notifications/notice-17361-20261005T133538Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+      "metadata": "research/fixtures/notifications/notice-17361-20261005T133538Z.json",
+      "sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+      "evaluated_at": "2024-02-24T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "补报科研机会，团队条件未知，2月25日前团队提交临近",
+      "proposed_action": "PUSH_NOW",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S07",
+      "fixture": "research/fixtures/notifications/notice-14147-20261005T133543Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+      "metadata": "research/fixtures/notifications/notice-14147-20261005T133543Z.json",
+      "sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee",
+      "evaluated_at": "2022-05-14T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "当前选题征集主体教师，不是学生现在申请",
+      "proposed_action": "STORE_ONLY",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S08",
+      "fixture": "research/fixtures/notifications/notice-117011-20261005T133549Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "metadata": "research/fixtures/notifications/notice-117011-20261005T133549Z.json",
+      "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "evaluated_at": "2024-12-09T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "辅修真实当日24:00截止，GPA/专业/年级例外及附件条件未知",
+      "proposed_action": "PUSH_NOW",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S09",
+      "fixture": "research/fixtures/notifications/notice-127511-20261005T133829869212Z.html",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+      "metadata": "research/fixtures/notifications/notice-127511-20261005T133829869212Z.json",
+      "sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1",
+      "evaluated_at": "2026-06-26T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "科研结题结果不是新申请阶段",
+      "proposed_action": "STORE_ONLY",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S10",
+      "fixture": "research/fixtures/notifications/notice-18135-20261005T133554Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+      "metadata": "research/fixtures/notifications/notice-18135-20261005T133554Z.json",
+      "sha256": "5b0a3dcfac752ec0947ccfc8e87bccf5a313be586907b44905494ed592e04aa1",
+      "evaluated_at": "2024-06-28T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "当前Parser失败；违规取消参赛资格不是整个机会取消",
+      "proposed_action": null,
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    },
+    {
+      "case_id": "S11",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "metadata": "research/fixtures/notifications/notice-128291-20261005T133533Z.json",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "evaluated_at": "2026-09-10T09:00:00+08:00",
+      "context": "new",
+      "mode": "hybrid",
+      "profile": {
+        "institution": "whu",
+        "role": "student",
+        "study_level": "undergraduate",
+        "entry_year": null,
+        "interest_topics": [
+          "research",
+          "minor",
+          "teaching_assistant"
+        ],
+        "high_value_topics": [],
+        "store_only_topics": [
+          "course_enrollment"
+        ]
+      },
+      "description": "同一真实科研机会，非高价值Profile，非临近截止",
+      "proposed_action": "DIGEST",
+      "human_expected_action": null,
+      "annotation_status": "pending_human"
+    }
+  ]
+}

@@ -1,0 +1,257 @@
+{
+  "rule_revision": "research-probe-20261005-v1",
+  "summary": {
+    "cases": 11,
+    "parsed_cases": 10,
+    "parser_failures": 1,
+    "needs_review_cases": 6,
+    "eligibility_unknown_cases": 5,
+    "human_confirmed_labels": 0,
+    "accuracy": null,
+    "note": "Curated repeated pages/historical clocks; not representative coverage or gold accuracy."
+  },
+  "routing_checks": {
+    "urgent_unknown_stays_immediate": true,
+    "digest_only_before_intent": true,
+    "activation_urgent_escape": true,
+    "activation_default_cap": true
+  },
+  "results": [
+    {
+      "case_id": "S01",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于2026-2027学年第一学期2026级新生选课的通知",
+      "topics": [
+        "minor",
+        "course_enrollment"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": false,
+      "stage": "candidate",
+      "eligibility": "ineligible",
+      "qualification_rule": "freshman_year",
+      "deadline_at": null,
+      "needs_review": true,
+      "missing_fields": [
+        "deadline_year_unknown"
+      ],
+      "action": "STORE_ONLY",
+      "effective_route": "none"
+    },
+    {
+      "case_id": "S02",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于2026-2027学年第一学期2026级新生选课的通知",
+      "topics": [
+        "minor",
+        "course_enrollment"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": false,
+      "stage": "candidate",
+      "eligibility": "unknown",
+      "qualification_rule": "freshman_year",
+      "deadline_at": null,
+      "needs_review": true,
+      "missing_fields": [
+        "deadline_year_unknown",
+        "entry_year"
+      ],
+      "action": "DIGEST",
+      "effective_route": "digest"
+    },
+    {
+      "case_id": "S03",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于2026-2027学年第一学期选课的通知",
+      "topics": [
+        "course_enrollment"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": false,
+      "stage": "candidate",
+      "eligibility": "unknown",
+      "qualification_rule": "scope_unknown",
+      "deadline_at": null,
+      "needs_review": true,
+      "missing_fields": [
+        "course_requirements_attachments",
+        "deadline_unrecognized",
+        "eligibility_scope",
+        "time_table_image"
+      ],
+      "action": "STORE_ONLY",
+      "effective_route": "none"
+    },
+    {
+      "case_id": "S04",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+      "topics": [
+        "research",
+        "course_enrollment"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": true,
+      "stage": "candidate",
+      "eligibility": "eligible",
+      "qualification_rule": "undergraduate_scope",
+      "deadline_at": "2026-09-28T23:59:00+08:00",
+      "needs_review": false,
+      "missing_fields": [],
+      "action": "PUSH_NOW",
+      "effective_route": "immediate"
+    },
+    {
+      "case_id": "S05",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+      "topics": [
+        "research",
+        "course_enrollment"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": true,
+      "stage": "candidate",
+      "eligibility": "ineligible",
+      "qualification_rule": "undergraduate_scope",
+      "deadline_at": "2026-09-28T23:59:00+08:00",
+      "needs_review": false,
+      "missing_fields": [],
+      "action": "STORE_ONLY",
+      "effective_route": "none"
+    },
+    {
+      "case_id": "S06",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于开展2024年大学生创新创业训练计划项目中期检查暨立项工作的通知",
+      "topics": [
+        "research"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": false,
+      "stage": "candidate",
+      "eligibility": "unknown",
+      "qualification_rule": "team_conditions",
+      "deadline_at": "2024-02-25T00:00:00+08:00",
+      "needs_review": true,
+      "missing_fields": [
+        "deadline_day_boundary",
+        "project_conditions",
+        "team_research_state"
+      ],
+      "action": "PUSH_NOW",
+      "effective_route": "immediate"
+    },
+    {
+      "case_id": "S07",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于征集2023年大学生创新创业训练计划项目选题的通知",
+      "topics": [
+        "research"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": false,
+      "stage": "candidate",
+      "eligibility": "ineligible",
+      "qualification_rule": "teacher_applicant",
+      "deadline_at": null,
+      "needs_review": true,
+      "missing_fields": [
+        "deadline_unrecognized"
+      ],
+      "action": "STORE_ONLY",
+      "effective_route": "none"
+    },
+    {
+      "case_id": "S08",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于2023级本科生修读辅修专业报名的通知",
+      "topics": [
+        "minor"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": false,
+      "stage": "candidate",
+      "eligibility": "unknown",
+      "qualification_rule": "minor_conditions",
+      "deadline_at": "2024-12-10T00:00:00+08:00",
+      "needs_review": true,
+      "missing_fields": [
+        "attachment_conditions",
+        "cohort_exceptions",
+        "gpa",
+        "major_category"
+      ],
+      "action": "PUSH_NOW",
+      "effective_route": "immediate"
+    },
+    {
+      "case_id": "S09",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "关于公布2025年武汉大学珞珈本科生创新研究基金项目结题验收结果的通知",
+      "topics": [
+        "research"
+      ],
+      "naive_research_hit": false,
+      "naive_assistant_hit": false,
+      "stage": "reference",
+      "eligibility": "unknown",
+      "qualification_rule": "scope_unknown",
+      "deadline_at": null,
+      "needs_review": false,
+      "missing_fields": [],
+      "action": "STORE_ONLY",
+      "effective_route": "none"
+    },
+    {
+      "case_id": "S10",
+      "source_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "failed",
+      "parse_error_type": "ParseError",
+      "action": null,
+      "raw_has_cancel_qualification": true,
+      "opportunity_cancellation_confirmed": false
+    },
+    {
+      "case_id": "S11",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "annotation_status": "pending_human",
+      "parse_status": "ok",
+      "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+      "topics": [
+        "research",
+        "course_enrollment"
+      ],
+      "naive_research_hit": true,
+      "naive_assistant_hit": true,
+      "stage": "candidate",
+      "eligibility": "eligible",
+      "qualification_rule": "undergraduate_scope",
+      "deadline_at": "2026-09-28T23:59:00+08:00",
+      "needs_review": false,
+      "missing_fields": [],
+      "action": "DIGEST",
+      "effective_route": "digest"
+    }
+  ]
+}

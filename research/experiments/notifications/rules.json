@@ -1,0 +1,17 @@
+{
+  "revision": "research-probe-20261005-v3",
+  "body_interest_requires_action_sentence": true,
+  "topics": {
+    "research": ["科研训练", "本科生创新研究基金", "大学生创新创业训练计划", "大学生创新训练计划"],
+    "minor": ["辅修专业"],
+    "course_enrollment": ["选课通知", "新生选课"],
+    "exchange": ["交换生", "海外交流项目", "国际交流项目"],
+    "scholarship": ["奖学金申请", "奖学金评选"]
+  },
+  "assistant_recruitment_pattern": "(?:助教|教学助理).{0,6}(?:招聘|招募|选聘)|(?:招聘|招募|选聘).{0,6}(?:助教|教学助理)",
+  "reference_title_phrases": ["结题验收结果", "结题结果", "验收结果", "录取名单", "立项名单"],
+  "deadline_support": ["explicit_year_date_time", "same_sentence_range_inherits_start_year", "explicit_year_date_before_boundary"],
+  "qualification_support": ["entry_year_freshman", "explicit_undergraduate_scope", "explicit_teacher_applicant"],
+  "cancellation_positive_enabled": false,
+  "limitations": ["assistant_recruitment_positive_missing", "opportunity_cancellation_positive_missing", "exchange_scholarship_positive_missing", "unknown_team_gpa_language_conditions", "unknown_full_time_current_enrollment"]
+}
