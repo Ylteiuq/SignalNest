@@ -17,6 +17,31 @@ def main(argv: list[str] | None = None) -> int:
         prog="signalnest", description="个人校园信息助手（离线处理与有界采集）"
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    profile = commands.add_parser("profile-check", help="校验本地示例/个人画像；不访问存储或网络")
+    profile.add_argument("--profile", type=Path, required=True)
+    preview = commands.add_parser("decision-preview", help="纯本地预览事实、决策理由与路线；不发送")
+    preview.add_argument("--profile", type=Path, required=True)
+    input_group = preview.add_mutually_exclusive_group(required=True)
+    input_group.add_argument("--file", type=Path, help="原始 HTML；同时给出 --url")
+    input_group.add_argument("--notice-json", type=Path, help="NoticeContent 规范 JSON 文件")
+    preview.add_argument("--url", help="HTML 对应的最终详情 URL，不猜文件名")
+    preview.add_argument("--at", required=True, help="显式决策时间 ISO-8601，必须含 UTC offset")
+    preview.add_argument(
+        "--next-digest-at", required=True, help="显式下次 Digest 时间，含 UTC offset"
+    )
+    preview.add_argument(
+        "--event-kind",
+        choices=("new", "update", "activation_recent", "historical"),
+        default="new",
+        help="仅为预览上下文，不建立真实事件",
+    )
+    preview.add_argument("--mode", choices=("hybrid", "digest_only"), default="hybrid")
+    preview.add_argument(
+        "--previous-notice-json", type=Path, help="update 的旧 NoticeContent；本地读取"
+    )
+    preview.add_argument(
+        "--previous-route", choices=("none", "immediate", "digest"), default="none"
+    )
     validate = commands.add_parser("config-check", help="校验 TOML 配置，不创建本地存储")
     validate.add_argument("--config", type=Path, required=True, help="TOML 配置文件路径")
     initialize = commands.add_parser("storage-init", help="显式初始化本地存储并升级到最新迁移")
@@ -55,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         "--max-body-bytes", type=int, default=2 * 1024 * 1024, help="每份响应正文上限，默认 2 MiB"
     )
     args = parser.parse_args(argv)
+    if args.command in {"profile-check", "decision-preview"}:
+        return _notification_preview(args)
     logger = configure_logging()
     run_id = uuid4().hex
     try:
@@ -97,6 +124,99 @@ def main(argv: list[str] | None = None) -> int:
     print(f"配置有效: source_id={settings.source.id}")
     print(f"data_dir={settings.storage.data_dir}")
     print(f"database={settings.storage.database}")
+    return 0
+
+
+def _notification_preview(args):
+    from datetime import datetime
+
+    from pydantic import ValidationError
+
+    from signalnest.contracts import NoticeContent, PageInput
+    from signalnest.notifications.contracts import EventContext, aware_time
+    from signalnest.notifications.decision import decide
+    from signalnest.notifications.facts import extract_facts
+    from signalnest.notifications.profile import ProfileError, load_profile
+    from signalnest.parsing import ParseError, parse_notice
+
+    # Reads are explicit local files. No config, database, lock, HTTP client or clock.
+    limit = 4 * 1024 * 1024
+
+    def read(path):
+        with path.open("rb") as stream:
+            value = stream.read(limit + 1)
+        if len(value) > limit:
+            raise ValueError("local preview input exceeds 4 MiB")
+        return value
+
+    def content(path):
+        return NoticeContent.model_validate_json(read(path))
+
+    def explicit_time(value, field):
+        try:
+            return aware_time(datetime.fromisoformat(value))
+        except ValueError as exc:
+            raise ValueError(f"{field} requires ISO-8601 with an explicit UTC offset") from exc
+
+    try:
+        profile = load_profile(args.profile)
+        if args.command == "profile-check":
+            print(
+                json.dumps(
+                    {"profile_valid": True, "profile_sha256": profile.sha256()}, ensure_ascii=False
+                )
+            )
+            return 0
+        now = explicit_time(args.at, "--at")
+        next_digest = explicit_time(args.next_digest_at, "--next-digest-at")
+        if args.file:
+            if not args.url:
+                raise ValueError("HTML input requires --url with its final page URL")
+            notice = parse_notice(PageInput(content=read(args.file), page_url=args.url)).content
+        else:
+            if args.url:
+                raise ValueError("--url is used only with --file")
+            notice = content(args.notice_json)
+        previous = content(args.previous_notice_json) if args.previous_notice_json else None
+        if (previous is not None or args.previous_route != "none") and args.event_kind != "update":
+            raise ValueError("previous content/route is only valid for update previews")
+        context = EventContext(
+            kind=args.event_kind,
+            notification_mode=args.mode,
+            next_digest_at=next_digest,
+            previous_facts=extract_facts(previous) if previous is not None else None,
+            previous_effective_route=args.previous_route,
+            comparison_known=args.event_kind != "update" or previous is not None,
+        )
+        facts = extract_facts(notice)
+        decision = decide(profile, facts, context, now=now)
+    except ProfileError as exc:
+        print(f"画像错误: {exc}", file=sys.stderr)
+        return 2
+    except ParseError as exc:
+        print(f"解析失败: {exc.code}；未生成决策，请检查页面及 Parser 支持范围", file=sys.stderr)
+        return 1
+    except OSError:
+        print("预览输入不可读；请检查本地文件路径和权限", file=sys.stderr)
+        return 2
+    except ValidationError:
+        print("预览输入无效；检查 NoticeContent、HTTP(S) URL 及带时区的时间", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        # Local validation failures have no successful empty-result fallback.
+        print(f"预览参数错误: {exc}", file=sys.stderr)
+        return 2
+    print(
+        json.dumps(
+            {
+                "preview_only": True,
+                "facts": facts.model_dump(mode="json", exclude={"body_text"}),
+                "decision": decision.model_dump(mode="json"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 

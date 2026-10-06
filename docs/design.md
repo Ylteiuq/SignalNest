@@ -1,6 +1,6 @@
 # SignalNest 设计与采集持久化
 
-项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策与只读诊断已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。新增外部定时部署模板，没有 Python 常驻调度器或邮件发送。
+项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断与 N0 本地通知决策已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。新增外部定时部署模板，没有 Python 常驻调度器或邮件发送。
 
 ## 模块边界
 
@@ -21,6 +21,8 @@
 - `runtime_policy.py`：到期候选分组/公平批次、上海日历复查档及有限错误延期；显式保守重算旧成功 due 的短事务入口。不取网页、不改 Parser、不引入第二套调度真相。
 - `status.py`：已有数据库的一致只读快照与有限诊断；不修正状态、不获取锁、不读取 raw 或发送请求。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
+- `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
+- `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
 - `eventlog.py`：标准库 JSON 日志，CLI 显式启用；不在导入时配置日志。
 
 HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；Fetcher 校验目标 URL/每次跳转、收紧剩余超时并流式读取。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，重试只在 Fetcher 一层执行，协调器不另套重试。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
@@ -222,3 +224,13 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 随后临时目录低频实采三轮，共 9 次真实 GET。首页 304 的 Vary 缩减触发保守完整回退，第二轮请求预算中断，第三轮沿用原库继续处理。最终 25 个身份、4 个版本、21 条待办，未登记完整扫描成功；观察已固化为离线回归。实验边界、持久结果和复现方式见 [恢复验证记录](recovery-validation.md)。
 
 采集三交付完成后已增加 [处理政策与诊断](runtime-policy.md) 及 [一个定时部署模板](operations.md)。没有新增 schema、持久配额/优先级、扫描模式字段或后台 Python 调度器；后续在目标机观察，再设计 Email 发送记录与补偿。本节点不安装定时器或发送邮件。
+
+## N0 通知决策与下一步接口
+
+N0 的调用链为 `NoticeContent → extract_facts → decide(Profile, Facts, EventContext, now=...)`。采集处理成功不证明报名资格；画像缺值、未支持的 OR/条件、时间/媒体缺口保留未知。相关性、资格、时间分别判断，`PUSH_NOW / DIGEST / STORE_ONLY / IGNORE` 与 `needs_review` 分开。纯路线合成也在 N0：digest_only、首启默认汇总及可信短截止例外进入显式输入和决策证据，后续计划器不能重新读取当前 Profile 来改已选路线。
+
+资格只核对少量明确对象条件，不用“研究生”等全页裸词推断对象；发布日期不代替开放或截止。短截止相关机会可在资格未知时提示核对，理由明确不构成资格确认。图片/附件只保留未解析引用；不从 alt、文件名补造事实。具体规范、版本、证据范围和真实样本限制见 [规则说明](notifications.md)。
+
+Profile、事实、政策和决策输入摘要用于追溯 N0 规则输入，不替代原字节/规范内容摘要，也不是内容事件或发送去重身份。N0 不写这些快照；预览 kind/previous_route 只是用户声明。本轮无通知迁移或生产事务钩子，现有入库、原文、状态和 due 行为保持不变。
+
+[N1 接口稿](notification-state.md)拟议显式 live/offline/maintenance 来源、启用稳定身份集合、真实列表日期证据、独立 live 比较基线与事件序号。未来在既有成功事务内一起提交版本/状态/基线/事件/决策/必要意图；prepare/旧文解析/决策均在事务外。稿中拟议表与函数当前不可调用，迁移升级不应自动启用或补发历史邮件。N1 持久化、N2 冻结计划、N3 SMTP、N4 发送恢复留后续交付。

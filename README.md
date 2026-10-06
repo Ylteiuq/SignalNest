@@ -1,6 +1,6 @@
 # SignalNest
 
-单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化、有界采集、处理政策与状态诊断已完成**。显式执行 `crawl-once` 或 `scheduled-run` 获取页面；提供外部定时模板，没有 Python 后台调度器或邮件发送。
+单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化、有界采集、处理政策、状态诊断与 N0 本地通知决策已完成**。显式执行 `crawl-once` 或 `scheduled-run` 获取页面；提供外部定时模板，没有 Python 后台调度器或邮件发送。
 
 ## 安装与检查
 
@@ -156,11 +156,37 @@ uv run --locked signalnest apply-recheck-policy --config signalnest.toml
 
 交付一个 **Linux/systemd 252+** 模板：普通每半小时，full 每日上海时间 01:15，均单次串行、同实例锁、无自动重启。首次或至少 24 小时停机恢复先执行一次有界 full；错过的普通周期不排队重放。模板尚未安装/启用，目标机需验证。专用日志保留、一致备份与只读恢复校验见 [部署与运维](docs/operations.md)；处理和诊断的准确语义见 [政策说明](docs/runtime-policy.md)。
 
+## 本地画像与通知决策预览（N0）
+
+`profile.example.toml` 明确标注为虚构示例，必须按自己的情况编辑；缺少的学校、层次、学院、专业和入学年保持未知，不推断为“符合资格”。Profile 独立于采集配置，不包含邮箱或凭据。至少配置一项关注主题或字面词组，拒绝未知字段、非法主题、重复项和数值隐式转换。
+
+```sh
+cp profile.example.toml profile.toml
+uv run --locked signalnest profile-check --profile profile.toml
+# 使用已有真实 fixture，纯离线；显式提供最终 URL 与决策时钟。
+uv run --locked signalnest decision-preview --profile profile.toml \
+  --file research/fixtures/notifications/notice-128291-20261005T133533Z.html \
+  --url https://uc.whu.edu.cn/info/1517/128291.htm \
+  --at 2026-10-05T20:00:00+08:00 --next-digest-at 2026-10-06T09:00:00+08:00
+# 也可输入 NoticeContent JSON；不从数据库隐式取当前版本。
+uv run --locked signalnest decision-preview --profile profile.toml \
+  --notice-json /absolute/path/notice.json \
+  --at 2026-10-05T20:00:00+08:00 --next-digest-at 2026-10-06T09:00:00+08:00
+```
+
+以上命令不需要 `--config`、数据库初始化或写入锁，不联网、不写数据库或原文、不发送邮件。画像路径、HTML/JSON 路径相对于调用工作目录；时间必须含时区，下一次 Digest 时间必须晚于决策时间。`--file` 必须给出实际最终详情 URL，不能根据文件名猜文章身份。JSON 输入完整字段见 [NoticeContent](src/signalnest/contracts.py)，不是数据库行或 ParsedNotice 包装。
+
+stdout 为 JSON：事实、短原文证据、资格/时间三值判断、Action、独立 `needs_review`、理由、命中规则、未知项、版本和摘要。正文全文不重复输出。Action 为 `PUSH_NOW / DIGEST / STORE_ONLY / IGNORE`；有效路线为 `immediate / digest / none`。路线只是预览结果，**当前不存在投递意图、邮件计划或发送记录**。资格未知仍可提示核对可信紧迫的相关机会，不会声称用户已符合资格；近期日期本身不触发推送。
+
+`--event-kind {new,update,activation_recent,historical}` 与 `--mode {hybrid,digest_only}` 仅声明预览上下文。update 可给 `--previous-notice-json` 和 `--previous-route`，缺少旧内容则标明比较未知。首启预览默认汇总，可信截止不晚于下一次 Digest 时保留紧急路线；显式 digest_only 仍优先。命令不证明实际发生新内容或此前已登记邮件资格。校验/参数错误退出 2，Parser 无法支持输入页面退出 1，成功预览退出 0。
+
+当前只支持有限字面主题、对象表达式和完整年份的时间；图片/附件仅保留引用，不做 OCR 或解析下载文件。不能可靠识别的条件与时间保留未知。覆盖、限制及纯函数入口见 [N0 规则说明](docs/notifications.md)。[N1 接口稿](docs/notification-state.md)定义启用边界、独立 live 基线和未来成功事务，但尚未实现；本轮不新增 schema、迁移或接入采集后通知。
+
 ## 日志与当前边界
 
 命令结果写 stdout；结构化事件日志写 stderr，包含 UTC 时间、级别、事件名和可选 source_id/run_id/document_id/response_id/stage/error_code。错误诊断也写 stderr，因此错误输出不是纯 JSON 流。日志不包含原始配置、URL、异常正文或网页正文；只在 CLI 显式配置 SignalNest 的 logger，不修改 root logger。
 
-已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序。
+已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览。
 
 尚未开展：目标 Linux 定时器实际部署、长期运行观察、Email、历史搜索、LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher 或采集入口；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
 
@@ -246,3 +272,7 @@ print(notice.source_document_id, notice.content.content_sha256())
 2026-10-05 定时运行与诊断节点：同一 macOS / Python 3.12.14 环境，完整 pytest **715 项离线测试通过**（既有 615 项、新增 100 项：处理政策 51、状态/只读 CLI 28、配置/定时入口/日志 12、备份恢复 9）。三项旧恢复场景明确将无关首次待办延期，以继续测量成功基线的失败/回滚边界，不依赖已替换的全局 due 排序。连续十轮饱和批次每轮实际尝试 12/4/4；成功/due/资源标记回滚、政策升级不推迟逾期、304 当前处理时间、缺失/损坏原文恢复校验均通过。
 
 `uv sync --locked --offline`、新命令帮助及示例配置校验、Ruff 与格式检查（src/tests 和 deploy/verify_backup.py，共 51 个 Python 文件）、`git diff --check` 通过。核对 33 个 research/fixture/Parser/schema/迁移/依赖文件摘要不变；未新增依赖或 schema。Linux/systemd 252+ 模板仅核对配置及官方语义，未在目标机启动、未启用定时任务，未进行新校园请求或断电实验；这些仍需部署后的验证与观察。交付处理政策、只读诊断、有限定时模板及独立日志/备份恢复说明后停止，无提交、推送或 PR。
+
+2026-10-06 N0 与 N1 接口稿节点：macOS 26.6.2 arm64、CPython 3.12.14、Pydantic 2.13.5、SQLite 3.53.1、pytest 8.4.2，使用现有虚拟环境，未新增依赖或改锁文件。完整 `.venv/bin/pytest -q` **906 项离线测试通过**（既有 715 项，新增事实 90、决策 59、Profile/CLI 42）；`.venv/bin/ruff check src tests deploy/verify_backup.py`、格式检查（59 个 Python 文件）及 `git diff --check` 通过。
+
+验证五份真实通知的事实/未知项、不同画像、短截止与日期边界、媒体/OR/否定/冲突、额外编号/年龄/处分条件、不支持的时刻/时区与未解决截止声明、首启路线例外、显式更新比较、版本口径校验、原文位置和跨子进程 hash seed 的完整决策确定性。安装入口的 profile-check 与真实 HTML decision-preview 在临时工作目录通过，不创建文件/数据库或获取锁；错误输入与当前 Parser 不支持的竞赛页面明确非零退出。未进行新网站/SMTP 请求、通知数据库迁移或 N1 事务实验；N1 只有明确标注的接口稿。Parser、schema、历史迁移、入库和依赖文件摘要不变；本实现未修改 research，保留并行 Agent 对三份通知/邮件报告的更新与新调研文件。无 Git 提交、推送或 PR，N1 持久化与 N2–N4 留后续交付。

@@ -1,12 +1,12 @@
 # SignalNest Email 可靠投递设计
 
-日期：2026-10-05。范围：单用户、单收件人、SQLite、同步串行发送；定义立即通知、Digest、历史基线、更新事件与失败恢复。**建议方案，尚未实现**。已补[Profile与规则决策N0](notification-decisions.md)，并纠正原稿关于documents AUTOINCREMENT的错误；相关性/首启候选以该补充为准。本次实际读取当前源码和官方协议/标准库资料；未运行邮件实验、访问账号或发送邮件。当前工作区为HEAD `92ddaeeed8fceeda2ecf2931622d67f855ca878e` 加未提交的采集/运行政策改动。
+日期：2026-10-05初稿，2026-10-06补充。范围：单用户、单收件人、SQLite、同步串行发送；**建议方案，尚未实现**。本次统一[Profile决策N0](notification-decisions.md)：PUSH_NOW/DIGEST/STORE_ONLY/IGNORE+独立needs_review，N1登记前冻结effective_route，N2不重路由。原稿AUTOINCREMENT错误已改为启用来源身份集合。SMTP研究/恢复边界保持原结论；本次没有真实邮件投递。
 
 ## 1. 保证与默认选择
 
 **建议默认：**标准库 `email` + `smtplib`，发送到用户显式配置的SMTP submission服务；不自建公网MTA，不引入邮件平台SDK/队列。SMTP服务、地址与凭据尚未选择；实现默认关闭发送。可靠性分三层：
 
-1. **本地事件、决策与投递资格原子登记**：成功详情、通知比较基线、候选事件、N0决策与立即投递意图同SQLite事务提交；Digest/REVIEW登记选中决策，后续批次计划再创建outbox。IGNORE不建邮件意图。事务回滚一起回滚。
+1. **本地事件、决策与最终路线原子登记**：成功详情、baseline、事件、决策/effective_route及仅immediate的planned意图同事务提交；digest登记资格再由批次创建outbox；none不建邮件意图。needs_review不决定路线，事务回滚一起回滚。
 2. **每个逻辑事件只分配一条邮件路径**：数据库唯一键防重复生成任务/重复进入Digest。
 3. **外部接受存在歧义**：SMTP接受与SQLite提交不能组成原子事务。不确定时默认优先减少漏报、重发同一冻结邮件，可能产生重复；不承诺收件箱exactly-once或必达。有限自动重试耗尽后保留任务并暴露故障，不静默删除。
 
@@ -20,14 +20,14 @@
 
 | 事实 | 邮件政策 |
 | --- | --- |
-| 启用后新身份首次live成功，来源regular | 产生new候选；N0按兴趣、资格、时间与优先级选IMMEDIATE/DIGEST/REVIEW/IGNORE，近期日期不单独触发立即通知。 |
-| 启用身份集合中的近期机会 | 一次activation_recent候选，N0决策，默认最高DIGEST；REVIEW单列待核对。具体窗口、延期与媒体不足见N0。 |
+| 启用后新身份首次live成功，来源regular | 产生new候选；N0选PUSH_NOW/DIGEST/STORE_ONLY/IGNORE与独立needs_review，再结合mode/首启政策确定effective_route。未知资格不等于明确不符合。 |
+| 启用身份集合中的近期机会 | 一次activation_recent候选，通常汇总；可信截止≤下一次Digest的紧急候选可保留立即路线。核对项不强制延期。 |
 | 较老bootstrap / historical / unknown首次详情成功，无首启候选依据 | 仅建立比较基线，默认无首次邮件；不从当前run origin推断新发布。 |
-| 已有live基线，确认规范内容真实变化 | 产生update事件，重新N0决策；普通相关变化DIGEST、条件未知REVIEW、无关IGNORE；已关注机会的撤销/条件变化按N0例外提醒。 |
+| 已有live基线，确认规范内容真实变化 | 产生update事件，N0重新决策；相关紧急变化可PUSH_NOW+needs_review、普通变化DIGEST、仅参考STORE_ONLY、无关IGNORE；已关注机会撤销例外见N0。 |
 | 304/重复200、同内容、统计噪音、附件access变化、HTTP或Parser失败 | 无新/更新事件。失败由状态诊断展示，第一版不再通过邮件报告邮件发送故障。 |
 | 离线import/reparse、维护规则重建 | 不生成Email事件，也不改变独立live通知基线。 |
 
-另支持`digest_only`将IMMEDIATE降为DIGEST；REVIEW始终进待核对区，IGNORE不发送。原稿immediate_only/updates=immediate旁路删除，以Profile主题偏好表达立即优先级。立即事件不再在Digest重复列出；事件引用选中decision，已登记意图不因切换模式或Profile改版重建/重路由。
+模式与首启降级在登记前合成effective_route，digest_only可令PUSH_NOW最终为digest。已登记immediate/digest资格后锁定selected_decision/effective_route；none事件可按[N0重评契约](notification-decisions.md#51-可重评条件与操作重放)追加新decision并更新选择，旧decision始终不可变。immediate_only/updates=immediate旁路仍删除。仅最终immediate创建立即任务，N2只按已登记路线消费；needs_review影响邮件标注，不影响去重身份。
 
 ### 2.2 启用及历史导入边界
 
@@ -35,7 +35,7 @@
 
 **当前代码事实。** discovery_origin/first_discovery_run_id首次保存后不改；首个完整扫描成功才结束bootstrap，之后regular也可能发现旧文；foreground只是前两页未成功处理者。[发现upsert](../src/signalnest/ingestion.py)，217–235行；[bootstrap提交](../src/signalnest/ingestion_state.py)；[前景分类](../src/signalnest/runtime_policy.py)。不能把foreground、当前run origin或详情成功日期当“新发布”。
 
-启用时无需把每个已有版本生成邮件；既有通知第一次**启用后的live成功**建立基线。老历史首次静默；首启日期及之前6个上海自然日的候选经规则进入DIGEST/REVIEW/IGNORE，避免抑制仍相关的近期机会；启用预览可显式关闭近期回顾。延期候选用固定activation_at窗口，不能到第8天自动丢弃。首个比较窗口内的改动可能只成为基线，不能猜编辑时间。无法完成full时不自动降低启用要求。
+启用时无需把每个已有版本生成邮件；既有首次live建baseline。老历史静默；首启日期及之前6个上海自然日候选经N0与最终路线合成，通常汇总、紧急截止例外立即；预览可关闭近期回顾。延期不改变固定窗口。首个比较窗口改动可能只成为baseline，不能猜编辑时间；无法full时不自动降低要求。
 
 “首次”以`notification_observations`是否存在判断，不以`documents.last_success_at`判断。启用后regular新身份即使先经离线import成功，也仍在第一次live成功时按身份集合/origin判断new候选，再经N0决策；离线产物既不抢占通知基线，也不触发首发。
 
@@ -72,7 +72,7 @@ Message-ID = <sha256(delivery_key)@显式配置的发件域名>
 
 建议每日08:00 Asia/Shanghai一档，最多50事件/封、完整MIME bytes≤128KiB，正文纯文本，不发空Digest。到期由每5min发送入口检查，无需新的后台线程。
 
-1. 选择选中Action为DIGEST/REVIEW（或digest_only降级IMMEDIATE）、`route=digest AND outbox_id IS NULL`的持久事件，事件occurred_at≤最近已到的08:00 slot；REVIEW单列待核对，冻结reason/未知项。不限“过去24小时”，长期停机后仍包含以前未分配事件。不按`last_digest_sent_at`划掉积压。
+1. 只选择`effective_route=digest AND outbox_id IS NULL`且邮件资格已登记的事件；N2不再读Action/mode来改路线。occurred_at≤最近已到08:00 slot；needs_review者单列待核对，冻结reason/未知项。不限过去24h，不按last_digest_sent_at划掉积压。
 2. 持实例锁，按事件ID稳定排序，在事务外从不可变事件版本渲染候选邮件，按**最多50事件且最终MIME bytes≤128KiB**装箱。摘要/标题/链接有确定截断与官网回看提示；单项仍超限时记录渲染阻断，不丢掉事件。在**同一计划事务**再次核对未分配成员、创建已冻结payload的pending outbox并关联精确event ID集合。渲染失败时尚未分配；不能先固定成员再因超限换批次。每个事件仅有一个outbox_id；该外键就是第一版单收件人的membership，约束禁止immediate事件被加入Digest。
 3. slot/part唯一；同锁下part从该slot已有MAX(part)+1分配。事件可用追加且不删除/改ID的整数主键作展示排序，同一通知按event_seq保留变化顺序；不凭Column autoincrement参数宣称SQLite永不复用。每次最多计划5封，多次计划继续未分配者，不重建/追加已有批次。迟到的新事件放下个slot（如果发生时间已经晚于最近slot）。错过多个slot时生成最近slot的“补发汇总”，不为每个空白日期造邮件。
 4. 正文、收件地址、Message-ID、Date、渲染版本、精确事件集合冻结。立即邮件在详情成功事务先登记planned，随后渲染并原子保存bytes与sha后才pending；Digest按上条预先装箱后一次计划事务冻结。planned保存渲染版本、Date及事件引用；实现应保留该渲染规则，规则不可用时阻断而非悄悄替换。重试不能读取当前document或把后续事件追加进去。
@@ -82,19 +82,19 @@ Message-ID = <sha256(delivery_key)@显式配置的发件域名>
 
 ## 5. 必要持久状态与事务接入
 
-建议以下5张邮件/事件表，加[N0](notification-decisions.md#5-决策证据版本与事务)的policy revision、decision和activation member记录；单收件人用events.outbox_id表示membership，不提前建订阅/多渠道平台。
+建议以下5张邮件/事件表，加[N0](notification-decisions.md#5-决策证据版本与事务)的policy revision、decision、activation member与有界重评operation；单收件人用events.outbox_id表示membership，不建订阅/多渠道平台。
 
 | 表 | 最少关键字段 / 用途 |
 | --- | --- |
 | `email_channel_state`（单行/primary） | installation_id、source_id、activation_at、recipient_key、active_from/active_to、active_policy_revision、sending_paused_reason；启用事实、冻结地址与全局认证/配置阻断。已有身份用activation_members，不保存数字水位；凭据不存这里。 |
 | `notification_observations`（document_id PK） | baseline_version_id、baseline_body_response_id、observed_at、event_seq、last_comparison_error_code/at；last live比较状态，不等于current_version或最后已发送版本。unknown诊断持久化，下次确认比较成功后清除。 |
-| `notification_events` | 整数id/事件键、document_id+event_seq唯一、kind new/update/activation_recent、previous_version_id/version_id、body/observed response、occurred_at、selected_decision_id、route immediate/digest/none、outbox_id nullable；IGNORE为none；引用不可变版本与选中决策，不引用current作为展示事实。 |
+| `notification_events` | 整数id/事件键、document_id+event_seq唯一、kind new/update/activation_recent、版本/正文证据、occurred_at、selected_decision_id、effective_route immediate/digest/none、delivery_intent_registered_at、outbox_id nullable；STORE_ONLY/IGNORE为none。digest资格已登记即锁定，与outbox是否为空无关。 |
 | `email_outbox` | id、delivery_key唯一、kind、recipient_key、冻结from/to/subject、Message-ID唯一、digest slot/part、render_version、payload_bytes BLOB/sha、state、attempt_count、manual_retry_pending、next_attempt_at、accepted_at、有限last_error；网络前可恢复的完整投递意图。 |
 | `email_attempts` | outbox_id+attempt_no唯一、started/finished_at、stage、result accepted/retryable/uncertain/permanent、有限SMTP回复码；无法完成的尝试可在重启核对。不得保存AUTH内容、任意服务器回复或整段异常。 |
 
 payload、recipient与Message-ID在第一次发送前完整保存；events立即route必须关联对应outbox，digest route可暂未分配，none无outbox。outbox引用冻结的decision；planned不允许网络；accepted须有accepted_at和接受结果；uncertain不允许伪造accepted时间。数据库外键需验证version/body/observation属同一document、decision属同一event，普通FK本身不足以证明全部语义。
 
-**接入点：**拓展现有`save_notice_in_transaction`，同短事务完成版本/current/成功/due、live比较、observation、event、N0决策与IMMEDIATE的planned outbox；DIGEST/REVIEW登记投递资格，IGNORE仅决策，历史静默仅baseline。附加Parser、原文读取、决策计算和邮件渲染均在事务外；立即任务渲染后第二个短事务冻结payload。不能等`process_response`返回再建事件；现函数经`save_notice`自行提交，需在该成功事务内调用通知记录函数。[现调用路径](../src/signalnest/ingestion.py)，715–733行。
+**接入点：**save_notice_in_transaction同短事务提交业务成功/baseline、event、N0决策与effective_route；只有immediate建planned，digest登记资格，none仅决策。附加Parser/原文读取/决策与路线合成/渲染在事务外；提交核对policy/routing/baseline token。不能等process_response返回再登记；[现调用路径](../src/signalnest/ingestion.py)，715–733行。
 
 事务外准备比较/决策时保留baseline版本/原文/seq及active policy token，提交事务重读并核对；不匹配则重新准备，不用过期比较或Profile覆盖较新状态。串行实例锁降低竞争，但不能替代这个接口约束。Digest在后续独立计划事务分配；立即planned随内容成功提交。
 
@@ -177,7 +177,7 @@ TLS明确使用SMTP_SSL或强制STARTTLS，显式`ssl.create_default_context()`�
 | ID | 输入/故障 | 验收结果 |
 | --- | --- | --- |
 | E1 | 首次历史发现，几天后regular运行才成功详情 | 旧历史仅baseline；集合内近期机会可有一次activation_recent决策，延期不改变固定窗口；不生成双事件。 |
-| E2 | 启用后regular近期新发现、重复200、304 | 一个new候选/N0决策；只有IMMEDIATE建立即任务；同内容后续无新事件，各Action按N0验收。 |
+| E2 | 启用后regular近期新发现、重复200、304 | 一个new候选/N0决策；只有effective_route=immediate建立即任务；PUSH_NOW+digest_only直接登记digest资格，无立即任务。 |
 | E3 | A→B→A且复用旧A version | 两个update、两个不同event_seq；不因hash/version唯一键丢掉回退。 |
 | E4 | Parser升级相同raw；raw不同需旧文重解析；旧原文不可用 | 依规则静默/同口径update/comparison_unknown，不误把规则改动发成网站更新。 |
 | E5 | offline把current B改A，随后live仍B | observation未被offline污染，零update。 |
@@ -193,4 +193,4 @@ TLS明确使用SMTP_SSL或强制STARTTLS，显式`ssl.create_default_context()`�
 | E15 | 未启用/发送暂停、两进程争锁 | 未启用无事件，激活后暂停仍积压；第二sender/采集不重叠写；无隐式真实网络。 |
 | E16 | 接受后本地记录不可写、旧备份恢复 | 本次停止发送，不另发；恢复状态保守不确定/暂停，不猜送达。 |
 
-决策边界与D1–D12见[N0补充](notification-decisions.md)；代码任务依赖、范围与完成标准见[通知模块实现任务](email-implementation-plan.md)。实施中服务选择与真实账号验证是独立步骤；本次没有启动生产代码或真实投递。
+决策边界与D1–D19见[N0补充](notification-decisions.md)；代码任务依赖见[实现计划](email-implementation-plan.md)。真实规则样本与人工标签门槛见[评估报告](notification-rule-evaluation.md)。SMTP服务/账号验证独立；没有启动生产代码或真实投递。

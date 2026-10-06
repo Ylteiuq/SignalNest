@@ -1,12 +1,12 @@
 # SignalNest 通知决策补充：Profile、规则与 Action
 
-2026-10-05；**设计建议，未实现**。本次仅补充 Email 计划前的 N0，不增加 LLM、OCR、附件下载、规则 DSL 或任务平台。本文件定义决策；[Email 设计](email-delivery-design.md)继续定义冻结、投递和恢复。
+2026-10-05初稿，2026-10-06修订3；**设计与验收建议，不代表持久化/投递已经实现**。Action统一为PUSH_NOW/DIGEST/STORE_ONLY/IGNORE，needs_review独立；本次统一登记前最终路线与重评重放契约。规则清单/真实样本及当前N0差异见[评估记录](notification-rule-evaluation.md)。不增加LLM、OCR、附件下载或规则DSL；[Email设计](email-delivery-design.md)继续定义投递和恢复。
 
 ## 1. 输入与当前缺口
 
-**源码事实：**[NoticeContent](../src/signalnest/contracts.py)只有标题、站点日期、正文文本/HTML和图片/附件引用，没有资格、机会类别或截止日期。图片型正文可以没有文本；附件`access`是访问状态，不表示其内容已经读过。[Parser](../src/signalnest/parsing.py)不做OCR或附件解析。当前没有个人 Profile 或通知决策。
+**源码事实：**[NoticeContent](../src/signalnest/contracts.py)只有标题、站点日期、正文文本/HTML和图片/附件引用，没有资格、机会类别或截止日期。图片型正文可以没有文本；附件`access`是访问状态，不表示其内容已经读过。[Parser](../src/signalnest/parsing.py)不做OCR或附件解析。本稿是研究契约，不将并行N0代码或其测试视为通知持久化/投递已经实现；具体支持范围须由实现Agent按当前代码核对。
 
-建议调用链：`live成功内容 → 内容/首启候选事件 → N0决策 → 按Action登记投递意图 → N2冻结 → N3/N4投递`。新近发布只影响时效，不直接决定发送；Parser采集成功也不表示用户符合资格。
+建议调用链：`live成功内容 → 内容/首启候选事件 → Action+needs_review → 合成effective_route → 登记决策/对应意图 → N2冻结 → N3/N4投递`。N0需要产生决策及纯路线合成结果，N1原子登记；N2不重新选择路线。Parser采集成功不表示用户符合资格。
 
 ## 2. 最小结构化 Profile 与透明规则
 
@@ -17,6 +17,7 @@
   "schema_version": 1,
   "profile_id": "self",
   "institution": "whu",
+  "role": "student",
   "study_level": "undergraduate",
   "college": null,
   "major": null,
@@ -24,11 +25,12 @@
   "interest_topics": ["exchange", "scholarship"],
   "include_phrases": ["本科生科研"],
   "exclude_topics": [],
-  "immediate_topics": ["exchange"]
+  "high_value_topics": ["exchange"],
+  "store_only_topics": ["course_enrollment"]
 }
 ```
 
-- 首版只核对学校、培养层次、学院/专业、入学年份；不自动从入学年份推导当前年级。需要“二年级”而只有entry_year时为unknown。无效或过时事实不能默认为符合。
+- 首版只核对学校、行动主体student/teacher、培养层次、学院/专业、入学年份；不自动从入学年份推导当前年级。需要“二年级”而只有entry_year时为unknown，未知role不能自动判不符合。实际已验证表达式子集见规则清单；无效事实不能默认为符合。
 - 不收集学号、身份证、密码或未使用的GPA等字段；遇到成绩、语言、经济条件等未支持约束，列为缺失项，不能跳过。将来确有规则需要时再增加字段。
 - `interest_topics`使用少量显式命名主题及可查看的词组表；include_phrases只在标题/可见正文作字面匹配。至少设置一个兴趣主题或词组才能activate；不隐式关注所有栏目。
 - 规则为少量固定Python函数与受校验的数据：稳定`rule_id`、主题词组、受支持的资格/完整年份截止时间表达式、优先级。无隐藏分数、模糊相似度或任意配置代码执行。
@@ -38,39 +40,44 @@ N0先从已有文本生成独立`NoticeFacts`：兴趣命中、逐条资格约�
 
 ### 资格、时间与信息不足
 
-资格按明确AND条件三值合并：可靠且无歧义的反例→`ineligible`；全部已识别且没有未解决的条件、必要Profile事实均匹配→`eligible`；缺值、复合OR未支持、冲突、未写对象、无法判断条件是否完整→`unknown`。理由写“按可见正文可识别条件”，不写“资格已官方核准”。“未写对象”不等于“面向全体”。普通信息规则可明确不要求资格，不把它误包装成报名机会。
+资格按明确AND条件三值合并：可靠且无歧义的反例→`ineligible`；全部已识别且没有未解决的条件、必要Profile事实均匹配→`eligible`；缺值、复合OR未支持、冲突、未写对象、无法判断条件是否完整→`unknown`。不能把“全日制在校本科生”只匹配本科便判符合；全日制/在校状态、每学期限选一门等未支持条件必须留下未知。理由写“按可见正文可识别条件”，不写“资格已官方核准”。“未写对象”不等于“面向全体”。普通信息规则可明确不要求资格，不把它误包装成报名机会。
 
-时间只接受明确年份、可解释时区的表达式；日期只有月日、多个相互冲突截止日、报名是否开始不明均为unknown。站点日期不是截止日；最近7天不证明仍开放。日期截止默认上海当天结束，需在规则中明示并保留原句，不能把该假设用于有明确小时的文本。
+首批时间规则见评估清单：完整年份日期/小时及同一句明确起年区间；单独月日、冲突截止或对象无法区分为unknown。仅日期/“日前”保留上海日期边界区间与needs_review，不伪造精确小时；可作保守紧急提醒依据，但区间下界过去不等于已截止。站点日期不是截止日，最近7天不证明仍开放。
 
-图片型正文，或正文明确把资格/时间指向图片、附件，必须记录`information_incomplete`。相关候选进入REVIEW，不能从附件名/图片alt推断符合。仅有补充附件而正文明确给出所需条件，不必全部降为REVIEW，但理由说明附件未解析。若正文无兴趣命中、关键内容可能只在媒体中，兴趣也为unknown，不能当作可靠不相关而静默丢掉。
+图片型正文，或正文明确把资格/时间指向图片、附件，记录`needs_review=true`及missing_fields，不能从附件名/图片alt推断符合。仅有补充附件而正文明确给出所需条件，不必一律标资格未知，但理由说明附件未解析。正文无兴趣命中、关键内容可能只在媒体中时，兴趣也为unknown，默认STORE_ONLY+needs_review，不声称可靠无关；标题等已确认相关且高价值/紧急时，仍可提醒待核对。
 
-## 3. 四种 Action 与固定判断顺序
+## 3. Action、核对标记与最终路线
 
-| Action | 默认条件 | 邮件衔接 |
+Action表达主动提醒优先级，needs_review表达认知缺口；两者独立。资格`ineligible`与`unknown`必须分别保留。
+
+| Action | 默认规则 | needs_review可能值 |
 | --- | --- | --- |
-| `IMMEDIATE` | 兴趣确认命中；报名/参与机会有文本依据；资格与开放时间均可核对；近期new且属immediate_topics，或可信截止距决策时0–72h（含已关注机会的可核紧急更新） | 立即planned outbox；不得因“近期”单独进入；首启候选另有降级规则。 |
-| `DIGEST` | 相关的普通信息，或条件可核对且仍开放但不满足立即优先级的机会；通常的相关内容更新 | 下个Digest的“相关信息/机会/更新”区。 |
-| `REVIEW` | 相关性可能成立，但资格、开放时间、关键图片/附件、语义冲突等有未知 | Digest单列“待核对”，包含未知项和官网链接；不写“你符合资格”。不额外建人工任务平台。 |
-| `IGNORE` | 可见信息充分却未命中兴趣、明确排除、明确不符合、可信截止已过；或历史首发抑制 | 保存决策及理由，不登记邮件路径。数据仍保留供检索。 |
+| `PUSH_NOW` | 已确认相关的高价值机会，可信截止在72h内；或近期new且属于high_value_topics。明确不符合/已关闭排除，资格未知不自动降级 | 可为true；立即邮件显著写“资格待核实/信息待核对”、截止证据及missing_fields。 |
+| `DIGEST` | 相关但非紧急机会、相关普通信息/更新；已确认相关但不够立即优先的未知资格机会 | 可为true；Digest按核对标记单列，而非按一种REVIEW Action分流。 |
+| `STORE_ONLY` | 相关结题/验收/结果/参考资料；过期历史但值得检索；仅命中保存主题且无其他主动兴趣；当前申请主体明确不匹配但有后续参考价值；缺少相关性证据的媒体型信息 | 可为true；持久保存决策/资料，无主动邮件。不是候选自动丢弃。 |
+| `IGNORE` | 用户明确排除，充分可见文本未命中关注或保存主题；明确不符合且无保留价值；纯噪音 | 可为false；无主动邮件，既有原文/业务记录仍保留。 |
 
-顺序固定：可靠排除→判断兴趣→判断是否过期/不符合→未知信息→立即优先级→Digest。没有可信兴趣匹配且文字证据不足时REVIEW；文字充分但未命中规则时IGNORE，理由为`no_interest_match`，不宣称客观“与你无关”。必须依赖未知资格才能确定的机会不能IMMEDIATE。
+顺序：用户可靠排除→兴趣/参考价值→申请阶段/主体→可信过期或明确不符合→紧急/高价值→普通汇总。unknown本身不触发排除；needs_review仅标注缺失条件/时间/媒体/冲突，不能作为“延迟到明天”的统一开关。兴趣unknown且无正向证据默认STORE_ONLY+needs_review，待今后媒体能力补齐；这可能漏掉仅媒体承载的机会，必须在评估/状态中可见。
 
-首版固定规则/理由至少如下；实际词组与受支持表达式随rule revision保存，不隐藏在发送代码里：
+`store_only_topics`对命中主题生效，不对整篇通知作全局否决：主动兴趣主题为`interest_topics - store_only_topics`，字面include命中也可提供独立主动兴趣。科研选课同时命中research（主动）和course_enrollment（仅保存）时仍按科研机会提醒；同一主题同时关注与仅保存则服从仅保存。可靠exclude仍优先。验收增加128291跨主题反例，不能只测单主题配置。
 
-| rule_id | 结果 / reason_codes |
+首版固定reason_codes：excluded_topic/no_interest_match/reference_only/audience_mismatch/deadline_passed/deadline_soon/high_value_topic/relevant_digest；核对理由另列eligibility_unknown/time_unknown/media_required/conflicting_evidence。稳定rule_id与匹配词组见评估清单。证据为title/body_text的Unicode start/end及≤120字摘录；媒体只记录引用、未解析，不能虚构正文。
+
+**更新例外：**曾登记邮件资格的机会（effective_route=digest也算，即使outbox为空）真实取消、收紧资格/改截止，应提醒“条件变化”，不能因新状态不符合而直接吞掉。可信紧急撤销可以PUSH_NOW，普通变更DIGEST；不把“违规取消参赛资格”判成机会整体取消。当前用户明确排除仍优先；未知变化保留needs_review。首批真实取消正样本尚缺，规则启用门槛见评估记录。
+
+### 3.1 在登记之前合成 effective_route
+
+纯函数输入：Action、notification_mode、activation_policy、事件context、固定evaluated_at、next_digest_at及可信截止；输出effective_route与routing_reason_codes。它们与decision一起持久化：
+
+| 输入 | 最终路线 |
 | --- | --- |
-| `explicit_exclusion` / `no_interest_match` | IGNORE / `excluded_topic`、`no_interest_match` |
-| `eligibility_mismatch` / `deadline_passed` | IGNORE / `eligibility_mismatch`、`deadline_passed` |
-| `information_incomplete` | REVIEW / `interest_unknown`、`eligibility_unknown`、`time_unknown`、`media_required`、`conflicting_evidence`（可多项） |
-| `preferred_or_urgent` | IMMEDIATE / `preferred_topic`或`deadline_soon`，并保留兴趣/资格/时效证据 |
-| `relevant_default` | DIGEST / `relevant_information`或`relevant_opportunity` |
-| `followed_opportunity_changed` / `activation_cap` | 条件变化DIGEST；首启IMMEDIATE降DIGEST / `followed_conditions_changed`、`activation_recent_digest` |
+| STORE_ONLY / IGNORE | none |
+| DIGEST | digest |
+| PUSH_NOW + hybrid普通事件 | immediate |
+| PUSH_NOW + digest_only | digest（明确用户选择；仍展示紧急/待核对） |
+| PUSH_NOW + hybrid首启候选 | 默认digest；可信截止≤下一次Digest时保留immediate，记录activation_urgency_exception，避免首启降级造成当天漏报 |
 
-证据位置格式为`field=title/body_text`加Unicode字符`start/end`及最多120字摘录；媒体只能记录引用索引/URL与“未解析”，不能提供虚构内容证据。qualification约束另保存constraint类型、所需Profile字段、实际比较值与三值结果。`REVIEW`理由须指明缺什么，不能只有“低置信度”。
-
-**更新例外：**曾登记可投递决策的机会（包括DIGEST/REVIEW尚未分配outbox），正文明确撤销/收紧资格/改变截止日时，即使新状态不合格或已关闭，仍可DIGEST提醒“条件变化”；否则变化会被新的IGNORE吞掉。它仍是新的真实内容事件。用户明确排除该主题优先；普通排版变化不因“以前发过”升级为立即。只有受支持事实差异可证明紧急变化时，才按相同资格/相关性规则考虑IMMEDIATE；未知变化用REVIEW。
-
-`digest_only`可把IMMEDIATE降为DIGEST；REVIEW始终保持待核对区，IGNORE始终不发送。删除旧方案的全局`immediate_only`及`updates=immediate`旁路；需要立即偏好用Profile主题/透明规则表达，不能绕过未知资格。
+只有effective_route=immediate才在N1建立即planned outbox；digest登记邮件资格/时间，outbox可待N2计划；none不登记邮件资格。Action与effective_route可以不同，必须都保存，mode/首启政策版本也进决策输入。之后N2仅读effective_route，不能再读取当前mode/Profile来重路由。邮件资格首次登记后路线和选中decision锁定；未来改模式影响新事件，不影响原队列。
 
 ## 4. 首次启用：保留历史基线，也检查近期机会
 
@@ -86,47 +93,63 @@ activate持实例锁，短事务保存activation_at、installation_id，以及�
 
 - 仍先要求一次full列表发现；老历史身份首个live仅建基线，不产生历史邮件洪峰。
 - 默认`initial_recent_review=true`：首启时上海日期及之前6个自然日的身份，允许一次`activation_recent`候选；**这是发现窗口，不是资格/开放判断**。首次live同时建立baseline且只生成该候选，不再生成new/update。
-- 候选来自已经解析的列表日期或已有版本日期，记录日期和证据引用；已有版本须经live成功验证再决策。当前documents没有列表发布日期，N1不能假装已有此列：在启用预览/随后成功列表处理时，用真实ListEntry日期登记成员标记。状态最少为unknown/selected/not_recent/disabled/generated：日期缺失为unknown，不能提前标历史完成。如果列表日期仍未知而详情先live成功，在同成功事务用可靠详情日期补分类并生成一次activation_recent或静默历史baseline。普通运行中对集合成员使用固定activation_at窗口，延期到第8天不会消失；已有selected不因当前日历改窗口，详情日期不一致时保留冲突转REVIEW。
-- 已知旧截止日明确在未来，可列入首启预览供显式选择；首版不自动遍历全部旧详情寻找尚开放机会。未来发布日期转REVIEW，不视为近期已发布。明确过期的近期候选为IGNORE。
-- 首启近期候选默认IMMEDIATE降为DIGEST；REVIEW仍待核对，IGNORE无邮件。启用预览展示规则结果/未知数，允许显式关闭近期回顾；不自动切成全历史补发。
+- 候选来自已解析的列表日期或已有版本日期，记录日期/证据；已有版本须live验证再决策。documents没有列表发布日期，N1显式定义证据持久化。成员状态最少unknown/selected/not_recent/disabled/generated；日期未知不能提前历史完成，详情先live成功则用可靠详情日期补分类。同一成功事务生成一次activation_recent或静默历史baseline。延期不改变固定窗口；列表/详情日期冲突加needs_review，不伪造一致。
+- 已知旧截止日明确在未来，可首启预览显式选择；首版不遍历所有旧详情寻找开放机会。未来发布日期加needs_review，不视为近期已发布；已过期相关候选STORE_ONLY，不主动发送。
+- 首启降级在§3.1路线合成时完成，可信截止早于下一档Digest的PUSH_NOW候选例外保留immediate；其他默认汇总。启用预览展示最终路线与核对项，可关闭近期回顾；不自动全历史补发。
 - 未成功候选的身份/选择窗口持久保留，详情按现有容量与失败due分批处理，不一次下载所有历史详情。首启可见近期候选应在现有总详情预算内优先，不能绕过HTTP冷却；尚未验证全站近期覆盖，前两页不保证覆盖所有近期/置顶文章，积压可能错过截止。
 - 不在集合中的regular身份首次live生成new候选；启用后发现但origin=historical/unknown且未有可靠新发现依据者仍默认历史抑制。首次资格看独立observation，不看last_success_at；离线成功不抢占首次机会。
 
-不论Action如何，真实live比较基线都推进；IGNORE/REVIEW不能令同内容每轮重新产生事件。以后真实更新仍产生新的事件，不用“这篇以前提醒过”永久压制。
+不论Action/needs_review如何，真实live比较基线都推进；无主动邮件不能令同内容每轮再生事件。真实更新仍产生新事件，不用“这篇以前提醒过”永久压制。
 
 ## 5. 决策证据、版本与事务
 
-除启用成员记录外，最小增加`notification_policy_revisions`与`notification_decisions`，不建订阅/评分/通用规则平台：
+除启用成员记录外，增加policy revision、decision与一个有界重评operation记录，不建订阅/评分/任务平台：
 
 | 持久记录 | 必须内容 |
 | --- | --- |
 | policy revision | 不可变Profile规范JSON+hash、透明规则数据/规则版本、facts_extractor_version、decision_engine_version；相同规范配置复用revision，secret与邮箱密码不在Profile。 |
-| decision | event_id、policy_revision、evaluation_key、facts/input摘要与必要结构化事实、evaluated_at、action、稳定reason_codes、匹配rule_id、证据位置/短摘录、missing_fields、首启等context；唯一`(event_id, policy_revision, evaluation_key)`。初次为initial；显式重评有持久操作ID，同操作重放复用。 |
+| decision | event_id、policy_revision、evaluation_key、事实/input摘要、evaluated_at、action、needs_review、missing_fields、reason_codes/rule_id/证据；effective_route、mode/首启政策、routing reasons/clock输入；初次initial，重评evaluation_key=operation_id，唯一event/policy/evaluation_key。 |
 | activation member | installation/source/source_document唯一；不可变成员身份；recent候选日期/证据、选中/关闭状态及是否已生成候选。不要把未成功处理误标为完成。 |
+| notification operation | operation_id唯一、规范参数hash、明确event集合及每项version/body/observation token、固定policy/evaluated_at/路由context、成员处理结果/完成状态；JSON足以表达小批成员，不建可扩展任务队列。 |
 
 事实版本/引擎版本属于policy revision，因此同政策只有一种事实提取/决策口径；evaluated_at是实际决策时钟输入。重放选中decision或同evaluation_key复用原决策，不按新时钟偷偷改变结果；显式重评记录新操作ID与时刻，可处理同政策下截止已过的未投递候选。邮件展示截止日与“截至决策时间”的事实，长期等待重试可能过时，第一版不自动撤销已冻结邮件。
 
-内容事件保留独立seq（A→B→A成立），所有真实变化先登记事件，之后可以得到IGNORE；route不是事件天然属性。历史静默首次只建baseline/成员处理标记；近期首启候选用独立kind=`activation_recent`，唯一成员标记保证不重复。相关事件`decision_id`被投递意图引用，邮件冻结理由/未知项，不在render时读当前Profile。
+内容事件保留独立seq（A→B→A成立），所有真实变化先登记事件，之后可STORE_ONLY/IGNORE。历史静默首次只建baseline/成员标记；activation_recent唯一成员标记防重复。事件保存selected_decision_id/effective_route及delivery_intent_registered_at；后者只有immediate/digest资格登记时填写，不能根据outbox是否为空推断锁定。邮件冻结理由、needs_review与未知项，不在render时读当前Profile。
 
-计算Facts/旧文重解析/决策在事务外，持锁并保留baseline与active policy token；成功事务核对token，然后提交业务版本/成功状态、baseline、event、decision，以及IMMEDIATE的planned任务。DIGEST/REVIEW提交选中decision与对应route，outbox可为空，N2后续计划；IGNORE提交decision但无邮件路径。任何一项登记失败整组回滚。profile未激活时无通知记录，发送暂停则仍做决策。
+Facts/旧文重解析/决策及路线合成在事务外，持锁保留baseline/policy/routing token；成功事务核对token，提交业务成功、baseline、event、decision/effective_route和仅immediate的planned任务。digest提交邮件资格但outbox可为空，N2后续计划；none只留决策。任何登记失败整组回滚。未激活无通知记录，发送暂停仍决策。
 
-Profile/规则改版先preview，**不制造内容update，不自动把历史全量重评并群发**。显式re-evaluate只允许当前live版本、仍无投递意图的近期/开放候选；追加decision，更新选中decision但沿用原event/delivery身份，同操作ID重放复用。DIGEST/REVIEW的选中待计划记录已经是投递资格，不因outbox_id尚为空就视为可以重路由；已有planned、Digest已分配、accepted或uncertain者也只可预览新结果。真实新内容事件仍可另作更新提醒。首次实现不提供取消后改投、Profile变更批量补发或持续按时钟重新决策。
+### 5.1 可重评条件与操作重放
+
+Profile改版先preview，不制造内容update或全历史群发。新持久重评操作仅接受：event对应当前live版本；effective_route=none；delivery_intent_registered_at为空；从未有outbox/批次资格；按该操作固定evaluated_at仍属明确近期或开放候选。none包括STORE_ONLY/IGNORE，不包括待计划Digest。已登记immediate/digest者只可preview；真实内容更新是另一个event，照常决策。
+
+1. 首次create(operation_id)持锁，将排序去重后的**明确event集合**、policy revision、evaluated_at、每项live version/body/observation/Facts版本、mode/首启政策/next_digest_at等输入固定后存operation。若CLI用筛选表达式，先解析成集合并存下；恢复不重新跑查询。
+2. 相同ID重放先核对原规范参数。只传ID的resume读取原快照，不重新用当前时间/默认政策；明确提供参数而任一不同（即使只是新增event）返回operation_parameters_mismatch，零决策/意图副作用。
+3. 同操作已完成成员直接返回原结果，**先于新操作资格门禁**；即使其后来已有Digest资格也不能误报重复失败。未完成项各短事务核对原输入token与无资格条件；内容变更为stale_input，模式/首启/Digest配置revision等可变配置token变更为stale_context，不在原operation换新输入。恢复不重新计算now、next_digest_at或近期/开放时间门槛；跨过08:00、日期或截止时间本身不是stale_context。要按新时刻判断是否过期，需新operation_id。
+4. 每项原子提交decision、selected/effective_route、对应意图及operation结果。进程中断后只继续原集合未完成项；失败明确记结果/未完成，不扩展集合。新时间/新政策/新成员要使用新operation_id。
+5. preview无投递副作用；apply才登记邮件资格。不同operation不能抢已锁定事件；第一版不支持资格撤销、取消后改投或持续按时钟重评。operationID只防重复操作，不作为邮件唯一键；邮件沿用原event身份。
 
 ## 6. N0/N1 验收补充（尚未执行）
 
 | ID | 场景 | 预期 |
 | --- | --- | --- |
-| D1 | 近期但充分文本无兴趣命中；近期且兴趣匹配、资格/时间可核且高优先 | 前者IGNORE，后者IMMEDIATE；发布日期不能独自决定Action。 |
-| D2 | 学院/年级未知、语言要求未支持、条件OR/冲突 | REVIEW+missing_fields，不默认符合、不按推断排除。 |
-| D3 | 本科推免正文含“研究生”；明确仅研究生且用户已知本科 | 前者不能裸词排除；后者可靠ineligible、IGNORE。 |
-| D4 | 图片型通知、资格见附件、完整正文加补充附件 | 前两项REVIEW；后一项按正文决定，均保留未解析附件事实。 |
-| D5 | 近期已截止、截止缺年份、未来发布日期 | 分别IGNORE/REVIEW/REVIEW。 |
-| D6 | 首启旧历史；首启近期相关；近期资格未知；近期明确无关 | 历史baseline；其余分别DIGEST/REVIEW/IGNORE，无new与activation双事件。 |
+| D1 | 近期但充分文本无关注/保存命中；近期相关高价值机会 | 前者IGNORE，后者PUSH_NOW；日期不能独自决定Action。 |
+| D2 | 高价值当天截止但学院/年级未知、条件OR/附件不足 | PUSH_NOW+needs_review/missing_fields；显著标资格待核实，不延期到明天。 |
+| D3 | 本科推免正文含“研究生”；明确仅研究生且用户已知本科 | 前者不能裸词排除；后者ineligible、无主动邮件，有参考价值STORE_ONLY，否则IGNORE。 |
+| D4 | 已确认相关的媒体型/附件条件通知，分别紧急/普通；完整正文加补充附件 | PUSH_NOW或DIGEST与needs_review独立；仅补充附件不自动造成资格未知；兴趣不明STORE_ONLY可核对。 |
+| D5 | 相关已过期历史；低优先截止缺年份/未来日期 | 前者STORE_ONLY，后者DIGEST+needs_review；不能猜日期；日期区间下界过不自动标已关闭。 |
+| D6 | 首启老历史；非紧急近期相关含未知资格；明确无关 | baseline；近期候选按规则通常digest，unknown仍标核对；无关IGNORE，无new/activation双事件。 |
 | D7 | 首启候选详情失败到第8天；列表日期未知但详情先成功；重复activate/列表/304 | 固定窗口保留；详情可补分类而非先静默完成；以当前可核期限判断；仅一次候选/投递身份。 |
 | D8 | 在独立成员样例中模拟旧数值ID删除复用、新来源身份复用该ID | 成员判断按来源身份；旧身份仍属首启集合，新身份不被错误压制；验证生成DDL而非只看Column参数。不删除真实业务数据。 |
-| D9 | event/decision/立即意图任一写失败 | 业务成功/baseline/通知登记整体回滚；Digest/REVIEW可以暂没有outbox。 |
-| D10 | 同evaluation_key重放；Profile新revision；IGNORE显式重评变相关；同政策新操作时已截止 | 重放复用；新增决策保留理由/时刻；未投递候选可登记一次意图，过期变IGNORE，不伪造update。 |
-| D11 | REVIEW已入Digest/accepted/uncertain后修改Profile | 只预览，不再发一封“资格已确认”；冻结成员/邮件/Message-ID不变。 |
+| D9 | event/decision/有效路线/立即意图任一写失败 | 整组回滚；effective_route=digest资格可以暂没有outbox，仍锁定。 |
+| D10 | STORE_ONLY/IGNORE当前live候选显式重评；同政策新操作时已截止 | 保留原event，新decision/时刻；有参考价值过期为STORE_ONLY，不伪造update。 |
+| D11 | 带needs_review邮件已计划/accepted/uncertain后修改Profile | 只预览，冻结decision/路线/成员/Message-ID不变，不再发一封“资格已确认”。 |
 | D12 | 已关注机会真实改截止/取消；稍后再A→B→A | 新事件提醒条件变化；回退有新seq；不因current IGNORE或曾发送而漏掉真实更新。 |
+| D13 | PUSH_NOW+digest_only；hybrid首启紧急截止≤下一Digest；首启非紧急 | 分别digest/immediate/digest；仅最终immediate建立即任务，N2不二次选择。 |
+| D14 | route=digest、资格登记时间非空、outbox为空 | 新持久重评被拒绝；同operation已有结果重放仍原样返回。 |
+| D15 | 同operation_id只传ID恢复；重复显式相同参数；恢复跨过08:00及截止时间 | 复用原集合/policy/evaluated_at/next_digest_at/input/routing和结果，不查当前候选或用当前时钟；重新判断过期须新操作。 |
+| D16 | 同ID改集合、policy、时刻、任一输入或路由参数 | operation_parameters_mismatch，无新增决策/意图；新需求须新ID。 |
+| D17 | 未完成成员的live版本/配置revision变了 | stale_input/stale_context，不在原operation换输入；成员结果与意图同事务。 |
+| D18 | 正文只含菜单“教学科研”、辅修退课限制、已有助教或违规取消资格 | 不判研究申请/辅修报名/助教招聘/机会整体取消；真实样本中保留反例。 |
+| D19 | 同篇科研选课：research主动+course_enrollment仅保存；随后去掉主动兴趣 | 前者按科研紧急/高价值规则提醒，不被保存主题压制；后者STORE_ONLY；同主题关注与仅保存仍服从仅保存。 |
 
-N0交付纯函数、契约、固定小规则及上述决策单测；N1负责持久化与事务，N2只消费选中Action。生产实现仍按[通知模块实现任务](email-implementation-plan.md)安排。
+N0交付纯函数、契约、固定小规则；真实gold待人工确认见[评估记录](notification-rule-evaluation.md)。N1负责持久化/事务与操作重放，N2只消费已登记effective_route及锁定decision。实现仍按[通知模块任务](email-implementation-plan.md)安排。

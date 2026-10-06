@@ -1,0 +1,18 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+  "started_at": "2026-10-05T13:38:29.869212+00:00",
+  "request_method": "GET",
+  "status_code": 200,
+  "final_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+  "headers": {
+    "date": "Mon, 05 Oct 2026 13:38:31 GMT",
+    "content-type": "text/html;charset=UTF-8",
+    "server": "WHU-AppSrv 1.0.0",
+    "set-cookie": "[REDACTED]"
+  },
+  "finished_at": "2026-10-05T13:38:31.145758+00:00",
+  "body_bytes": 20712,
+  "sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1",
+  "fixture": "notice-127511-20261005T133829869212Z.html",
+  "title": "关于公布2025年武汉大学珞珈本科生创新研究基金项目结题验收结果的通知"
+}

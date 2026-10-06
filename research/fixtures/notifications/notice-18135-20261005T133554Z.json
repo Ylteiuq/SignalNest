@@ -1,0 +1,21 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+  "started_at": "2026-10-05T13:35:54.055248+00:00",
+  "request_method": "GET",
+  "status_code": 200,
+  "final_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+  "headers": {
+    "date": "Mon, 05 Oct 2026 13:35:54 GMT",
+    "content-type": "text/html",
+    "content-length": "8040",
+    "etag": "\"669a-6585369fcb372-gzip\"",
+    "last-modified": "Wed, 05 Aug 2026 21:25:43 GMT",
+    "cache-control": "private, max-age=600",
+    "server": "WHU-AppSrv 1.0.0"
+  },
+  "finished_at": "2026-10-05T13:35:54.083830+00:00",
+  "body_bytes": 26266,
+  "sha256": "5b0a3dcfac752ec0947ccfc8e87bccf5a313be586907b44905494ed592e04aa1",
+  "fixture": "notice-18135-20261005T133554Z.html",
+  "title": "首届全球数智教育创新大赛报名开启！等你来挑战！"
+}

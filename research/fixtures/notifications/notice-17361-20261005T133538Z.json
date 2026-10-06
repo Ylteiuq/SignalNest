@@ -1,0 +1,21 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+  "started_at": "2026-10-05T13:35:38.935705+00:00",
+  "request_method": "GET",
+  "status_code": 200,
+  "final_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+  "headers": {
+    "date": "Mon, 05 Oct 2026 13:35:39 GMT",
+    "content-type": "text/html",
+    "content-length": "7663",
+    "etag": "\"723b-65854522c9765-gzip\"",
+    "last-modified": "Wed, 05 Aug 2026 22:30:39 GMT",
+    "cache-control": "private, max-age=600",
+    "server": "WHU-AppSrv 1.0.0"
+  },
+  "finished_at": "2026-10-05T13:35:38.965794+00:00",
+  "body_bytes": 29243,
+  "sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+  "fixture": "notice-17361-20261005T133538Z.html",
+  "title": "关于开展2024年大学生创新创业训练计划项目中期检查暨立项工作的通知"
+}

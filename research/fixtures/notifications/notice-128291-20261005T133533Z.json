@@ -1,0 +1,21 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+  "started_at": "2026-10-05T13:35:33.898949+00:00",
+  "request_method": "GET",
+  "status_code": 200,
+  "final_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+  "headers": {
+    "date": "Mon, 05 Oct 2026 13:35:34 GMT",
+    "content-type": "text/html",
+    "content-length": "11244",
+    "etag": "\"ed2e-65b161418bc04-gzip\"",
+    "last-modified": "Thu, 10 Sep 2026 00:30:44 GMT",
+    "cache-control": "private, max-age=600",
+    "server": "WHU-AppSrv 1.0.0"
+  },
+  "finished_at": "2026-10-05T13:35:33.918632+00:00",
+  "body_bytes": 60718,
+  "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+  "fixture": "notice-128291-20261005T133533Z.html",
+  "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知"
+}

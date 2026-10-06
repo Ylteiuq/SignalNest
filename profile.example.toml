@@ -1,0 +1,12 @@
+# EXAMPLE ONLY: fictional profile, not the current user's personal information.
+# 示例画像，必须按自己的情况编辑。未填写的学校/层次/学院/专业/入学年均为未知。
+schema_version = 1
+profile_id = "self"
+institution = "whu"
+study_level = "undergraduate"
+# college, major, entry_year are deliberately omitted (unknown); TOML has no null.
+interest_topics = ["exchange", "scholarship", "research"]
+include_phrases = ["本科生创新"]
+exclude_topics = []
+high_value_topics = ["exchange"]
+store_only_topics = ["course_enrollment"]

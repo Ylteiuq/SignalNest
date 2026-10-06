@@ -1,0 +1,21 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+  "started_at": "2026-10-05T13:35:49.014956+00:00",
+  "request_method": "GET",
+  "status_code": 200,
+  "final_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+  "headers": {
+    "date": "Mon, 05 Oct 2026 13:35:49 GMT",
+    "content-type": "text/html",
+    "content-length": "7435",
+    "etag": "\"77ca-658542e937258-gzip\"",
+    "last-modified": "Wed, 05 Aug 2026 22:20:42 GMT",
+    "cache-control": "private, max-age=600",
+    "server": "WHU-AppSrv 1.0.0"
+  },
+  "finished_at": "2026-10-05T13:35:49.041437+00:00",
+  "body_bytes": 30666,
+  "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+  "fixture": "notice-117011-20261005T133549Z.html",
+  "title": "关于2023级本科生修读辅修专业报名的通知"
+}

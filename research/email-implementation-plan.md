@@ -1,6 +1,6 @@
 # 通知模块代码任务安排
 
-2026-10-05；输入依据：[决策补充N0](notification-decisions.md)、[Email设计](email-delivery-design.md)。设计已形成，下面任务可交实现Agent；**本次仅安排任务与验收，不执行生产实现或真实邮件发送**。当前多人未提交改动保留。实施开始先重读AGENTS、Git、最新schema/事务/配置/运行接口，不以研究快照覆盖其他Agent代码。
+2026-10-05初稿，2026-10-06补充；输入依据：[决策补充N0](notification-decisions.md)、[Email设计](email-delivery-design.md)。设计已形成，下面任务可交实现Agent；**本次仅安排任务与验收，不执行生产实现或真实邮件发送**。当前多人未提交改动保留。实施开始先重读AGENTS、Git、最新schema/事务/配置/运行接口，不以研究快照覆盖其他Agent代码。
 
 ## 顺序与可并行边界
 
@@ -13,23 +13,25 @@ N1/N2同一Agent顺序负责schema/迁移/ingestion接口，避免同时修改�
 
 ### N0：Profile 与透明规则决策（先完成，小范围）
 
-- 新增严格Profile、NoticeFacts、Decision契约与纯函数；四种Action为IMMEDIATE/DIGEST/REVIEW/IGNORE。未填事实为unknown，日期近期只选候选，不能代替相关性与资格。
-- 规则只支持少量可查看的主题词组、资格/绝对日期表达式，逐条给reason_codes、rule_id、证据、missing_fields；未支持条件/关键媒体转REVIEW。无LLM/OCR/附件下载/通用规则DSL。
-- 定义Profile/规则/Facts提取/引擎revision和规范摘要；定义首启近期候选最高DIGEST、历史静默、已关注机会条件变化与明确排除的优先级。同事件决策与内容版本分开。
-- 交付D1–D5纯决策单测及D6–D12的接口场景；N0不迁移/写数据库、不建outbox、不发邮件。不是全量“校园规则库”，第一版未支持表达式明确unknown。
+- 新增Profile/NoticeFacts/Decision契约与纯函数；Action=PUSH_NOW/DIGEST/STORE_ONLY/IGNORE，needs_review/missing_fields独立。资格未知且相关高价值/临近截止可立即提醒待核实，明确不符合分别处理。
+- 定义`Action+mode+首启政策→effective_route`纯合成；默认首启降级有可信截止≤下一Digest的逃逸规则。最终路线必须在N1登记前确定，N2不再降级/重路由。
+- 固定小规则与版本/理由/证据，按[首批规则与真实评估](notification-rule-evaluation.md)确认词组/资格/时间表达式。无LLM/OCR/附件下载/规则DSL；助教招聘与真正取消正样本仍需补齐，不冒充已验证覆盖。拟议期望标签需人工确认后才能作gold验收。
+- 当前已有并行N0骨架，先按[当前快照差异](notification-rule-evaluation.md#5-当前n0快照与研究建议的对齐)做窄范围补齐：保存主题不得压制另一主动主题；申请主体与培养层次分开；只补已取样的年份区间/24:00与对象截止。规则改变更新版本，旧测试中的unsupported预期相应调整，不绕过未知保护。
+- 交付D1–D5/D13/D18–D19纯决策/路线单测及D6–D17的接口场景；N0不迁移/写数据库、不建outbox、不发邮件。未支持表达式明确unknown，人工gold未确认不标“已验收”。
 
 ### N1：持久事件与原子投递意图
 
-- 定义单收件人notification context、observation、事件序号、选中decision、route与planned任务及有限发送结果契约；持久化policy revision/决策证据，新增迁移，不重写0001–0003。
+- 先统一通知契约：Action+needs_review、effective_route、delivery_intent_registered_at及重评操作冻结/重放。定义observation/事件/decision/有限发送结果，新增迁移，不重写0001–0003。
 - **迁移前纠正ID假设：**核对生成DDL；activate保存稳定source/source_document身份成员，替代max(id)水位，不重建documents来补AUTOINCREMENT。冻结active_from/to；近期候选使用固定activation_at窗口和真实列表/详情日期证据，默认首启回顾，旧历史静默。
 - 默认未启用，无observation/邮件事件/网络。live与offline/maintenance分清，new看observation与来源身份，近期activation候选不能再重复生new；列表日期目前未落库，显式登记首启成员的候选日期/证据，不能虚构已有字段。
-- 在已有save_notice_in_transaction内一起写业务成功、observation、event、N0 decision、IMMEDIATE的planned意图；DIGEST/REVIEW登记选中资格待N2计划，IGNORE仅留决策；不要在协调器成功返回后补event。
+- 成功事务一起写业务成功、baseline/event、decision/effective_route及仅immediate的planned意图；digest资格登记即锁定，即使outbox为空；none仅留决策。不得返回后补event或先建立即任务再降级。
+- 重评operation_id原子绑定明确event集合、policy/evaluated_at/输入版本/路由context。resume读取原快照，同ID参数不同拒绝；已完成成员原样返回，未完成成员校验stale_input/stale_context。后者只比较可变配置token，不因跨过08:00或截止时间而重算冻结时钟/门槛。仅none且从未登记资格者可新持久重评。
 - 解决A→B→A、Parser升级、离线reparse污染、actual body evidence与版本首次raw不同的问题。附加原文读取/比较在事务外，提交核对baseline token；comparison_unknown诊断持久化。
-- 验收E1–E6/E15与D6–D12；迁移保留旧数据，不因迁移补发；只有显式activate近期回顾能创建相应候选；写入失败全部回滚。验证身份集合不依赖数值ID、规则升级不伪造内容update。N1不调用SMTP、不写发送线程或broker。
+- 验收E1–E6/E15与D6–D17；迁移保留旧数据，不因迁移补发；只有显式activate近期回顾能创建候选；写入失败全部回滚。验证身份集合不依赖数值ID、规则升级不伪造update、操作重放不换集合/时钟。N1不调用SMTP、线程/broker。
 
 ### N2：立即与Digest计划、不可变渲染
 
-- 只消费N0选中Action，hybrid/digest_only不能绕过资格；IMMEDIATE立即、DIGEST汇总、REVIEW单列待核对、IGNORE无邮件。每个选中event只有一个outbox；事件/决策在成功事务登记，MIME渲染在后续本地阶段完成。
+- 只消费已持久effective_route：immediate渲染既有planned；digest规划批次；none不发送。禁止读取当前mode/Profile再决定路线。needs_review在立即邮件或Digest都显著展示。每事件只有一个邮件路径。
 - Digest每日上海08:00、最多50事件/封、完整MIME128KiB；事务外渲染按字节装箱，短事务冻结成员/payload，不在固定成员后重新拆分。每次最多计划5封，按MAX(part)+1继续；长期停机只取持久未分配事件，不靠last_digest_sent_at跳过。
 - 冻结完整bytes/hash、Message-ID、Date、from/to、成员、decision/reasons/未知项与渲染版本；重试不用current/Profile现值；planned渲染失败恢复同任务，不创建第二个意图。
 - 验收E7–E9，空Digest、重复计划、分片、回退事件展示、后续配置变化。N2不访问校园网站、不下载附件、不发邮件。
@@ -44,7 +46,7 @@ N1/N2同一Agent顺序负责schema/迁移/ingestion接口，避免同时修改�
 ### N4：发送协调、诊断与真实终止恢复
 
 - 新的显式mail-plan/mail-drain/mail-status/activate与人工retry命令（最终名称以实现评审决定）；复用实例锁，网络放在DB事务外。
-- 增加本地Profile校验/决策preview与显式re-evaluate入口；只允许未有投递意图的当前live候选，复用原event/delivery身份。变更Profile不自动重评全历史或重发冻结邮件；activate先展示近期机会/待核对/忽略数量，不假定用户Profile。
+- Profile校验/preview/re-evaluate与resume(operation_id)，按N0冻结参数契约实现；outbox空不是重评资格。变更Profile不自动重评历史/冻结邮件；activate预览Action、needs_review及最终route数量，不假定真实用户Profile。
 - sender网络前持久sending/attempt，恢复遗留为uncertain；默认有限6次、持久due、uncertain至少30min再试、认证通道暂停、预算及上限。人工retry授予一次额外许可，累计attempt_no不重置，启动不重复延后已恢复due。
 - 不把邮件失败写入documents失败；不以crawl-run整体succeeded作为消费前提；不得在DB无法记成功后同进程马上再发。
 - status区分planned/pending/retry/uncertain/accepted/blocked、最老待办、接受结果未知次数。stderr不回显秘密；部署模板仅提供建议，不安装/启动自动发送。
