@@ -1,6 +1,6 @@
 # SignalNest 设计与采集持久化
 
-项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断与 N0 本地通知决策已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。新增外部定时部署模板，没有 Python 常驻调度器或邮件发送。
+项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断、N0 本地决策与 N1 通知事件持久化已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。新增外部定时部署模板，没有 Python 常驻调度器或邮件发送。
 
 ## 模块边界
 
@@ -23,6 +23,7 @@
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
 - `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
 - `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
+- `notifications/state.py` / `service.py`：显式启用和真实日期证据，事务外比较/决策准备，同成功 Connection 提交独立 live 基线、事件、选中决策和必要 planned 意图；不渲染或发送邮件。
 - `eventlog.py`：标准库 JSON 日志，CLI 显式启用；不在导入时配置日志。
 
 HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；Fetcher 校验目标 URL/每次跳转、收紧剩余超时并流式读取。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，重试只在 Fetcher 一层执行，协调器不另套重试。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
@@ -31,7 +32,7 @@ HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，�
 
 Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责列表遍历、详情补抓与复查，复用已有归档/业务入口。没有插件工厂、任务平台或第二套业务成功状态。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
 
-有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。此次不改变数据库 schema、Parser 版本或内容摘要。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
+有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。Fetcher 阶段没有改变数据库 schema；N1 的新增表见下文，Parser 版本与内容摘要仍保持不变。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
 
 ## 最小数据契约
 
@@ -48,7 +49,7 @@ Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责�
 
 ## 日志
 
-CLI 在参数解析后才配置 signalnest logger，帮助和包导入不触发配置。除配置/初始化事件，还记录 raw_archived、response_recorded、page_processed、processing_failed、fetch_started/retried/finished 和 crawl_started/finished。每次命令有 run_id；字段白名单为 time、level、event 及 source_id/run_id/document_id/response_id/stage/error_code。身份和阶段/错误仅接受有限长度安全字符；原始消息、args、异常栈、任意 extra、URL、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容。服务函数通过 signalnest logger 发出事件，调用者自行显式配置日志。
+CLI 在参数解析后才配置 signalnest logger，帮助和包导入不触发配置。除配置/初始化事件，还记录 raw_archived、response_recorded、page_processed、processing_failed、fetch_started/retried/finished 和 crawl_started/finished；N1 成功提交后记录 notification_event_registered 或 notification_comparison_unknown。每次命令有 run_id；字段白名单为 time、level、event 及 source_id/run_id/document_id/response_id/stage/error_code。身份和阶段/错误仅接受有限长度安全字符；原始消息、args、异常栈、任意 extra、URL、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容。服务函数通过 signalnest logger 发出事件，调用者自行显式配置日志。
 
 stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。日志只输出标准流，无文件 handler、后台线程或全局 root logger 改动。新增 status_read、policy_applied、detail_group_finished 事件；分组事件只增加 attempted/succeeded/failed/remaining_due/unserved/oldest_overdue_seconds 的非负整数白名单。字段白名单不是秘密识别器，调用者仍不得把密钥塞进身份字段。外部日志轮转和一致备份见 [运维文档](operations.md)。
 
@@ -225,12 +226,14 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 
 采集三交付完成后已增加 [处理政策与诊断](runtime-policy.md) 及 [一个定时部署模板](operations.md)。没有新增 schema、持久配额/优先级、扫描模式字段或后台 Python 调度器；后续在目标机观察，再设计 Email 发送记录与补偿。本节点不安装定时器或发送邮件。
 
-## N0 通知决策与下一步接口
+## N0 决策与 N1 通知持久化
 
 N0 的调用链为 `NoticeContent → extract_facts → decide(Profile, Facts, EventContext, now=...)`。采集处理成功不证明报名资格；画像缺值、未支持的 OR/条件、时间/媒体缺口保留未知。相关性、资格、时间分别判断，`PUSH_NOW / DIGEST / STORE_ONLY / IGNORE` 与 `needs_review` 分开。纯路线合成也在 N0：digest_only、首启默认汇总及可信短截止例外进入显式输入和决策证据，后续计划器不能重新读取当前 Profile 来改已选路线。
 
 资格只核对少量明确对象条件，不用“研究生”等全页裸词推断对象；发布日期不代替开放或截止。短截止相关机会可在资格未知时提示核对，理由明确不构成资格确认。图片/附件只保留未解析引用；不从 alt、文件名补造事实。具体规范、版本、证据范围和真实样本限制见 [规则说明](notifications.md)。
 
-Profile、事实、政策和决策输入摘要用于追溯 N0 规则输入，不替代原字节/规范内容摘要，也不是内容事件或发送去重身份。N0 不写这些快照；预览 kind/previous_route 只是用户声明。本轮无通知迁移或生产事务钩子，现有入库、原文、状态和 due 行为保持不变。
+Profile、事实、政策和决策输入摘要用于追溯 N0 规则输入，不替代原字节/规范内容摘要，也不是内容事件或发送去重身份。N0 纯函数不写这些快照；预览 kind/previous_route 只是用户声明。N1 根据已验证的 live 运行和响应、启用身份、真实日期与独立基线构造生产 context，并保存政策、事实短证据及完整决策；采集 due 仍只来自 documents.next_due_at。
 
-[N1 接口稿](notification-state.md)拟议显式 live/offline/maintenance 来源、启用稳定身份集合、真实列表日期证据、独立 live 比较基线与事件序号。未来在既有成功事务内一起提交版本/状态/基线/事件/决策/必要意图；prepare/旧文解析/决策均在事务外。稿中拟议表与函数当前不可调用，迁移升级不应自动启用或补发历史邮件。N1 持久化、N2 冻结计划、N3 SMTP、N4 发送恢复留后续交付。
+[N1 实现说明](notification-state.md)定义已可调用的 prepare/commit 和列表证据接口。0004 只新增八张通知表，升级保留旧数据且默认未启用。生产协调器显式传 live；本地导入默认 offline，CLI reparse 为 maintenance，不改变 live 基线。成功事务一起提交版本/状态/due/资源标记、基线、事件、决策和必要 planned 意图；Parser、文件读取及 N0 计算均在事务外。任何登记失败回滚，有限系统性错误终止采集。
+
+重复 200/304 不重复事件，A→B→A 以序号记录两次更新；相同字节的 Parser 升级静默建立新口径，不同原文先用当前规则重解析旧实际正文。比较不能证明时静默推进新成功基线并保留最近未知诊断，可能漏掉同时发生的真实更新。日期证据不从发现时间推导；首启选择和冲突保留。N2 邮件冻结计划、N3 SMTP、N4 发送与重评恢复仍待交付，planned 不是可发送邮件。

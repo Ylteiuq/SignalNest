@@ -25,6 +25,9 @@ class Event(StrEnum):
     DETAIL_GROUP_FINISHED = "detail_group_finished"
     STATUS_READ = "status_read"
     POLICY_APPLIED = "policy_applied"
+    NOTIFICATION_EVENT_REGISTERED = "notification_event_registered"
+    NOTIFICATION_COMPARISON_UNKNOWN = "notification_comparison_unknown"
+    NOTIFICATIONS_ENABLED = "notifications_enabled"
 
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")

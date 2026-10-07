@@ -41,6 +41,16 @@ from signalnest.ingestion_state import (
     discovery_context,
     validate_processing_run,
 )
+from signalnest.notifications.service import (
+    PreparedNotification,
+    commit_notification_in_transaction,
+    prepare_notification,
+)
+from signalnest.notifications.state import (
+    ProcessingOrigin,
+    check_origin,
+    register_listing_evidence_in_transaction,
+)
 from signalnest.parsing import PARSER_VERSION, ParseError, parse_list, parse_notice
 from signalnest.rawstore import RawStore, RawStoreError
 from signalnest.schema import documents, http_resources, notice_versions, raw_responses
@@ -192,9 +202,11 @@ def discover_page_in_transaction(
     origin: Origin = "unknown",
     ingestion_run_id: str | None = None,
     automatic: bool = False,
+    processing_origin: ProcessingOrigin = "offline",
 ) -> int:
     """No commit/rollback; caller must roll back on any error. All I/O/Parser precedes this."""
     _time(discovered_at)
+    check_origin(processing_origin, ingestion_run_id)
     if not source_id.strip():
         raise IngestError("invalid_source", "validation")
     origin = discovery_context(connection, source_id, origin, ingestion_run_id, discovered_at)
@@ -214,6 +226,9 @@ def discover_page_in_transaction(
             raise IngestError(reason, "cache", response_id=response_id)
     elif observed_response_id is not None:
         raise IngestError("body_response_required", "validation")
+    if processing_origin == "live" and (response is None or response["body_state"] != "complete"):
+        raise IngestError("notification_list_evidence_required", "notification")
+    new_document_ids = set()
     for entry in page.entries:
         statement = insert(documents).values(
             source_id=source_id,
@@ -224,15 +239,35 @@ def discover_page_in_transaction(
             discovery_origin=origin,
             first_discovery_run_id=ingestion_run_id,
         )
+        inserted = connection.execute(statement.on_conflict_do_nothing())
+        document_id = connection.execute(
+            sa.select(documents.c.id).where(
+                documents.c.source_id == source_id,
+                documents.c.source_document_id == entry.source_document_id,
+            )
+        ).scalar_one()
+        if inserted.rowcount == 1:
+            new_document_ids.add(document_id)
         connection.execute(
-            statement.on_conflict_do_update(
-                index_elements=[documents.c.source_id, documents.c.source_document_id],
-                set_={
-                    "detail_url": statement.excluded.detail_url,
-                    "discovered_title": statement.excluded.discovered_title,
-                },
+            documents.update()
+            .where(documents.c.id == document_id)
+            .values(
+                detail_url=str(entry.detail_url),
+                discovered_title=entry.title,
             )
         )
+    register_listing_evidence_in_transaction(
+        connection,
+        source_id=source_id,
+        page=page,
+        body_response_id=response_id,
+        observed_response_id=observed["id"] if observed is not None else None,
+        processed_at=discovered_at,
+        parser_version=parser_version,
+        processing_origin=processing_origin,
+        ingestion_run_id=ingestion_run_id,
+        new_document_ids=new_document_ids,
+    )
     if response is not None:
         _processing_marks(connection, response, observed, discovered_at, parser_version)
     advance_source(connection, source_id, "last_list_registered_at", discovered_at)
@@ -524,9 +559,12 @@ def save_notice_in_transaction(
     next_due_at: int | None = None,
     automatic: bool = False,
     ingestion_run_id: str | None = None,
+    processing_origin: ProcessingOrigin = "offline",
+    prepared_notification: PreparedNotification | None = None,
 ) -> int:
     """Version, success pointer, due and resource marks share the caller's transaction."""
     _time(processed_at)
+    check_origin(processing_origin, ingestion_run_id)
     if next_due_at is not None:
         _time(next_due_at)
         if next_due_at < processed_at:
@@ -558,6 +596,18 @@ def save_notice_in_transaction(
             "identity_mismatch", "validation", response_id=response_id, document_id=document_id
         )
     digest = notice.content.content_sha256()
+    if processing_origin == "live" and (
+        prepared_notification is None
+        or prepared_notification.document_id != document_id
+        or prepared_notification.source_document_id != notice.source_document_id
+        or prepared_notification.body_response_id != response_id
+        or prepared_notification.observed_response_id != observed["id"]
+        or prepared_notification.ingestion_run_id != ingestion_run_id
+        or prepared_notification.evaluated_at != processed_at
+        or prepared_notification.content_sha256 != digest
+        or prepared_notification.parser_version != notice.parser_version
+    ):
+        raise IngestError("notification_prepared_required", "notification")
     connection.execute(
         insert(notice_versions)
         .values(
@@ -596,6 +646,8 @@ def save_notice_in_transaction(
         values["next_due_at"] = next_due_at
     connection.execute(documents.update().where(documents.c.id == document_id).values(**values))
     _processing_marks(connection, response, observed, processed_at, notice.parser_version)
+    if processing_origin == "live":
+        commit_notification_in_transaction(connection, prepared_notification, version_id=version_id)
     return version_id
 
 
@@ -632,9 +684,11 @@ def process_response(
     origin: Origin = "unknown",
     ingestion_run_id: str | None = None,
     automatic: bool = False,
+    processing_origin: ProcessingOrigin = "offline",
 ) -> ProcessingResult:
     """Explicit replay permits history. Automatic callers require the latest matching body."""
     _time(processed_at)
+    check_origin(processing_origin, ingestion_run_id)
     for due in (next_due_at, failure_due_at):
         if due is not None:
             _time(due)
@@ -704,6 +758,7 @@ def process_response(
                 origin=origin,
                 ingestion_run_id=ingestion_run_id,
                 automatic=automatic,
+                processing_origin=processing_origin,
             )
             result = ProcessingResult(
                 response_id,
@@ -716,16 +771,56 @@ def process_response(
             notice = notice_parser(page)
             # Policy sees validated notice outside the transaction; due commits with success.
             due = notice_due(notice, processed_at) if notice_due is not None else next_due_at
-            version_id = save_notice(
-                engine,
-                body["id"],
-                notice,
-                processed_at,
-                observed_response_id=response_id,
-                next_due_at=due,
-                automatic=automatic,
-                ingestion_run_id=ingestion_run_id,
-            )
+            # A stale preparation is retried once, entirely outside the rolled-back
+            # business transaction. SQL/ownership failures are never swallowed.
+            for attempt in range(2):
+                prepared = (
+                    prepare_notification(
+                        engine,
+                        raw_store,
+                        notice=notice,
+                        body_response_id=body["id"],
+                        observed_response_id=response_id,
+                        processing_origin=processing_origin,
+                        ingestion_run_id=ingestion_run_id,
+                        evaluated_at=processed_at,
+                        notice_parser=notice_parser,
+                    )
+                    if processing_origin == "live"
+                    else None
+                )
+                try:
+                    version_id = save_notice(
+                        engine,
+                        body["id"],
+                        notice,
+                        processed_at,
+                        observed_response_id=response_id,
+                        next_due_at=due,
+                        automatic=automatic,
+                        ingestion_run_id=ingestion_run_id,
+                        processing_origin=processing_origin,
+                        prepared_notification=prepared,
+                    )
+                    break
+                except IngestError as exc:
+                    if exc.code != "notification_prepare_stale" or attempt:
+                        raise
+            if prepared is not None and (
+                prepared.kind is not None or prepared.comparison_error_code
+            ):
+                log_event(
+                    logging.getLogger("signalnest"),
+                    Event.NOTIFICATION_EVENT_REGISTERED
+                    if prepared.kind is not None
+                    else Event.NOTIFICATION_COMPARISON_UNKNOWN,
+                    source_id=observed["source_id"],
+                    document_id=document_id,
+                    response_id=response_id,
+                    run_id=run_id,
+                    stage="notification",
+                    error_code=prepared.comparison_error_code,
+                )
             result = ProcessingResult(
                 response_id,
                 document_id=document_id,

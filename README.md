@@ -1,6 +1,6 @@
 # SignalNest
 
-单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化、有界采集、处理政策、状态诊断与 N0 本地通知决策已完成**。显式执行 `crawl-once` 或 `scheduled-run` 获取页面；提供外部定时模板，没有 Python 后台调度器或邮件发送。
+单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化、有界采集、处理政策、状态诊断、N0 本地决策与 N1 通知事件持久化已完成**。显式执行 `crawl-once` 或 `scheduled-run` 获取页面；提供外部定时模板，没有 Python 后台调度器或邮件发送。
 
 ## 安装与检查
 
@@ -41,7 +41,7 @@ uv run --locked signalnest config-check --config signalnest.toml
 uv run --locked signalnest storage-init --config signalnest.toml
 ```
 
-命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0003_ingestion_state`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
+命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0004_notification_state`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
 
 可在临时目录验证（macOS / Linux）：
 
@@ -52,9 +52,9 @@ uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 ```
 
-结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、策略更新和两种采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
+结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、notifications-activate、策略更新和两种采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
 
-从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。
+从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0001–0003 保持冻结。
 
 ## 单次采集
 
@@ -176,21 +176,44 @@ uv run --locked signalnest decision-preview --profile profile.toml \
 
 以上命令不需要 `--config`、数据库初始化或写入锁，不联网、不写数据库或原文、不发送邮件。画像路径、HTML/JSON 路径相对于调用工作目录；时间必须含时区，下一次 Digest 时间必须晚于决策时间。`--file` 必须给出实际最终详情 URL，不能根据文件名猜文章身份。JSON 输入完整字段见 [NoticeContent](src/signalnest/contracts.py)，不是数据库行或 ParsedNotice 包装。
 
-stdout 为 JSON：事实、短原文证据、资格/时间三值判断、Action、独立 `needs_review`、理由、命中规则、未知项、版本和摘要。正文全文不重复输出。Action 为 `PUSH_NOW / DIGEST / STORE_ONLY / IGNORE`；有效路线为 `immediate / digest / none`。路线只是预览结果，**当前不存在投递意图、邮件计划或发送记录**。资格未知仍可提示核对可信紧迫的相关机会，不会声称用户已符合资格；近期日期本身不触发推送。
+stdout 为 JSON：事实、短原文证据、资格/时间三值判断、Action、独立 `needs_review`、理由、命中规则、未知项、版本和摘要。正文全文不重复输出。Action 为 `PUSH_NOW / DIGEST / STORE_ONLY / IGNORE`；有效路线为 `immediate / digest / none`。该命令的路线只是预览结果，不登记投递意图。N1 的生产成功事务可另行登记 planned 意图；当前没有邮件计划或发送记录。资格未知仍可提示核对可信紧迫的相关机会，不会声称用户已符合资格；近期日期本身不触发推送。
 
 `--event-kind {new,update,activation_recent,historical}` 与 `--mode {hybrid,digest_only}` 仅声明预览上下文。update 可给 `--previous-notice-json` 和 `--previous-route`，缺少旧内容则标明比较未知。首启预览默认汇总，可信截止不晚于下一次 Digest 时保留紧急路线；显式 digest_only 仍优先。命令不证明实际发生新内容或此前已登记邮件资格。校验/参数错误退出 2，Parser 无法支持输入页面退出 1，成功预览退出 0。
 
-当前只支持有限字面主题、对象表达式和完整年份的时间；图片/附件仅保留引用，不做 OCR 或解析下载文件。不能可靠识别的条件与时间保留未知。覆盖、限制及纯函数入口见 [N0 规则说明](docs/notifications.md)。[N1 接口稿](docs/notification-state.md)定义启用边界、独立 live 基线和未来成功事务，但尚未实现；本轮不新增 schema、迁移或接入采集后通知。
+当前只支持有限字面主题、对象表达式和完整年份的时间；图片/附件仅保留引用，不做 OCR 或解析下载文件。不能可靠识别的条件与时间保留未知。覆盖、限制及纯函数入口见 [N0 规则说明](docs/notifications.md)。[N1 设计](docs/notification-state.md)记录已实现的启用边界、独立 live 基线和原子成功事务。
+
+## 通知启用与事件登记（N1）
+
+升级不会自动开启通知。启用前须已有一次由生产协调器证明的完整列表扫描；详情部分失败仍可启用。下面邮箱地址仅为示例，正式启用请提供自己的地址；当前不连接 SMTP。
+
+```sh
+uv run --locked signalnest storage-init --config signalnest.toml
+# 只读预览：窗口、候选数量及最多 50 个近期身份和真实日期证据。
+uv run --locked signalnest notifications-preview --config signalnest.toml \
+  --profile profile.toml --activation-id first-enable \
+  --sender notifications@example.org --recipient me@example.org
+# 确认候选后显式启用，冻结边界、Profile/规则和地址。
+uv run --locked signalnest notifications-activate --config signalnest.toml \
+  --profile profile.toml --activation-id first-enable \
+  --sender notifications@example.org --recipient me@example.org
+uv run --locked signalnest notifications-status --config signalnest.toml
+```
+
+preview/status 只读数据库，不获取写入锁或联网；activate 使用统一实例锁和短事务。`--mode digest_only` 可以固定为汇总路线；默认 hybrid。`--digest-hour/--digest-minute` 默认上海 09:00，用于 N0 的下一档时刻判断，尚无邮件调度。`--no-initial-recent` 关闭首启近期回顾。`--at` 为可选 UTC Unix 秒，默认本次处理时钟（与 N0 预览的 ISO 时间参数不同）；相同启用 ID、Profile 和参数重复执行始终复用原时间/集合，不重置，不同参数明确失败。
+
+窗口固定为启用当日及前 6 个上海自然日，近期日期本身不能触发邮件资格。未知日期保持待核对，积压延期不丢已选候选；冲突保留原始选择和第一对证据。稳定启用集合不使用数据库整数 ID 水位。
+
+之后生产采集显式登记 live 观察与事件；重复 200/304 不追加事件，A→B→A 记录两次 update。离线 import-page 和维护 reparse 可更新业务版本，但保持独立 live 基线与事件。版本/成功/due、资源处理标记、基线、事件、决策、选中路线及必要 planned 意图一起提交，通知登记失败整体回滚。当前立即路线仅有 planned 意图，Digest 仅有资格；**没有邮件正文冻结、邮件计划或发送能力**。完整接口、比较未知的保守行为、迁移和恢复边界见 [N1 说明](docs/notification-state.md)。
 
 ## 日志与当前边界
 
 命令结果写 stdout；结构化事件日志写 stderr，包含 UTC 时间、级别、事件名和可选 source_id/run_id/document_id/response_id/stage/error_code。错误诊断也写 stderr，因此错误输出不是纯 JSON 流。日志不包含原始配置、URL、异常正文或网页正文；只在 CLI 显式配置 SignalNest 的 logger，不修改 root logger。
 
-已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览。
+已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览、N1 启用/事件/决策/意图持久化。
 
 尚未开展：目标 Linux 定时器实际部署、长期运行观察、Email、历史搜索、LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher 或采集入口；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
 
-fixture 驱动的 Parser、离线闭环及三个采集交付均已完成：**有界 Fetcher → 单次采集协调器与 CLI → 整条恢复验证、真实终止实验及少量低频实采**。定时运行与诊断节点现提供政策和部署模板，后续在目标机观察，再设计 Email 记录与补偿。既有实采验证限于记录中的边界和样本，不等于断电或全站扫描验证。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。当前所有入口均不产生邮件事件。
+fixture 驱动的 Parser、离线闭环及三个采集交付均已完成：**有界 Fetcher → 单次采集协调器与 CLI → 整条恢复验证、真实终止实验及少量低频实采**。定时运行与诊断节点现提供政策和部署模板，后续在目标机观察；N1 已提供事件与投递资格，N2–N4 再实现邮件计划、SMTP 与补偿。既有实采验证限于记录中的边界和样本，不等于断电或全站扫描验证。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。当前不会发送任何邮件。
 
 列表 304 不代表没有待补抓详情或到期复查任务；“遇到已知通知就停止分页”不能保证完整性。模块边界、规范化规则、错误分类和后续集成约定见 [设计说明](docs/design.md)。
 
@@ -276,3 +299,9 @@ print(notice.source_document_id, notice.content.content_sha256())
 2026-10-06 N0 与 N1 接口稿节点：macOS 26.6.2 arm64、CPython 3.12.14、Pydantic 2.13.5、SQLite 3.53.1、pytest 8.4.2，使用现有虚拟环境，未新增依赖或改锁文件。完整 `.venv/bin/pytest -q` **906 项离线测试通过**（既有 715 项，新增事实 90、决策 59、Profile/CLI 42）；`.venv/bin/ruff check src tests deploy/verify_backup.py`、格式检查（59 个 Python 文件）及 `git diff --check` 通过。
 
 验证五份真实通知的事实/未知项、不同画像、短截止与日期边界、媒体/OR/否定/冲突、额外编号/年龄/处分条件、不支持的时刻/时区与未解决截止声明、首启路线例外、显式更新比较、版本口径校验、原文位置和跨子进程 hash seed 的完整决策确定性。安装入口的 profile-check 与真实 HTML decision-preview 在临时工作目录通过，不创建文件/数据库或获取锁；错误输入与当前 Parser 不支持的竞赛页面明确非零退出。未进行新网站/SMTP 请求、通知数据库迁移或 N1 事务实验；N1 只有明确标注的接口稿。Parser、schema、历史迁移、入库和依赖文件摘要不变；本实现未修改 research，保留并行 Agent 对三份通知/邮件报告的更新与新调研文件。无 Git 提交、推送或 PR，N1 持久化与 N2–N4 留后续交付。
+
+2026-10-07 N1 启用与事件持久化节点：macOS 26.6.2 arm64、CPython 3.12.14、SQLite 3.53.1、Pydantic 2.13.5、pytest 8.4.2、Ruff 0.16.9，使用现有虚拟环境，依赖与锁文件不变。完整 `.venv/bin/pytest -q` **999 项离线测试通过**（原有 906 项，新增状态/升级 16、服务 38、CLI 37、生产协调器接入 2）。Ruff 检查、格式检查（66 个 Python 文件）及 `git diff --check` 通过。
+
+验证启用重放和稳定身份、真实日期/冲突/延期候选、独立 live 基线、重复 200/304、A→B→A、离线和维护隔离、Parser 升级与比较未知追溯、事务外文件/Parser/N0、事件/决策/意图故障整体回滚、重开数据库、0003 升级保留和迁移失败回滚。生产协调器使用模拟 HTTP，直接连接真实归档/缓存/Parser/SQLite；通知登记故障明确终止，移除故障后绑定 304 可恢复。安装入口从不同工作目录在临时实例查看帮助、初始化、读取状态及预览通过，未满足完整扫描条件时明确返回 blocker。逐字节比较 69 份受保护的已跟踪文件：research/fixture、Parser、原契约/N0 规则、0001–0003、pyproject.toml 与 uv.lock 均未改变。
+
+本轮没有新的网站或 SMTP 请求，不对个人实例自动启用。N1 新验证属于模拟 HTTP、故障注入及重开库，不是 N1 真实进程终止或断电实验。立即路线只有 planned 意图，Digest 只有登记资格；N2 冻结计划、N3 SMTP、N4 发送/政策更新与重评待后续交付。没有提交、推送或 PR。

@@ -1,6 +1,6 @@
 # N0 本地事实与规则决策
 
-2026-10-06。本节点已实现纯本地计算与 CLI 预览；没有启用状态、通知事件表、邮件计划、SMTP 或发送协调。下一节点仅有 [N1 接口稿](notification-state.md)，不是已实现 API。
+2026-10-06 的 N0 已实现纯本地计算与 CLI 预览，这些函数仍没有持久化副作用。2026-10-07 另行完成 [N1 启用与事件持久化](notification-state.md)；邮件计划、SMTP 和发送协调尚未实现。
 
 ## 可调用接口
 
@@ -57,4 +57,4 @@ Profile 是独立 UTF-8 TOML（最多 64 KiB）；`profile.example.toml` 是虚�
 
 真实 fixture 离线覆盖科研训练选课、辅修 OR/绩点条件、大创中期多时间/项目身份、教师选题征集和结题结果。当前 `notice-18135-20261005T133554Z.html` 缺少既有 Parser 支持的正文结构，预览明确退出 1 / missing_structure；没有为了规则样例修改 Parser 或猜造正文。当前真实样本没有覆盖全部主题、所有资格表达或可靠取消正例，相关边界另有小型合成 NoticeContent 测试。
 
-本实现参考[通知决策调研](../research/notification-decisions.md)最新 Action+needs_review 口径，拆开认知缺口和优先级；规则仍以代码和已验证样本为准，调研中的旧验收表/IMMEDIATE/REVIEW 术语不作为实现接口。独立 live 基线、稳定启用身份、A→B→A 事件与原子投递意图只在 [N1 稿](notification-state.md)定义，N0 测试不证明数据库通知事务、SMTP、重启投递或断电恢复。
+本实现参考[通知决策调研](../research/notification-decisions.md)最新 Action+needs_review 口径，拆开认知缺口和优先级；规则仍以代码和已验证样本为准，调研中的旧验收表/IMMEDIATE/REVIEW 术语不作为实现接口。独立 live 基线、稳定启用身份、A→B→A 事件与原子 planned 意图已由 [N1](notification-state.md)实现并另行测试；N0 纯函数测试本身不证明数据库事务、SMTP、重启投递或断电恢复。

@@ -242,6 +242,7 @@ class _Run:
                     expected_source_id=self.source,
                     run_id=self.run_id,
                     ingestion_run_id=self.run_id,
+                    processing_origin="live",
                 )
             except IngestError as exc:
                 # This service has already reliably registered these finite content failures.

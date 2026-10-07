@@ -42,6 +42,25 @@ def main(argv: list[str] | None = None) -> int:
     preview.add_argument(
         "--previous-route", choices=("none", "immediate", "digest"), default="none"
     )
+    for command, help_text in (
+        ("notifications-preview", "只读预览通知启用边界与最近回顾；不发送"),
+        ("notifications-activate", "显式保存通知启用边界与最近回顾；不发送"),
+    ):
+        activation = commands.add_parser(command, help=help_text)
+        activation.add_argument("--config", type=Path, required=True)
+        activation.add_argument("--profile", type=Path, required=True)
+        activation.add_argument("--activation-id", required=True)
+        activation.add_argument("--sender", required=True)
+        activation.add_argument("--recipient", required=True)
+        activation.add_argument("--mode", metavar="{hybrid,digest_only}", default="hybrid")
+        activation.add_argument("--digest-hour", default=9)
+        activation.add_argument("--digest-minute", default=0)
+        activation.add_argument("--no-initial-recent", action="store_true")
+        activation.add_argument("--at", help="本次处理 UTC Unix 秒，默认当前处理时间")
+    notification_status = commands.add_parser(
+        "notifications-status", help="只读检查通知启用与事件状态；不联网、不发送"
+    )
+    notification_status.add_argument("--config", type=Path, required=True)
     validate = commands.add_parser("config-check", help="校验 TOML 配置，不创建本地存储")
     validate.add_argument("--config", type=Path, required=True, help="TOML 配置文件路径")
     initialize = commands.add_parser("storage-init", help="显式初始化本地存储并升级到最新迁移")
@@ -120,10 +139,123 @@ def main(argv: list[str] | None = None) -> int:
         return _crawl_command(args, settings, logger, run_id)
     if args.command in {"status", "apply-recheck-policy"}:
         return _maintenance_command(args, settings, logger, run_id)
+    if args.command in {
+        "notifications-preview",
+        "notifications-activate",
+        "notifications-status",
+    }:
+        return _notification_state_command(args, settings, logger, run_id)
     log_event(logger, Event.CONFIG_VALIDATED, source_id=settings.source.id, run_id=run_id)
     print(f"配置有效: source_id={settings.source.id}")
     print(f"data_dir={settings.storage.data_dir}")
     print(f"database={settings.storage.database}")
+    return 0
+
+
+def _notification_state_command(args, settings, logger, run_id) -> int:
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.errors import IngestError
+    from signalnest.instance_lock import WriterLockError, writer_lock
+    from signalnest.notifications.profile import ProfileError, load_profile
+    from signalnest.notifications.state import (
+        ActivationOptions,
+        activate_notifications,
+        notification_status,
+        notification_time,
+        preview_activation,
+    )
+    from signalnest.storage import StorageError, open_initialized_engine
+
+    profile = None
+    options = None
+    at = None
+    if args.command != "notifications-status":
+        try:
+            # Personal input is validated before any database or writer-lock operation.
+            profile = load_profile(args.profile)
+            options = ActivationOptions(
+                activation_id=args.activation_id,
+                notification_mode=args.mode,
+                initial_recent_review=not args.no_initial_recent,
+                digest_hour=int(args.digest_hour),
+                digest_minute=int(args.digest_minute),
+                sender=args.sender,
+                recipient=args.recipient,
+            )
+            at = int(args.at) if args.at is not None else int(time.time())
+            notification_time(at)
+        except ProfileError:
+            print("画像错误: 请检查本地画像文件、TOML 格式及画像字段", file=sys.stderr)
+            return 2
+        except (ValidationError, ValueError):
+            print("通知参数错误: 请检查启用标识、邮箱地址、Digest 时间及处理时间", file=sys.stderr)
+            return 2
+        except IngestError as exc:
+            print(f"通知参数错误: {exc.code}；请检查通知启用参数", file=sys.stderr)
+            return 2
+
+    engine = None
+    try:
+        if not settings.storage.database.is_file():
+            raise StorageError("数据库不可用或未初始化，请先执行 storage-init")
+        if args.command == "notifications-activate":
+            with writer_lock(settings.storage.database):
+                engine = open_initialized_engine(settings.storage.database)
+                result = activate_notifications(engine, settings.source.id, profile, options, at=at)
+        else:
+            engine = open_initialized_engine(settings.storage.database)
+            if args.command == "notifications-preview":
+                result = preview_activation(engine, settings.source.id, profile, options, at=at)
+            else:
+                result = notification_status(engine, settings.source.id)
+    except (StorageError, IngestError, WriterLockError, SQLAlchemyError) as exc:
+        code = (
+            exc.code if isinstance(exc, (IngestError, WriterLockError)) else "database_unavailable"
+        )
+        log_event(
+            logger,
+            Event.PROCESSING_FAILED,
+            level=logging.ERROR,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage="notification",
+            error_code=code,
+        )
+        print(f"通知状态操作失败: {code}；请检查初始化、启用参数或锁占用", file=sys.stderr)
+        return 1
+    except Exception:
+        log_event(
+            logger,
+            Event.PROCESSING_FAILED,
+            level=logging.ERROR,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage="notification",
+            error_code="unexpected_error",
+        )
+        print(
+            "通知状态操作失败: unexpected_error；未报告成功，请检查程序与本地存储",
+            file=sys.stderr,
+        )
+        return 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+    event = (
+        Event.NOTIFICATIONS_ENABLED
+        if args.command == "notifications-activate"
+        else Event.STATUS_READ
+    )
+    log_event(
+        logger,
+        event,
+        source_id=settings.source.id,
+        run_id=run_id,
+        stage="notification",
+    )
+    print(json.dumps(result, ensure_ascii=False))
     return 0
 
 
@@ -397,6 +529,7 @@ def _offline_command(args, settings, logger, run_id) -> int:
                     processed_at,
                     expected_source_id=settings.source.id,
                     run_id=run_id,
+                    processing_origin="maintenance",
                 )
     except (StorageError, IngestError, RawStoreError, WriterLockError, SQLAlchemyError) as exc:
         code = (
