@@ -392,5 +392,5 @@ def test_static_filename_does_not_determine_page_number_or_total():
 )
 def test_version_bump_preserves_v1_detail_content_digest(name, url, digest):
     notice = parse_notice(fixture(name, url))
-    assert notice.parser_version == PARSER_VERSION == "whu-student-notices-v2"
+    assert notice.parser_version == PARSER_VERSION == "whu-student-notices-v3"
     assert notice.content.content_sha256() == digest

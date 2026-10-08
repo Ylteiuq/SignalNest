@@ -1,6 +1,6 @@
 # 首批通知规则与真实样本评估
 
-2026-10-05取样，2026-10-06补充；**研究探针已运行，期望Action尚待人工确认**。不是生产N0，不是已通过的准确率评估。本文件补[通知决策](notification-decisions.md)，保持一个来源、有限GET、不取附件/图片。
+2026-10-05取样，2026-10-06补充，2026-10-08登记人工确认；**S01–S09、S11的10个期望Action已由项目用户确认**。不是生产N0，不是已通过的准确率评估；实验及源码行为仍是原研究时的快照，本次未重跑。本文件补[通知决策](notification-decisions.md)，保持一个来源、有限GET、不取附件/图片。
 
 ## 1. 规则清单与支持边界
 
@@ -50,13 +50,13 @@
 
 各metadata保存实际客户端started/finished时间、来源/最终URL、状态、字节数、SHA-256与白名单头；新原文未改写。已有[current](fixtures/current-notice-detail.html)/[legacy](fixtures/legacy-notice-detail.html)来源及旧采集口径见[原报告](whu-undergrad-notice-source.md)。
 
-## 3. 拟议标签：需要人工确认
+## 3. Action标签：2026-10-08人工确认
 
 [cases.json](experiments/notifications/cases.json)固定原文hash、虚构Profile、明确历史evaluated_at、context/mode和拟议Action。Profile不是当前用户信息：WHU本科、role=student、入学年通常未知，关注research/minor/teaching_assistant；选课仅保存；科研/辅修是高价值主题。S01指定2025级、S05指定研究生、S11无高价值主题。
 
 **回放时钟不是实际发现当天。**S04/S08用真实原文的截止当日09:00模拟“今天截止”；没有声称这篇通知发布当日就截止，也没有改原文日期。S06只有日期边界，核对标记保留。
 
-| ID | 原文/情境 | 拟议Action | 探针needs_review / 原因 |
+| ID | 原文/情境 | 已确认Action（S10除外） | 原探针needs_review / 原因（未单独人工验收） |
 | --- | --- | --- | --- |
 | S01 | 128231新生选课，2025级Profile | STORE_ONLY | true，截止年未明；已确认入学年不符合，不主动提醒 |
 | S02 | 同篇，入学年未知，仅保存选课 | STORE_ONLY | true，entry_year与时间未知 |
@@ -67,10 +67,12 @@
 | S07 | 14147教师提供选题，学生Profile | STORE_ONLY | true，当前主体明确不匹配；截止年份未知、后续参考价值 |
 | S08 | 117011，12月9日09:00，辅修当天截止 | PUSH_NOW | true，GPA/专业/年级例外/附件条件未知，邮件需显著标注 |
 | S09 | 127511科研结题结果 | STORE_ONLY | false，只保存结果，不当成开放申请 |
-| S10 | 18135当前Parser失败 | 不产生决策 | 不纳入成功分类；原文取消资格不是机会取消，负例另记录 |
+| S10 | 18135原研究Parser失败 | 无Action标签 | 不纳入成功分类；不要求后续Parser仍失败；原文取消资格不是机会取消，负例另记录 |
 | S11 | 128291，9月10日普通科研关注 | DIGEST | true，全日制/在校未表示、当学期选课数量未核对；非高价值且非临近截止 |
 
-全部annotation_status=pending_human，human_expected_action=null；**没有gold准确率**。人工确认应针对固定Profile/时刻及理由，不只看标题；确认记录应有审核者/时间与对应文件hash，之后冻结gold版本。修改标签保留版本，不能重运行build_cases覆盖确认记录。
+项目用户于2026-10-08在本对话明确回复：“我认为你的标签是合理的，先这样吧”。据此将10个非空拟议Action登记为`annotation_status=human_confirmed`、`human_expected_action=proposed_action`，绑定原fixture SHA、虚构Profile、context及历史时刻；[确认记录](experiments/notifications/human-review-20261008.json)保存原话、审核日期、案例输入摘要和文件摘要。S10保留`historical_parser_failure`、Action为空，既不作为IGNORE，也不为后来Parser版本指定Action。
+
+本次只确认Action标签，不扩展为资格符合、needs_review/每条事实、最终路线或生产实现验收。**没有新增gold准确率**；原实验结果保持当时的pending_human状态，不倒改历史。标签或固定输入改变必须另存版本并重新确认；build_cases禁止覆盖已确认案例。
 
 ## 4. 已运行结果及修正
 
@@ -79,14 +81,16 @@
 - 8个不同真实页面、11个Profile/时钟案例；10例解析成功，1例Parser失败（18135 body结构未通过），不是无关/空内容。
 - v3输出PUSH_NOW=3、DIGEST=1、STORE_ONLY=6；10例中needs_review=8、eligibility unknown=7。后一项含只保存参考资料、无需报名资格的案例；已匹配主动兴趣且非结果的6例中，unknown资格=4（3个PUSH_NOW、1个DIGEST）。
 - 这是偏向难例、重复页面/虚构Profile的小样本，**不能推断全站未知比例或召回率**。缺失原因分为真实Profile缺值、GPA/团队/附件条件未支持、时间信息不完整，不将unknown一律静默/延期。
-- 初次v1把新生选课中“辅修专业单独缴费…不允许退课”误识别为辅修兴趣，S02输出DIGEST。v2要求标题或正文同句行动证据、排除登录菜单，S02改STORE_ONLY。原结果保留，尚待人工确认这个修正符合期望。
+- 初次v1把新生选课中“辅修专业单独缴费…不允许退课”误识别为辅修兴趣，S02输出DIGEST。v2要求标题或正文同句行动证据、排除登录菜单，S02改STORE_ONLY。原结果保留；S02的Action已于2026-10-08获人工确认，不等于整个匹配规则已验收。
 - v2将“全日制在校本科生”只比较study_level，错误把S04/S11判eligible。v3保留全日制/在校状态及当学期选课数量未知；Action不变、needs_review改true。首版可暂不增加Profile字段，但不能声称已符合；若用户确需减少这类未知，另行明确定义结构化事实。人工确认前不能将v2的false核对标记作为gold。
 - 路线探针4项通过：未知资格紧急PUSH_NOW可immediate；digest_only在登记前输出digest；首启可信紧急截止逃逸保留immediate；非紧急首启默认digest。只验证纯决策合成，**未验证生产outbox/事务/重启**。
 - 真实助教招聘、整体机会取消、限定学院资格正例仍缺；已有助教提及/取消资格负例、科研/资格未知/明确不符合/图片附件/当天截止回放。不能用合成正例冒充真实覆盖。
 
-N0启用前：人工确认拟议标签、补助教招聘/取消正例或显式将对应规则限制为预览、用生产实现重跑确认后的gold。N1持久接口可先按已统一Action/needs_review/effective_route与重评冻结契约设计，不因这次探针就宣称通知策略已验收。
+首批10个Action标签的人工确认已完成。后续实现验收仍需显式对齐生产接口输入并重放；助教招聘/取消正例未补齐时，对应规则继续预览或关闭。不因标签获确认就宣称通知策略已验收，本次未启动实现或发送。
 
-## 5. 当前N0快照与研究建议的对齐
+## 5. 2026-10-06 N0快照与研究建议的对齐
+
+以下是原研究快照，不是2026-10-08当前代码复查；本次标签确认不更新其中的实验或实现状态。
 
 **额外离线验证，不是gold验收。**并行N0代码已存在，故另用它实际支持的虚构Profile（WHU本科，research/minor主动且高价值，选课可选仅保存）跑7个固定样本/时钟情境。没有静默把研究Profile的role/teaching_assistant转换成现有接口；完整输入、HEAD与5份源码SHA在[n0-snapshot-result.json](experiments/notifications/n0-snapshot-result.json)，运行脚本为[audit_n0_snapshot.py](experiments/notifications/audit_n0_snapshot.py)。HEAD是`1c827773544027850912148007d55a6300d41d0b`，N0文件为并行未提交内容，**不能仅靠HEAD重现**；结果只描述所记hash的快照。首轮后facts.py被并行修改，保留[更新前结果](experiments/notifications/n0-snapshot-before-update.json)并重跑；7例Action/route结论相同。运行前/导入后/运行末核对源码hash，拒绝混合正在改变的版本；未来新快照应另存，不覆盖本次证据。
 
@@ -101,4 +105,4 @@ N0启用前：人工确认拟议标签、补助教招聘/取消正例或显式�
 
 **N1迁移前统一：**[当前N1接口稿](../docs/notification-state.md)已有Action/needs_review/effective_route口径，但表清单尚未明确`delivery_intent_registered_at`和冻结重评operation记录。按决策§5补齐：待计划Digest已经锁定；operation绑定原集合/政策/时钟/输入，ID-only resume复用结果，参数不符零副作用。时钟跨08:00或截止本身不使冻结context失效。此项只需窄记录，不扩展任务平台。
 
-仍可延后：助教/取消正例未取得时保持规则预览或关闭；OCR/附件全文、全站未知比例估计与自动资格撤销不进入N1。上线前仍需人工标签和生产N0重放，这次7例快照没有准确率、数据库事务、SMTP或崩溃恢复结论。
+仍可延后：助教/取消正例未取得时保持规则预览或关闭；OCR/附件全文、全站未知比例估计与自动资格撤销不进入N1。首批Action标签已确认，生产N0重放需按实际版本另行记录；这次7例旧快照没有准确率、数据库事务、SMTP或崩溃恢复结论。

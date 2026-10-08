@@ -6,13 +6,13 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_serializer, model_validator
 
 from signalnest.contracts import Contract, Digest, NonemptyText, WebUrl
 
-FACTS_EXTRACTOR_VERSION = "whu-notice-facts-v1"
-RULES_VERSION = "notification-rules-v1"
-DECISION_ENGINE_VERSION = "notification-decision-v1"
+FACTS_EXTRACTOR_VERSION = "whu-notice-facts-v3"
+RULES_VERSION = "notification-rules-v3"
+DECISION_ENGINE_VERSION = "notification-decision-v3"
 ROUTING_VERSION = "notification-routing-v1"
 
 Topic = Literal[
@@ -25,6 +25,7 @@ Topic = Literal[
     "recommendation",
 ]
 ProfileField = Literal[
+    "role",
     "institution",
     "study_level",
     "college",
@@ -66,6 +67,8 @@ class Profile(Contract):
     profile_id: Literal["self"] = "self"
     institution: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9-]{0,79}$")
     study_level: Literal["undergraduate", "master", "doctoral", "faculty"] | None = None
+    # An application role is independent of study level; omission remains unknown.
+    role: Literal["student", "faculty"] | None = None
     college: str | None = Field(default=None, min_length=1, max_length=100)
     major: str | None = Field(default=None, min_length=1, max_length=100)
     entry_year: int | None = Field(default=None, ge=1900, le=2100, strict=True)
@@ -116,6 +119,15 @@ class Profile(Contract):
     def sha256(self) -> str:
         return canonical_sha256(self.model_dump(mode="json"))
 
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler):
+        snapshot = handler(self)
+        # Persisted v1 profiles did not have this optional field. Preserve their
+        # exact normalized JSON/hash when no v2 role fact has been supplied.
+        if self.role is None:
+            snapshot.pop("role", None)
+        return snapshot
+
 
 class Evidence(Contract):
     field: Literal["title", "body_text", "images", "attachments"]
@@ -155,6 +167,16 @@ class TopicMatch(Contract):
     topic: Topic
     evidence: Evidence
     primary: bool = Field(default=False, strict=True)
+    # None preserves old serialized facts. Current extraction always classifies
+    # mentions; a title subject need not be a newly offered opportunity.
+    context: Literal["subject", "opportunity", "incidental"] | None = None
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler):
+        snapshot = handler(self)
+        if self.context is None:
+            snapshot.pop("context", None)
+        return snapshot
 
 
 class QualificationConstraint(Contract):
@@ -179,6 +201,9 @@ class NoticeFacts(Contract):
     eligibility_complete: bool = Field(default=False, strict=True)
     opens_at: datetime | None = None
     deadline_at: datetime | None = None
+    # For 日前, deadline_at is only the conservative latest boundary; this lower
+    # bound and an unknown item preserve the uncertainty instead of inventing precision.
+    deadline_lower_at: datetime | None = None
     opening_confirmed: bool = Field(default=False, strict=True)
     time_evidence: tuple[Evidence, ...] = ()
     information_incomplete: bool = Field(default=False, strict=True)
@@ -187,13 +212,28 @@ class NoticeFacts(Contract):
     # Cancellation extraction is disabled pending a trustworthy positive site sample.
     cancelled: bool = Field(default=False, strict=True)
 
-    @field_validator("opens_at", "deadline_at")
+    @field_validator("opens_at", "deadline_at", "deadline_lower_at")
     @classmethod
     def explicit_time(cls, value):
         return aware_time(value) if value is not None else None
 
     def sha256(self) -> str:
         return canonical_sha256(self.model_dump(mode="json"))
+
+    @model_validator(mode="after")
+    def deadline_bounds(self):
+        if self.deadline_lower_at is not None and (
+            self.deadline_at is None or self.deadline_lower_at > self.deadline_at
+        ):
+            raise ValueError("deadline_lower_at requires an ordered deadline_at boundary")
+        return self
+
+    @model_serializer(mode="wrap")
+    def compatible_snapshot(self, handler):
+        snapshot = handler(self)
+        if self.deadline_lower_at is None:
+            snapshot.pop("deadline_lower_at", None)
+        return snapshot
 
 
 class EventContext(Contract):

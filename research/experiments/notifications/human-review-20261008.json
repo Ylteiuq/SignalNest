@@ -1,0 +1,92 @@
+{
+  "review_id": "signalnest-notification-actions-20261008-v1",
+  "confirmed_on": "2026-10-08",
+  "timezone": "Asia/Shanghai",
+  "time_precision": "date",
+  "reviewer": "project_user",
+  "evidence": {
+    "kind": "explicit_user_message_in_current_conversation",
+    "quote": "我认为你的标签是合理的，先这样吧"
+  },
+  "scope": "S01-S09 and S11 proposed Actions for the frozen research fixture/Profile/context/historical evaluated_at only.",
+  "not_confirmed": [
+    "eligibility or official qualification",
+    "needs_review or every extracted fact",
+    "effective_route or production N0 correctness",
+    "accuracy or site-wide recall",
+    "TA recruitment or whole-opportunity cancellation positive coverage",
+    "S10 Action under a later Parser version"
+  ],
+  "cases_sha256_before": "69c99e4ae340097ad62c2da982395ff531ba9619e805e3ecccffe127cda2d3db",
+  "cases_sha256_after": "9946ab1666eceba7b7af2ea4cc24f00b2c062b45ff7aa5a7aff98ced3a083134",
+  "rules_sha256": "fffaa7504bbbc1b8f0f6acb5851bb453ea7c919c2b12217ecff4539e53eebdec",
+  "report_sha256_at_confirmation": "30f81721dcaf9f0bb047b9570d5d0eddd359a9ee4fd86b1138e747df034c47c3",
+  "historical_results_sha256": "72b7e5a7a647af53d65f5083d93db99d7c0999d6824d871078c8fb318c20fb94",
+  "labels": [
+    {
+      "case_id": "S01",
+      "expected_action": "STORE_ONLY",
+      "case_input_sha256": "6333bd7518eae11a236f58946c1ea9ed1226f4932556c18c5d8c9d1d44d3a22b",
+      "fixture_sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21"
+    },
+    {
+      "case_id": "S02",
+      "expected_action": "STORE_ONLY",
+      "case_input_sha256": "a9302e9222407681416f6205b2ffc596e234cf9b2c4c95b4355988ba890c0cea",
+      "fixture_sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21"
+    },
+    {
+      "case_id": "S03",
+      "expected_action": "STORE_ONLY",
+      "case_input_sha256": "38dac3020086fa6ce09284d6c683e85d26c83212ec322f6056a2300c7d58bfa0",
+      "fixture_sha256": "4e39671b3ceba811baf7ec0c23728596054b585768e02fcddfb0c1500a9260e8"
+    },
+    {
+      "case_id": "S04",
+      "expected_action": "PUSH_NOW",
+      "case_input_sha256": "21417d9d529a6c49ea4917b318d4df48f87be67d56c113ca1006bf1cd7afcb53",
+      "fixture_sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb"
+    },
+    {
+      "case_id": "S05",
+      "expected_action": "STORE_ONLY",
+      "case_input_sha256": "c30b5b2ee9a56b891cfe3f4fc6a1816d986d9955ec5213494e62b83bca656654",
+      "fixture_sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb"
+    },
+    {
+      "case_id": "S06",
+      "expected_action": "PUSH_NOW",
+      "case_input_sha256": "b6a758e9c69fa684a93c0e93d237e2942bc7666452f4d93247b280bb791e5909",
+      "fixture_sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9"
+    },
+    {
+      "case_id": "S07",
+      "expected_action": "STORE_ONLY",
+      "case_input_sha256": "f64bfeeae2ba13107f1d5dad93bed04f45af982ca300d718e624b3a1b2086777",
+      "fixture_sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee"
+    },
+    {
+      "case_id": "S08",
+      "expected_action": "PUSH_NOW",
+      "case_input_sha256": "da94dfaf8f1d3be1f322ad93dc5b0bd1d9950583d808316713f6ef46a3afa332",
+      "fixture_sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6"
+    },
+    {
+      "case_id": "S09",
+      "expected_action": "STORE_ONLY",
+      "case_input_sha256": "5eb369ce01e5bd62d6a033f310fcc8d6361ffa473ac6f571645315be5128fdc3",
+      "fixture_sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1"
+    },
+    {
+      "case_id": "S11",
+      "expected_action": "DIGEST",
+      "case_input_sha256": "d9f2055299300aff18709c4158beb2dffabb68d662c1027318ca86d0463f9b2c",
+      "fixture_sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb"
+    }
+  ],
+  "S10": "Historical Parser failure, no expected Action; not IGNORE. Original experiment outputs remain unchanged.",
+  "remaining_sample_gaps": [
+    "teaching_assistant_recruitment_positive",
+    "whole_opportunity_cancellation_positive"
+  ]
+}

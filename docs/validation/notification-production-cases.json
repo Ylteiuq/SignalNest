@@ -1,0 +1,378 @@
+{
+  "schema_version": 1,
+  "note": "Fixed public HTML, fictional explicit Profiles and historical clocks. Engineering regression expectations are not human gold labels or an accuracy evaluation. Research reports and old snapshots remain unchanged.",
+  "adaptations": [
+    "P01–P11 reuse the raw fixtures and explicit clocks of research S01–S11, not their unsupported Profile schema or proposed labels.",
+    "The unsupported teaching_assistant interest is explicitly absent; no recruitment positive is claimed.",
+    "P05 explicitly uses master instead of the research graduate value; this is one concrete fictional postgraduate profile.",
+    "role=student is explicit. P10 explicitly focuses competition, and its now-supported Parser produces a decision.",
+    "P05/P07 expect current production IGNORE for a known applicant mismatch, rather than the research proposed STORE_ONLY.",
+    "P12/P13 reuse unchanged negative/positive fixtures with an isolated minor-only Profile."
+  ],
+  "profiles": {
+    "student": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "research",
+        "minor"
+      ],
+      "high_value_topics": [
+        "research",
+        "minor"
+      ],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "entry_2025": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "research",
+        "minor"
+      ],
+      "high_value_topics": [
+        "research",
+        "minor"
+      ],
+      "store_only_topics": [
+        "course_enrollment"
+      ],
+      "entry_year": 2025
+    },
+    "master": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "master",
+      "interest_topics": [
+        "research",
+        "minor"
+      ],
+      "high_value_topics": [
+        "research",
+        "minor"
+      ],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "ordinary_research": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "research",
+        "minor"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "competition": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "competition"
+      ],
+      "high_value_topics": [
+        "competition"
+      ],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "minor_only": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "minor"
+      ],
+      "high_value_topics": [
+        "minor"
+      ],
+      "store_only_topics": []
+    }
+  },
+  "cases": [
+    {
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "case_id": "P01",
+      "research_case": "S01",
+      "profile": "entry_2025",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "2026级选课对2025级档案；菜单教学科研不能算研究机会",
+      "engineering_expectation": {
+        "action": "STORE_ONLY",
+        "effective_route": "none",
+        "matched_rules_absent": [
+          "interest.topic.minor"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "case_id": "P02",
+      "research_case": "S02",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "选课归保存主题；入学年份未知",
+      "engineering_expectation": {
+        "action": "STORE_ONLY",
+        "effective_route": "none",
+        "matched_rules_absent": [
+          "interest.topic.minor"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/legacy-notice-detail.html",
+      "sha256": "4e39671b3ceba811baf7ec0c23728596054b585768e02fcddfb0c1500a9260e8",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+      "evaluated_at": "2026-09-04T09:00:00+08:00",
+      "case_id": "P03",
+      "research_case": "S03",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-05T08:00:00+08:00"
+      },
+      "description": "时间表图片与附件细项，当前Profile只保存选课",
+      "engineering_expectation": {
+        "action": "STORE_ONLY",
+        "effective_route": "none"
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "case_id": "P04",
+      "research_case": "S04",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "真实科研选课截止当日23:59；助教字样不是招聘",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "case_id": "P05",
+      "research_case": "S05",
+      "profile": "master",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "明确本科对象，对虚构研究生Profile不符合",
+      "engineering_expectation": {
+        "action": "IGNORE",
+        "effective_route": "none"
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-17361-20261005T133538Z.html",
+      "sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+      "evaluated_at": "2024-02-24T09:00:00+08:00",
+      "case_id": "P06",
+      "research_case": "S06",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-02-25T08:00:00+08:00"
+      },
+      "description": "补报科研机会，团队条件未知，2月25日前团队提交临近",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-14147-20261005T133543Z.html",
+      "sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+      "evaluated_at": "2022-05-14T09:00:00+08:00",
+      "case_id": "P07",
+      "research_case": "S07",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2022-05-15T08:00:00+08:00"
+      },
+      "description": "当前选题征集主体教师，不是学生现在申请",
+      "engineering_expectation": {
+        "action": "IGNORE",
+        "effective_route": "none"
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-117011-20261005T133549Z.html",
+      "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "evaluated_at": "2024-12-09T09:00:00+08:00",
+      "case_id": "P08",
+      "research_case": "S08",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-12-10T08:00:00+08:00"
+      },
+      "description": "辅修真实当日24:00截止，GPA/专业/年级例外及附件条件未知",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.minor"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-127511-20261005T133829869212Z.html",
+      "sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+      "evaluated_at": "2026-06-26T09:00:00+08:00",
+      "case_id": "P09",
+      "research_case": "S09",
+      "profile": "student",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-06-27T08:00:00+08:00"
+      },
+      "description": "科研结题结果不是新申请阶段",
+      "engineering_expectation": {
+        "action": "STORE_ONLY",
+        "effective_route": "none"
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-18135-20261005T133554Z.html",
+      "sha256": "5b0a3dcfac752ec0947ccfc8e87bccf5a313be586907b44905494ed592e04aa1",
+      "source_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+      "evaluated_at": "2024-06-28T09:00:00+08:00",
+      "case_id": "P10",
+      "research_case": "S10",
+      "profile": "competition",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-06-29T08:00:00+08:00"
+      },
+      "description": "竞赛真实正文模板已支持；显式关注 competition；违规取消参赛资格不是整个机会取消",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.competition"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "evaluated_at": "2026-09-10T09:00:00+08:00",
+      "case_id": "P11",
+      "research_case": "S11",
+      "profile": "ordinary_research",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-11T08:00:00+08:00"
+      },
+      "description": "同一真实科研机会，非高价值Profile，非临近截止",
+      "engineering_expectation": {
+        "action": "DIGEST",
+        "effective_route": "digest",
+        "matched_rules_present": [
+          "interest.topic.research"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "case_id": "P12",
+      "research_case": "S02",
+      "profile": "minor_only",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "仅关注 minor 的新生选课负例：辅修专业单独缴费不能建立辅修报名兴趣",
+      "engineering_expectation": {
+        "action": "IGNORE",
+        "effective_route": "none",
+        "matched_rules_absent": [
+          "interest.topic.minor"
+        ]
+      }
+    },
+    {
+      "fixture": "research/fixtures/notifications/notice-117011-20261005T133549Z.html",
+      "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "evaluated_at": "2024-12-09T09:00:00+08:00",
+      "case_id": "P13",
+      "research_case": "S08",
+      "profile": "minor_only",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-12-10T08:00:00+08:00"
+      },
+      "description": "仅关注 minor 的真实辅修报名正例：第一轮当天 24:00 截止仍须及时提醒",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.minor"
+        ]
+      }
+    }
+  ]
+}

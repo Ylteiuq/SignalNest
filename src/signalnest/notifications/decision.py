@@ -27,7 +27,7 @@ from signalnest.notifications.contracts import (
 from signalnest.notifications.facts import rule_manifest
 
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
-_SUPPORTED_FIELDS = {"institution", "study_level", "college", "major", "entry_year"}
+_SUPPORTED_FIELDS = {"role", "institution", "study_level", "college", "major", "entry_year"}
 _REASON_TEXT = {
     "excluded_topic": "通知标题可靠命中用户明确排除的主题。",
     "no_interest_match": "可见标题和正文未命中关注主题或字面词组。",
@@ -55,8 +55,18 @@ def policy_manifest(profile: Profile) -> dict:
         "facts_rules": rule_manifest(),
         "decision_rules": {
             "deadline_hours": 72,
+            "urgent_deadline_boundary": "lower bound, or now after entering its uncertain interval",
+            "closed_deadline_boundary": "upper bound only; uncertainty is not confirmed expiration",
+            "uncertain_deadline_requires_review": True,
             "recent_calendar_days": 7,
             "timezone": "Asia/Shanghai",
+            "store_only_scope": (
+                "only matching topics; another active interest or literal phrase wins"
+            ),
+            "active_interest": "subject/opportunity topics; incidental mentions are evidence only",
+            "urgent_topic": (
+                "new urgency/high value requires a linked opportunity or explicit phrase"
+            ),
             "order": (
                 "reliable_exclusion",
                 "historical",
@@ -166,6 +176,17 @@ def _time(facts: NoticeFacts, now: datetime):
     return "unknown", tuple(unknowns)
 
 
+def _urgent_deadline(facts: NoticeFacts, now: datetime) -> datetime | None:
+    """Send before the earliest possible boundary without declaring early expiry.
+
+    During a 日前 uncertainty interval, immediate review is safer than waiting
+    for a digest after the possible cutoff. Closing still uses deadline_at.
+    """
+    if facts.deadline_lower_at is not None:
+        return max(facts.deadline_lower_at, now)
+    return facts.deadline_at
+
+
 def _phrase_evidence(profile: Profile, facts: NoticeFacts):
     evidence = []
     for phrase in profile.include_phrases:
@@ -192,6 +213,7 @@ def _conditions(facts: NoticeFacts):
         ),
         "opens_at": facts.opens_at,
         "deadline_at": facts.deadline_at,
+        "deadline_lower_at": facts.deadline_lower_at,
         "cancelled": facts.cancelled,
     }
 
@@ -248,10 +270,26 @@ def decide(
     eligibility, constraints, qualification_unknowns = _qualification(profile, facts)
     time_status, time_unknowns = _time(facts, evaluated_at)
     unknowns = list(facts.unknowns + qualification_unknowns + time_unknowns)
+    if facts.deadline_lower_at is not None and not any(
+        item.code == "imprecise_deadline" for item in unknowns
+    ):
+        unknowns.append(
+            _unknown(
+                "imprecise_deadline",
+                "deadline",
+                "截止仅有上下边界，精确时刻须核对。",
+                facts.time_evidence,
+            )
+        )
     phrases = _phrase_evidence(profile, facts)
-    topics = {match.topic for match in facts.topic_matches}
+    topics = {match.topic for match in facts.topic_matches if match.context != "incidental"}
     primary_topics = {match.topic for match in facts.topic_matches if match.primary}
-    matched = bool(topics & set(profile.interest_topics) or phrases)
+    opportunity_topics = {
+        match.topic for match in facts.topic_matches if match.context in {None, "opportunity"}
+    }
+    active_topics = topics & (set(profile.interest_topics) - set(profile.store_only_topics))
+    matched = bool(active_topics or phrases)
+    relevant_opportunity = bool(active_topics & opportunity_topics or phrases)
     stored = bool(topics & set(profile.store_only_topics))
     relevance = "matched" if matched or stored else "unmatched"
     uncertain_interest = (
@@ -288,17 +326,19 @@ def decide(
         and _conditions(facts) != _conditions(context.previous_facts)
     )
     recent_days = (evaluated_at.astimezone(_SHANGHAI).date() - facts.published_date).days
+    urgent_deadline = _urgent_deadline(facts, evaluated_at)
     short_deadline = (
         facts.category == "opportunity"
+        and relevant_opportunity
         and time_status == "open"
-        and facts.deadline_at is not None
-        and timedelta(0) <= facts.deadline_at - evaluated_at <= timedelta(hours=72)
+        and urgent_deadline is not None
+        and timedelta(0) <= urgent_deadline - evaluated_at <= timedelta(hours=72)
     )
     fresh_high_value = (
         context.kind == "new"
         and facts.category == "opportunity"
         and 0 <= recent_days <= 6
-        and bool(topics & set(profile.high_value_topics))
+        and bool(opportunity_topics & active_topics & set(profile.high_value_topics))
     )
 
     # The primary title classification is the only evidence allowed to veto via
@@ -316,9 +356,9 @@ def decide(
         action, code = Action.STORE_ONLY, "media_interest_unknown"
     elif relevance == "unmatched" and not followed:
         action, code = Action.IGNORE, "no_interest_match"
-    elif facts.category == "reference":
+    elif facts.category == "reference" and not followed:
         action, code = Action.STORE_ONLY, "reference_only"
-    elif stored:
+    elif stored and not matched and not followed:
         action, code = Action.STORE_ONLY, "store_only_topic"
     elif followed and uncertain_comparison:
         action, code = Action.DIGEST, "update_comparison_unknown"
@@ -351,7 +391,7 @@ def decide(
     if facts.media:
         reasons.append("图片和附件仅保留引用，本次未读取其内容。")
     route, routing_codes = compose_route(
-        action, context, now=evaluated_at, deadline_at=facts.deadline_at, time_status=time_status
+        action, context, now=evaluated_at, deadline_at=urgent_deadline, time_status=time_status
     )
     evidence = _unique(
         tuple(match.evidence for match in facts.topic_matches)

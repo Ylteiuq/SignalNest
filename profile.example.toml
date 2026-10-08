@@ -4,6 +4,8 @@ schema_version = 1
 profile_id = "self"
 institution = "whu"
 study_level = "undergraduate"
+role = "student"
+# role is the current applicant role, independent of study_level; omit if unknown.
 # college, major, entry_year are deliberately omitted (unknown); TOML has no null.
 interest_topics = ["exchange", "scholarship", "research"]
 include_phrases = ["本科生创新"]

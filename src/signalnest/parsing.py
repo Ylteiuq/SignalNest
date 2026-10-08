@@ -21,7 +21,7 @@ from signalnest.contracts import (
     WebUrl,
 )
 
-PARSER_VERSION = "whu-student-notices-v2"
+PARSER_VERSION = "whu-student-notices-v3"
 _WEB_URL = TypeAdapter(WebUrl)
 _BLOCKS = frozenset(
     {
@@ -467,7 +467,10 @@ def parse_notice(page: PageInput) -> ParsedNotice:
     if match is None:
         raise ParseError(ParseErrorCode.INVALID_FIELD, field="published_date")
     published = _date(match[1], "published_date")
-    body = _one(region, "#vsb_content > .v_news_content", "body")
+    # Only the two observed source templates are supported. A second wrapper,
+    # even an empty one, is ambiguous; never fall back to an arbitrary content div.
+    wrapper = _one(region, "div#vsb_content, div#vsb_content_501", "body")
+    body = _one(wrapper, ":scope > .v_news_content", "body")
     base = str(page.page_url)
     attachments = _attachments(region, base)
     _clean_body(body)

@@ -152,4 +152,4 @@ Profile改版先preview，不制造内容update或全历史群发。新持久重
 | D18 | 正文只含菜单“教学科研”、辅修退课限制、已有助教或违规取消资格 | 不判研究申请/辅修报名/助教招聘/机会整体取消；真实样本中保留反例。 |
 | D19 | 同篇科研选课：research主动+course_enrollment仅保存；随后去掉主动兴趣 | 前者按科研紧急/高价值规则提醒，不被保存主题压制；后者STORE_ONLY；同主题关注与仅保存仍服从仅保存。 |
 
-N0交付纯函数、契约、固定小规则；真实gold待人工确认见[评估记录](notification-rule-evaluation.md)。N1负责持久化/事务与操作重放，N2只消费已登记effective_route及锁定decision。实现仍按[通知模块任务](email-implementation-plan.md)安排。
+N0交付纯函数、契约、固定小规则；首批10个Action标签已于2026-10-08获用户确认，范围与记录见[评估记录](notification-rule-evaluation.md)，不等于生产规则已验收。N1负责持久化/事务与操作重放，N2只消费已登记effective_route及锁定decision。实现仍按[通知模块任务](email-implementation-plan.md)安排。

@@ -5,7 +5,7 @@ phrase, not a claim that all conditions in an arbitrary notice were understood.
 """
 
 import re
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from types import MappingProxyType
 from zoneinfo import ZoneInfo
 
@@ -38,7 +38,10 @@ _DATE = re.compile(
     r"\s*(?P<day>\d{1,2})(?!\d)(?:日)?"
     r"(?:\s*(?P<hour>\d{1,2})[:：](?P<minute>\d{2})(?!\d))?"
 )
-_TIMELESS_DATE = re.compile(r"(?<![\d年/-])\d{1,2}月\s*\d{1,2}日")
+_TIMELESS_DATE = re.compile(
+    r"(?<![\d年/-])(?P<month>\d{1,2})月\s*(?P<day>\d{1,2})日"
+    r"(?:\s*(?P<hour>\d{1,2})[:：](?P<minute>\d{2})(?!\d))?"
+)
 _UNSUPPORTED_TIMEZONE = re.compile(
     r"\b(?:UTC|GMT|EST|EDT|PST|PDT|CST|CDT|MST|MDT|CET|CEST)\b"
     r"|纽约时间|伦敦时间|东京时间|当地时间|美国时间|英国时间"
@@ -58,7 +61,7 @@ _LOCAL_TIMEZONES = ("北京时间", "上海时间", "中国标准时间")
 _BRACKETED_TIMEZONE = re.compile(r"[（(]\s*([\u4e00-\u9fff]{2,16}(?:时间|时区))\s*[)）]")
 _SUFFIX_TIMEZONE = re.compile(r"\s*([\u4e00-\u9fff]{2,16}(?:时间|时区))")
 _DEADLINE = re.compile(
-    r"(?:报名|申请|申报|选课)?(?:截止(?:时间|日期)?|最迟)|截止|(?:报名|申请|选课)时间"
+    r"(?:报名|申请|申报|选课)?(?:截止(?:时间|日期)?(?!后)|最迟)|(?:报名|申请|申报|选课)时间"
 )
 _PERIOD = re.compile(r"(?:报名|申请|申报|选课)(?:时间|期间)")
 _AUDIENCE = re.compile(
@@ -111,7 +114,36 @@ _CRITICAL_MEDIA = re.compile(
     r"|(?:条件|对象|资格|截止|报名时间)[^。；\n]{0,25}[（(]附件"
 )
 _RESULTS = re.compile(r"结题|验收结果|评审结果|获奖名单|录取名单|结果公示|公布.*结果")
-_PARTICIPATION = re.compile(r"报名|选课|申报|申请|征集")
+_FACULTY_APPLICANT = re.compile(r"现面向(?:全校|我校|武汉大学)教师征集[^。；;\n]{0,24}选题")
+_TEAM_SUBMISSION = re.compile(r"项目团队(?:完成|须|需)[^。；;\n]{0,24}(?:提交|材料)")
+_ADMIN_TIME = re.compile(
+    r"(?:指导教师|各项目单位|各学院)[^。；;\n]{0,32}(?:审核|评审|汇总|提交|发送)"
+)
+_CURRENT_APPLICATION = re.compile(r"可提出立项补报申请")
+_LATER_ROUND_TIME = re.compile(
+    r"^(?:辅修第一轮录取结果和)?第二轮报名时间将另行通知(?:[，,]请及时关注)?\s*$"
+)
+_DEFERRED_DEADLINE = re.compile(
+    r"截止(?:时间|日期)?\s*(?:另行通知|(?:见|详见|以)[^，,。；;\n]{0,20}(?:通知|为准))"
+)
+_ENTRY_ACTION = re.compile(r"报名|申请|申报|征集|招募|招生|招收|选拔|选派|选课")
+_CONTEXT_BREAK = re.compile(r"[。；;！!？?\n]")
+_STEP_BREAK = re.compile(r"[，,]")
+_ADMIN_ACTION = re.compile(r"缴费|收费|补缴|退费|退课|退出|成绩转换|学分转换|证书申请")
+_NAVIGATION = re.compile(r"登录|菜单|点击|智慧珞珈|报名申请\s*[-→>]")
+_PAST_CONTEXT = re.compile(r"去年|往年|上学期|上一年度|曾经|曾于|已于|此前|历史")
+_CURRENT_CONTEXT = re.compile(r"即日起|现(?:启动|开放|开展|接受)|本次|本轮|今年")
+_NEGATED_ENTRY = re.compile(r"(?:不|未|暂停|停止|取消)[^，,。；;\n]{0,10}$")
+_CLOSED_ENTRY = re.compile(r"\s*(?:已(?:经)?(?:结束|截止|完成|关闭)|结束|停止|关闭)")
+_UNAVAILABLE_ENTRY = re.compile(
+    r"\s*(?:尚未|暂未|未|不|暂停|停止|取消)(?:正式)?(?:开放|启动|开始|开展|接受|进行)"
+)
+_MINOR_AFTER = re.compile(
+    r"\s*(?:专业|项目|学习|课程)?\s*(?:的)?\s*"
+    r"(?:(?:现|即日起)?(?:开始|启动|开放|接受))?\s*"
+    r"(?P<action>报名|招生|招收|招募|申请(?:修读|攻读)?)"
+)
+_MINOR_BEFORE = re.compile(r"(?:报名(?:修读|参加)?|申请(?:修读|攻读)?)\s*$")
 
 
 def _sentences(text: str):
@@ -121,9 +153,14 @@ def _sentences(text: str):
             yield match.group(), match.start(), match.end()
 
 
-def _date_value(match: re.Match[str], *, deadline: bool) -> datetime | None:
-    """Only complete years; omitted time is Shanghai end/start of that date."""
-    year, month, day = (int(match[name]) for name in ("year", "month", "day"))
+def _date_value(
+    match: re.Match[str], *, deadline: bool, inherited_year: int | None = None
+) -> datetime | None:
+    """An inherited year is supplied only for an explicit same-clause range end."""
+    year = int(match["year"]) if "year" in match.groupdict() else inherited_year
+    if year is None:
+        return None
+    month, day = (int(match[name]) for name in ("month", "day"))
     hour, minute = match["hour"], match["minute"]
     suffix = match.string[match.end() :]
     if _UNSUPPORTED_TIME_SUFFIX.match(suffix):
@@ -134,7 +171,11 @@ def _date_value(match: re.Match[str], *, deadline: bool) -> datetime | None:
             return None
         clock = time(23, 59, 59) if deadline else time.min
     else:
-        # 24:00 and timezone expressions need separate supported semantics.
+        if int(hour) == 24 and int(minute) == 0:
+            try:
+                return datetime(year, month, day, tzinfo=SHANGHAI) + timedelta(days=1)
+            except ValueError:
+                return None
         try:
             clock = time(int(hour), int(minute))
         except ValueError:
@@ -172,13 +213,39 @@ def rule_manifest() -> dict:
         "facts_extractor_version": FACTS_EXTRACTOR_VERSION,
         "rules_version": RULES_VERSION,
         "topic_phrases": {key: list(values) for key, values in TOPIC_PHRASES.items()},
-        "primary_topic": "literal title phrase only; body phrases establish interest only",
+        "primary_topic": "title subject; body keyword alone is incidental, not active interest",
+        "topic_context": {
+            "values": ["subject", "opportunity", "incidental"],
+            "entry_actions": _ENTRY_ACTION.pattern,
+            "clause_break": _CONTEXT_BREAK.pattern,
+            "administration_step_break": _STEP_BREAK.pattern,
+            "maximum_topic_action_gap": 24,
+            "minor_after_pattern": _MINOR_AFTER.pattern,
+            "minor_before_pattern": _MINOR_BEFORE.pattern,
+            "administration_pattern": _ADMIN_ACTION.pattern,
+            "navigation_pattern": _NAVIGATION.pattern,
+            "past_pattern": _PAST_CONTEXT.pattern,
+            "current_pattern": _CURRENT_CONTEXT.pattern,
+            "negated_entry_pattern": _NEGATED_ENTRY.pattern,
+            "closed_entry_pattern": _CLOSED_ENTRY.pattern,
+            "unavailable_entry_pattern": _UNAVAILABLE_ENTRY.pattern,
+            "other_topic": (
+                "another named topic in the gap rejects binding; research course is shared"
+            ),
+            "occurrences": (
+                "classify every occurrence; incidental mentions cannot mask later offers"
+            ),
+        },
         "category": {
             "reference_title": _RESULTS.pattern,
-            "opportunity_phrase": _PARTICIPATION.pattern,
+            "administration_title": _ADMIN_ACTION.pattern,
+            "administration_reference": "only when no title topic has a linked entry action",
+            "opportunity_phrase": _ENTRY_ACTION.pattern,
+            "opportunity_exclusions": "same entry exclusions as topic binding",
         },
         "audience_patterns": [_AUDIENCE.pattern, _CAN_PARTICIPATE.pattern],
         "supported_qualification_fields": [
+            "role: explicit current faculty topic-solicitation applicant, not student beneficiary",
             "institution: explicit Wuhan University or 全校/我校 scope",
             "study_level: undergraduate/master/doctoral/faculty",
             "college: literal 学院名 in audience clause",
@@ -212,11 +279,20 @@ def rule_manifest() -> dict:
             "local_timezone_labels": list(_LOCAL_TIMEZONES),
             "bracketed_timezone_pattern": _BRACKETED_TIMEZONE.pattern,
             "suffix_timezone_pattern": _SUFFIX_TIMEZONE.pattern,
+            "year_inheritance": "only YYYY date 至/到 M月D日 in one explicit application interval",
+            "midnight": "24:00 exactly means next calendar day 00:00",
+            "before_date": "日前 retains [day start, day end] boundary and imprecise_deadline",
+            "team_submission_pattern": _TEAM_SUBMISSION.pattern,
+            "administrative_deadline_pattern": _ADMIN_TIME.pattern,
+            "current_application_pattern": _CURRENT_APPLICATION.pattern,
+            "separate_later_round_pattern": _LATER_ROUND_TIME.pattern,
+            "deferred_deadline_pattern": _DEFERRED_DEADLINE.pattern,
             "unsupported": (
-                "year inheritance, multiple deadlines, 24:00, seconds, "
-                "clock ranges, other timezones"
+                "standalone missing year, cross-year guessing, multiple applicant deadlines, "
+                "seconds, clock ranges, other timezones"
             ),
         },
+        "faculty_applicant_pattern": _FACULTY_APPLICANT.pattern,
         "media": "references remain unparsed; image-only or explicit critical dependency unknown",
         "cancellation": "disabled pending trustworthy positive sample",
         "limits": "literal small rule set; no OCR, attachment parsing, semantic completeness claim",
@@ -228,16 +304,97 @@ def _topics(content):
     for field, text in _source_fields(content):
         for topic, phrases in TOPIC_PHRASES.items():
             for phrase in phrases:
-                match = re.search(re.escape(phrase), text)
-                if match is not None:
+                for match in re.finditer(re.escape(phrase), text):
+                    context, start, end = _topic_context(topic, field, text, match)
                     matches.append(
                         TopicMatch(
                             topic=topic,
-                            evidence=_evidence(field, text, match.start(), match.end()),
+                            evidence=_evidence(field, text, start, end),
                             primary=field == "title",
+                            context=context,
                         )
                     )
     return tuple(matches)
+
+
+def _clause_bounds(text, start, end):
+    before = list(_CONTEXT_BREAK.finditer(text, 0, start))
+    after = _CONTEXT_BREAK.search(text, end)
+    return before[-1].end() if before else 0, after.start() if after else len(text)
+
+
+def _entry_blocked(text, start, end, *, subject_start=None, subject_end=None):
+    """Finite exclusions for witnessed administration, not general language understanding."""
+    left, right = _clause_bounds(text, start, end)
+    beginning = min(start, subject_start if subject_start is not None else start)
+    stop = max(end, subject_end if subject_end is not None else end)
+    prefix = text[max(left, beginning - 32) : beginning]
+    after = text[end : min(right, end + 16)]
+    if (
+        _NEGATED_ENTRY.search(prefix)
+        or _CLOSED_ENTRY.match(after)
+        or _UNAVAILABLE_ENTRY.match(after)
+    ):
+        return True
+    prior_steps = list(_STEP_BREAK.finditer(text, left, beginning))
+    step_left = prior_steps[-1].end() if prior_steps else left
+    next_step = _STEP_BREAK.search(text, stop, right)
+    step_right = next_step.start() if next_step else right
+    if _NAVIGATION.search(text[step_left : min(step_right, stop + 8)]):
+        return True
+    past = list(_PAST_CONTEXT.finditer(prefix))
+    current = list(_CURRENT_CONTEXT.finditer(prefix))
+    if past and (not current or past[-1].start() > current[-1].start()):
+        return True
+    # Do not veto an entire notice for mentioning fees. Only the proposed
+    # topic/action relation and the action's immediate object are considered.
+    if _ADMIN_ACTION.search(text[beginning : min(step_right, stop + 8)]):
+        return True
+    if _ADMIN_ACTION.search(text[max(step_left, start - 4) : start]):
+        return True
+    return False
+
+
+def _topic_context(topic, field, text, match):
+    start, end = match.span()
+    left, right = _clause_bounds(text, start, end)
+    for action in _ENTRY_ACTION.finditer(text, max(left, start - 32), min(right, end + 40)):
+        if action.end() <= start:
+            gap = text[action.end() : start]
+        elif end <= action.start():
+            gap = text[end : action.start()]
+        else:
+            gap = ""
+        if len(gap) > 24 or _entry_blocked(
+            text, action.start(), action.end(), subject_start=start, subject_end=end
+        ):
+            continue
+        if topic == "minor":
+            after = _MINOR_AFTER.match(text[end:right])
+            before = _MINOR_BEFORE.search(text[left:start])
+            if not (
+                (after is not None and end + after.start("action") == action.start())
+                or (before is not None and left + before.start() == action.start())
+            ):
+                continue
+        if any(
+            phrase in gap
+            for other, phrases in TOPIC_PHRASES.items()
+            if other != topic and not (topic == "research" and other == "course_enrollment")
+            for phrase in phrases
+        ):
+            continue
+        return "opportunity", min(start, action.start()), max(end, action.end())
+    return ("subject" if field == "title" else "incidental"), start, end
+
+
+def _opportunities(content):
+    return tuple(
+        _evidence(field, text, match.start(), match.end())
+        for field, text in _source_fields(content)
+        for match in _ENTRY_ACTION.finditer(text)
+        if not _entry_blocked(text, match.start(), match.end())
+    )
 
 
 def _qualifications(content):
@@ -245,11 +402,20 @@ def _qualifications(content):
     audience_declared = False
     incomplete = False
     for field, text in _source_fields(content):
+        faculty_applicant = _FACULTY_APPLICANT.search(text)
         audience_matches = sorted(
             (*_AUDIENCE.finditer(text), *_CAN_PARTICIPATE.finditer(text)),
             key=lambda match: match.start(),
         )
         for match in audience_matches:
+            # This witnessed template explicitly solicits topics from teachers.
+            # Its descriptions of the eventual student beneficiaries are not a
+            # competing declaration about who submits the current application.
+            if faculty_applicant is not None and not (
+                match.start() <= faculty_applicant.start() + 1 < match.end()
+                or faculty_applicant.start() <= match.start() < faculty_applicant.end()
+            ):
+                continue
             clause = match.groupdict().get("value") or match.group()
             evidence = _evidence(field, text, match.start(), match.end())
             audience_declared = True
@@ -279,7 +445,9 @@ def _qualifications(content):
                 levels.append("doctoral")
             if "研究生" in clause and not any(word in clause for word in ("硕士", "博士")):
                 levels.extend(("master", "doctoral"))
-            if "教师" in clause:
+            if "教师" in clause and faculty_applicant is not None:
+                extracted.append(("role", ("faculty",)))
+            elif "教师" in clause:
                 levels.append("faculty")
             if levels:
                 extracted.append(("study_level", tuple(levels)))
@@ -497,21 +665,64 @@ def _qualifications(content):
 
 
 def _times(content, category):
-    openings, deadlines, evidence, unknowns = [], [], [], []
+    openings, deadlines, evidence, unknowns, lower_bounds = [], [], [], [], []
     for field, text in _source_fields(content):
         for clause, start, end in _sentences(text):
-            time_context = _DEADLINE.search(clause) or re.search(
-                r"报名开始|开放报名|开始报名|即日起|自通知发布之日起", clause
+            team_deadline = bool(
+                _TEAM_SUBMISSION.search(clause)
+                and any(
+                    re.match(r"\s*前", clause[match.end() :]) for match in _DATE.finditer(clause)
+                )
+            )
+            time_context = (
+                _DEADLINE.search(clause)
+                or team_deadline
+                or re.search(r"报名开始|开放报名|开始报名|即日起|自通知发布之日起", clause)
             )
             if not time_context:
                 continue
             proof = _evidence(field, text, start, end)
             evidence.append(proof)
+            if _ADMIN_TIME.search(clause) and not team_deadline:
+                # These are review/submission steps for teachers and units in
+                # the witnessed project template, not the applicant's deadline.
+                continue
+            if _LATER_ROUND_TIME.search(clause):
+                unknowns.append(
+                    _unknown(
+                        "secondary_time_unknown",
+                        "time",
+                        "另行通知的第二轮报名不是已声明的首轮区间，仍保留未知。",
+                        proof,
+                    )
+                )
+                continue
+            if _DEFERRED_DEADLINE.search(clause):
+                unknowns.append(
+                    _unknown(
+                        "time_unrecognized",
+                        "time",
+                        "截止指向后续通知，不能把同句开始日期当截止。",
+                        proof,
+                    )
+                )
+                continue
             dates = list(_DATE.finditer(clause))
+            timeless_dates = list(_TIMELESS_DATE.finditer(clause))
+            inherited_range = (
+                bool(_PERIOD.search(clause))
+                and len(dates) == 1
+                and len(timeless_dates) == 1
+                and dates[0].end() <= timeless_dates[0].start()
+                and re.fullmatch(
+                    r"\s*(?:至|到)\s*", clause[dates[0].end() : timeless_dates[0].start()]
+                )
+                is not None
+            )
             declared_zones = _BRACKETED_TIMEZONE.findall(clause)
             declared_zones.extend(
                 zone[1]
-                for date in dates
+                for date in dates + timeless_dates
                 if (zone := _SUFFIX_TIMEZONE.match(clause[date.end() :])) is not None
             )
             if _UNSUPPORTED_TIMEZONE.search(clause) or any(
@@ -523,7 +734,7 @@ def _times(content, category):
                     )
                 )
                 continue
-            if _TIMELESS_DATE.search(clause):
+            if timeless_dates and not inherited_range:
                 unknowns.append(
                     _unknown("year_missing", "time", "月日缺少年份，不从发布日期推测。", proof)
                 )
@@ -531,7 +742,19 @@ def _times(content, category):
             relative_start = re.search(r"自通知发布之日起|即日起|现(?:开始|开放)报名", clause)
             if relative_start:
                 openings.append(datetime.combine(content.published_date, time.min, SHANGHAI))
-            if _PERIOD.search(clause) and len(dates) == 2:
+            if inherited_range:
+                opens = _date_value(dates[0], deadline=False)
+                deadline = _date_value(
+                    timeless_dates[0], deadline=True, inherited_year=int(dates[0]["year"])
+                )
+                if opens is not None and deadline is not None and opens <= deadline:
+                    openings.append(opens)
+                    deadlines.append(deadline)
+                else:
+                    unknowns.append(
+                        _unknown("invalid_time", "time", "报名区间日期或顺序无效。", proof)
+                    )
+            elif _PERIOD.search(clause) and len(dates) == 2:
                 opens = _date_value(dates[0], deadline=False)
                 deadline = _date_value(dates[1], deadline=True)
                 if opens is not None and deadline is not None and opens <= deadline:
@@ -547,15 +770,23 @@ def _times(content, category):
                 ) and not _DEADLINE.search(clause)
                 value = _date_value(dates[0], deadline=not opening_only)
                 if value is None:
-                    unknowns.append(
-                        _unknown("invalid_time", "time", "日期或时刻无效，24:00 暂不支持。", proof)
-                    )
+                    unknowns.append(_unknown("invalid_time", "time", "日期或时刻无效。", proof))
                 elif opening_only:
                     openings.append(value)
-                elif (_DEADLINE.search(clause) or relative_start) and (
+                elif (_DEADLINE.search(clause) or relative_start or team_deadline) and (
                     not _PERIOD.search(clause) or re.search(r"至|前|截止", clause)
                 ):
                     deadlines.append(value)
+                    if dates[0]["hour"] is None and re.match(r"\s*前", clause[dates[0].end() :]):
+                        lower_bounds.append(datetime.combine(value.date(), time.min, SHANGHAI))
+                        unknowns.append(
+                            _unknown(
+                                "imprecise_deadline",
+                                "deadline",
+                                "“日前”未声明精确时刻；保留当日日初至日末边界，请提前核对。",
+                                proof,
+                            )
+                        )
                 else:
                     unknowns.append(
                         _unknown(
@@ -608,7 +839,10 @@ def _times(content, category):
             unknowns.append(
                 _unknown("deadline_unknown", "time", "没有唯一可核对的完整年份截止时间。")
             )
-    return opens_at, deadline_at, tuple(evidence), unknowns
+    lower = next(iter(set(lower_bounds))) if len(set(lower_bounds)) == 1 else None
+    if deadline_at is None:
+        lower = None
+    return opens_at, deadline_at, lower, tuple(evidence), unknowns
 
 
 def extract_facts(content: NoticeContent) -> NoticeFacts:
@@ -618,26 +852,38 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
         for field in ("images", "attachments")
         for index, reference in enumerate(getattr(content, field))
     )
-    if _RESULTS.search(content.title):
+    topics = _topics(content)
+    opportunities = _opportunities(content)
+    if _RESULTS.search(content.title) or (
+        _ADMIN_ACTION.search(content.title)
+        and not any(item.context == "opportunity" and item.primary for item in topics)
+    ):
         category = "reference"
-    elif _PARTICIPATION.search(content.title) or _PARTICIPATION.search(content.body_text):
+    elif opportunities:
         category = "opportunity"
     elif content.body_text.strip():
         category = "information"
     else:
         category = "unknown"
-    opportunities = (
-        tuple(
-            _evidence(field, text, match.start(), match.end())
-            for field, text in _source_fields(content)
-            for match in [_PARTICIPATION.search(text)]
-            if match is not None
-        )
-        if category == "opportunity"
-        else ()
-    )
+    if category != "opportunity":
+        opportunities = ()
     constraints, audience, complete, unknowns = _qualifications(content)
-    opens_at, deadline_at, time_evidence, time_unknowns = _times(content, category)
+    opens_at, deadline_at, deadline_lower_at, time_evidence, time_unknowns = _times(
+        content, category
+    )
+    current_application = _CURRENT_APPLICATION.search(content.body_text)
+    if current_application is not None and category == "opportunity":
+        # This explicit present-tense permission confirms the witnessed team's
+        # application is open; it does not supply an invented start timestamp.
+        time_evidence += (
+            _evidence(
+                "body_text",
+                content.body_text,
+                current_application.start(),
+                current_application.end(),
+            ),
+        )
+        time_unknowns = [item for item in time_unknowns if item.code != "opening_unknown"]
     unknowns.extend(time_unknowns)
     incomplete = bool(media and not content.body_text.strip())
     critical = _CRITICAL_MEDIA.search(content.body_text)
@@ -676,7 +922,7 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
         title=content.title,
         published_date=content.published_date,
         body_text=content.body_text,
-        topic_matches=_topics(content),
+        topic_matches=topics,
         category=category,
         opportunity_evidence=opportunities,
         constraints=constraints,
@@ -684,7 +930,8 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
         eligibility_complete=complete,
         opens_at=opens_at,
         deadline_at=deadline_at,
-        opening_confirmed=opens_at is not None,
+        deadline_lower_at=deadline_lower_at,
+        opening_confirmed=opens_at is not None or current_application is not None,
         time_evidence=time_evidence,
         information_incomplete=incomplete,
         media=media,

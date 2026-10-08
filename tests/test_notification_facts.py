@@ -22,7 +22,7 @@ from signalnest.notifications.contracts import (
 )
 from signalnest.notifications.decision import decide
 from signalnest.notifications.facts import TOPIC_PHRASES, extract_facts, rule_manifest
-from signalnest.parsing import ParseError, parse_notice
+from signalnest.parsing import parse_notice
 
 FIXTURES = Path(__file__).resolve().parents[1] / "research/fixtures"
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -243,9 +243,7 @@ def test_supported_time_forms_use_explicit_shanghai_semantics(body, deadline, op
     "body,code",
     [
         ("报名截止：10月6日。", "year_missing"),
-        ("报名时间：2026年10月1日至10月6日。", "year_missing"),
         ("报名截止：2026年2月30日。", "invalid_time"),
-        ("报名截止：2026年10月6日24:00。", "invalid_time"),
         ("报名截止：2026年10月6日18时。", "invalid_time"),
         ("报名截止：2026年10月6日下午5点。", "invalid_time"),
         ("报名截止：2026年10月6日中午12点。", "invalid_time"),
@@ -377,7 +375,7 @@ def test_deterministic_facts_and_manifest_do_not_mutate_content_or_rule_table():
         (
             "notice-117011-20261005T133549Z",
             "opportunity",
-            {"unsupported_or", "unsupported_condition", "media_required", "year_missing"},
+            {"unsupported_or", "unsupported_condition", "media_required", "secondary_time_unknown"},
         ),
         ("notice-127511-20261005T133829869212Z", "reference", set()),
         ("notice-128291-20261005T133533Z", "opportunity", {"unsupported_condition"}),
@@ -408,17 +406,22 @@ def test_real_research_samples_are_conservative_and_originals_unchanged(
         assert facts.opens_at == datetime(2026, 9, 7, tzinfo=SHANGHAI)
     if fixture.startswith("notice-14147"):
         assert any(
-            item.field == "study_level" and item.values == ("faculty",)
-            for item in facts.constraints
+            item.field == "role" and item.values == ("faculty",) for item in facts.constraints
         )
 
 
-def test_unsupported_real_page_remains_parser_failure_without_pretending_facts():
+def test_real_competition_template_keeps_unknown_deadline_and_individual_disqualification():
     path = FIXTURES / "notifications" / "notice-18135-20261005T133554Z.html"
     original = path.read_bytes()
     metadata = json.loads(path.with_suffix(".json").read_text())
-    with pytest.raises(ParseError, match="missing_structure field=body"):
-        parse_notice(PageInput(content=original, page_url=metadata["final_url"]))
+    parsed = parse_notice(PageInput(content=original, page_url=metadata["final_url"]))
+    facts = extract_facts(parsed.content)
+    assert facts.category == "opportunity"
+    assert "competition" in {match.topic for match in facts.topic_matches}
+    assert facts.deadline_at is None
+    assert "time_unrecognized" in unknown_codes(facts)
+    assert "取消参赛资格" in facts.body_text
+    assert not facts.cancelled
     assert path.read_bytes() == original
 
 

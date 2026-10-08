@@ -219,14 +219,20 @@ def test_missing_url_invalid_json_previous_context_and_size_are_errors(tmp_path,
     assert "4 MiB" in capsys.readouterr().err
 
 
-def test_current_parser_failure_is_visible_and_does_not_guess_facts(tmp_path, capsys):
+def test_real_competition_preview_preserves_unknown_deadline(tmp_path, capsys):
     profile = write_profile(tmp_path)
     args = preview_args(profile, FIXTURES / "notifications/notice-18135-20261005T133554Z.html")
     args[args.index("--notice-json")] = "--file"
     args += ["--url", "https://uc.whu.edu.cn/info/1517/18135.htm"]
-    assert main(args) == 1
+    assert main(args) == 0
     output = capsys.readouterr()
-    assert output.out == "" and "missing_structure" in output.err
+    result = json.loads(output.out)
+    assert output.err == ""
+    assert result["facts"]["category"] == "opportunity"
+    assert result["facts"]["deadline_at"] is None
+    assert result["decision"]["time_status"] == "unknown"
+    assert result["decision"]["needs_review"]
+    assert not result["facts"]["cancelled"]
 
 
 @pytest.mark.parametrize("command", ["profile-check", "decision-preview"])

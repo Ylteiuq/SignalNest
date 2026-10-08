@@ -1,5 +1,5 @@
 {
-  "note": "Historical clock replay; proposals are NOT human gold labels.",
+  "note": "Historical clocks and fictional Profiles. Ten Action labels confirmed by the project user on 2026-10-08; S10 remains an original Parser-failure observation with no Action label. No production acceptance or accuracy claim.",
   "cases": [
     {
       "case_id": "S01",
@@ -31,8 +31,9 @@
       },
       "description": "2026级选课对2025级档案；菜单教学科研不能算研究机会",
       "proposed_action": "STORE_ONLY",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "STORE_ONLY",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S02",
@@ -64,8 +65,9 @@
       },
       "description": "选课归保存主题；入学年份未知",
       "proposed_action": "STORE_ONLY",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "STORE_ONLY",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S03",
@@ -97,8 +99,9 @@
       },
       "description": "时间表图片与附件细项，当前Profile只保存选课",
       "proposed_action": "STORE_ONLY",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "STORE_ONLY",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S04",
@@ -130,8 +133,9 @@
       },
       "description": "真实科研选课截止当日23:59；助教字样不是招聘",
       "proposed_action": "PUSH_NOW",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "PUSH_NOW",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S05",
@@ -163,8 +167,9 @@
       },
       "description": "明确本科对象，对虚构研究生Profile不符合",
       "proposed_action": "STORE_ONLY",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "STORE_ONLY",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S06",
@@ -196,8 +201,9 @@
       },
       "description": "补报科研机会，团队条件未知，2月25日前团队提交临近",
       "proposed_action": "PUSH_NOW",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "PUSH_NOW",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S07",
@@ -229,8 +235,9 @@
       },
       "description": "当前选题征集主体教师，不是学生现在申请",
       "proposed_action": "STORE_ONLY",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "STORE_ONLY",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S08",
@@ -262,8 +269,9 @@
       },
       "description": "辅修真实当日24:00截止，GPA/专业/年级例外及附件条件未知",
       "proposed_action": "PUSH_NOW",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "PUSH_NOW",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S09",
@@ -295,8 +303,9 @@
       },
       "description": "科研结题结果不是新申请阶段",
       "proposed_action": "STORE_ONLY",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "STORE_ONLY",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     },
     {
       "case_id": "S10",
@@ -329,7 +338,8 @@
       "description": "当前Parser失败；违规取消参赛资格不是整个机会取消",
       "proposed_action": null,
       "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "annotation_status": "historical_parser_failure",
+      "annotation_note": "No Action label. Original research Parser failure only; not IGNORE and not a requirement for later Parser versions to fail."
     },
     {
       "case_id": "S11",
@@ -357,8 +367,10 @@
       },
       "description": "同一真实科研机会，非高价值Profile，非临近截止",
       "proposed_action": "DIGEST",
-      "human_expected_action": null,
-      "annotation_status": "pending_human"
+      "human_expected_action": "DIGEST",
+      "annotation_status": "human_confirmed",
+      "human_review_id": "signalnest-notification-actions-20261008-v1"
     }
-  ]
+  ],
+  "label_revision": "signalnest-notification-actions-20261008-v1"
 }
