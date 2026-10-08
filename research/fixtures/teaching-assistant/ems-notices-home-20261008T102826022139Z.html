@@ -1,0 +1,716 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<meta name="description" content="描述" />
+<title>通知公告-武汉大学经济与管理学院</title><meta name="pageType" content="2">
+<meta name="pageTitle" content="通知公告">
+
+
+<META Name="SiteName" Content="武汉大学经济与管理学院" />
+<META Name="SiteDomain" Content="ems.whu.edu.cn" />
+<META Name="ColumnName" Content="通知公告" />
+<META Name="ColumnKeywords" Content="通知公告" />
+
+<!--轮播图样式以及设置-->
+<link href="2025/dfiles/27359/whu_ems/js/royalslider/css/royalslider.css" rel="stylesheet">
+<script src="2025/dfiles/27359/whu_ems/js/jquery-1.9.1.min.js"></script>
+<script src="2025/dfiles/27359/whu_ems/js/royalslider/js/jquery.royalslider.min.js"></script>
+<!--轮播图样式以及设置结束-->
+<link href="2025/dfiles/27359/whu_ems/css/bootstrap.css" rel="stylesheet">
+<script src="2025/dfiles/27359/whu_ems/js/index.js"></script>
+<script src="2025/dfiles/27359/whu_ems/js/main.js"></script>
+<link href="2025/dfiles/27359/whu_ems/css/nycss.css" rel="stylesheet">
+<link href="2025/dfiles/27359/whu_ems/css/mobile2.css" rel="stylesheet">
+<link href="2025/dfiles/27359/whu_ems/css/base.css" rel="stylesheet">
+<!--Announced by Visual SiteBuilder 9-->
+<link rel="stylesheet" type="text/css" href="_sitegray/_sitegray_d.css" />
+<script language="javascript" src="_sitegray/_sitegray.js"></script>
+<!-- CustomerNO:7765626265723230747f475750515742000300014351 -->
+<link rel="stylesheet" type="text/css" href="2025/listnotice.vsb.css" />
+<script type="text/javascript" src="/system/resource/js/counter.js"></script>
+<script type="text/javascript">_jsq_(1588,'/2025/listnotice.jsp',-1,1583652257)</script>
+</head>
+
+<body>
+  
+  
+<div class="header">
+  <div class="container"> 
+    <a href="old/index.htm" class="logo"><img src="2025/dfiles/27359/whu_ems/images/logo.svg"></a>
+    <button type="button" class="navbar-toggle"> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </button>    
+    <!--  搜索开始 -->
+    <div class="search">
+     
+       
+     <!-- 3.1.3版本 -->
+
+
+
+<script language="javascript" src="/system/resource/js/base64.js"></script><script language="javascript" src="/system/resource/js/jquery/jquery-latest.min.js"></script><script language="javascript" src="/system/resource/vue/vue.js"></script><script language="javascript" src="/system/resource/vue/bluebird.min.js"></script><script language="javascript" src="/system/resource/vue/axios.js"></script><script language="javascript" src="/system/resource/vue/polyfill.js"></script><script language="javascript" src="/system/resource/vue/token.js"></script><LINK href="/system/resource/vue/static/element/index.css" type="text/css" rel="stylesheet"><script language="javascript" src="/system/resource/vue/static/element/index.js"></script><script language="javascript" src="/system/resource/vue/static/public.js"></script><script language="javascript" src="/system/resource/openapp/search/js/containsHtmlTags.js"></script><script language="javascript" src="/system/resource/openapp/search/layui/layui.js"></script> <div class="yw_link"><a href="en/index.htm" target="_blank">English</a>&nbsp;&nbsp;<a href="old.htm" target="_blank">旧版入口</a></div>
+
+
+<div id="divu1"></div>
+<script type="text/html" id="htmlu1">
+    <div id="appu1">        
+      
+        <div v-if="!isError" class="searchbox">
+   
+    <input type="text" class="search_kang" placeholder="请输入您要搜索的内容" autocomplete=off v-model=query.keyWord @keyup.enter="onSubmit">
+    <input type="image" src="2025/dfiles/27359/whu_ems/images/icon_search2.png" class="search-button" align="absmiddle" valign="bottom" style="cursor: hand" v-on:click="onSubmit()">            
+            
+        </div>
+        <div v-if="isError" style="color: #b30216; font-size:18px;text-align: center;padding:20px;">
+            应用维护中！
+        </div>
+    </div>    
+     
+</script>
+<script>
+    $("#divu1").html($("#htmlu1").text());
+</script>
+<script>
+    var appOwner = "1583652257";
+    var token = 'tourist';
+    var urlPrefix = "/aop_component/";
+
+    jQuery.support.cors = true;
+    $.ajaxSetup({
+        beforeSend: function (request, settings) {
+            request.setRequestHeader("Authorization", token);
+            request.setRequestHeader("owner", appOwner);
+        }
+    });
+
+    new Vue({
+        el: "#appu1",
+        data: function () {
+            return {
+                query: {
+                    keyWord: "",//搜索关键词
+                    owner: appOwner,
+                    token: token,
+                    urlPrefix: urlPrefix,
+                    lang:"i18n_zh_CN"
+                },
+                isError: false
+            }
+        },
+        mounted: function () {
+            var _this = this;
+            // _this.init();
+        },
+        methods: {
+            init: function(){
+                $.ajax({
+                    url: "/aop_component//webber/search/test",
+                    type: "get",
+                    success: function (response) {
+                        if (response.code == "0000") {
+                        } else if (response.code == "220") {
+                            _this.isError = true;
+                            console.log(response);
+                        } else if (!response.code) {
+                            _this.isError = true;
+                            console.log(response);
+                        }
+                    },
+                    error: function (response) {
+                        _this.isError = true;
+                    }
+                });
+            },
+            onSubmit: function (e) {
+                var url = "/aop_views/search/modules/resultpc/soso.html";
+                if ("10" == "1" || "10" == "2") {
+                    url = "" + url;
+                }
+                var _this = this;
+                var query = _this.query;
+                if (url.indexOf("?") > -1) {
+                    url = url.split("?")[0];
+                }
+                if (query.keyWord) {
+                    var query = new Base64().encode(JSON.stringify(query));
+                    window.open(url + "?query=" + query);
+                } else {
+                    alert("请填写搜索内容")
+                }
+            },
+        }
+    })
+</script>
+
+<script>
+   var appElementu1 = document.querySelector("#appu1");
+   if (appElementu1 && appElementu1.__vue__) {
+
+   } else {
+      $("#divu1").html($("#htmlu1").text());
+      var appOwner = "1583652257";   
+      var urlPrefix = "/aop_component/";
+      var ifLogin="";
+      var token = ifLogin=='true'?gettoken(10, true).trim():'tourist';
+      if (containsHtmlTags(token) || !token) { 
+         token = 'tourist';
+      }
+      jQuery.support.cors = true;
+      $.ajaxSetup({
+        beforeSend: function (request, settings) {
+            request.setRequestHeader("Authorization", token);
+            request.setRequestHeader("owner", appOwner);
+        }
+      });
+      var queryInfou1 = {
+        query: {
+            keyWord: "",//搜索关键词
+            owner: appOwner,
+            token: token,
+            urlPrefix: urlPrefix,
+            lang:"i18n_zh_CN"
+        },
+        isError: false
+      };
+      function keyUpFunu1(e){
+        var theEvent = e || window.event;
+        var keyCode = theEvent.keyCode || theEvent.which || theEvent.charCode;
+        if(keyCode == 13){
+          onSubmitu1();
+        }
+      };
+
+      function onSubmitu1(e) {
+        queryInfou1.query.keyWord= $("#appu1  .qwss").val();
+        
+        var url = "/aop_views/search/modules/resultpc/soso.html";      
+        if ("10" == "1" || "10" == "2") {
+           url = "" + url;
+        }
+        var query = queryInfou1.query;
+        if (url.indexOf("?") > -1) {
+            url = url.split("?")[0];
+        }
+        if (query.keyWord) {
+            var query = new Base64().encode(JSON.stringify(query));
+            window.open(url + "?query=" + query);
+        } else {
+            alert("请填写搜索内容")
+        }
+      };
+   }
+</script>
+      
+       <div class="toplink">
+           <ul>
+<li class="fl"><a><img src="2025/dfiles/27359/whu_ems/images/toplink-2.png"></a></li>
+<li class="fl"><a><img src="2025/dfiles/27359/whu_ems/images/toplink-1.png"></a></li>
+<li class="fl"><a><img src="2025/dfiles/27359/whu_ems/images/toplink-3.png"></a></li></ul>
+      </div>
+      
+    </div>
+    <!-- 搜索结束 --> 
+  </div>
+  
+  <!--  网站导航开始 -->
+  <div class="nav">
+    <div class="container"><ul class="daohang clearfix">
+
+<li> <a href="index.htm" title="首页">首页</a>
+
+        </li>    
+    
+
+<li> <a href="about/xyjj.htm" title="学院概况">学院概况</a>
+
+          <ul class="nav_item">
+             <li><a href="about/xyjj.htm" title="学院简介">学院简介</a></li>
+             <li><a href="about/lsyg.htm" title="历史沿革">历史沿革</a></li>
+             <li><a href="about/jigou/jgts.htm" title="机构设置">机构设置</a></li>
+             <li><a href="about/xrld.htm" title="现任领导">现任领导</a></li>
+             <li><a href="about/yzjy.htm" title="院长寄语">院长寄语</a></li>
+             <li><a href="about/zxwyh.htm" title="咨询委员会">咨询委员会</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="szdw/qzjs.htm" title="师资队伍">师资队伍</a>
+
+          <ul class="nav_item">
+             <li><a href="szdw/qzjs.htm" title="全职教师">全职教师</a></li>
+             <li><a href="szdw/fwjs.htm" title="访问教授">访问教授</a></li>
+             <li><a href="szdw/rxjs.htm" title="荣休教师">荣休教师</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="xkxs/xkgz.htm" title="学科学术">学科学术</a>
+
+          <ul class="nav_item">
+             <li><a href="xkxs/xkgz.htm" title="学科工作">学科工作</a></li>
+             <li><a href="xkxs/xkcf.htm" title="学科采风">学科采风</a></li>
+             <li><a href="xkxs/kygz.htm" title="科研工作">科研工作</a></li>
+             <li><a href="xkxs/kyxm.htm" title="科研项目">科研项目</a></li>
+             <li><a href="xkxs/bshkyldz.htm" title="博士后科研流动站">博士后科研流动站</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="rcpy/bkjx/xwdt.htm" title="人才培养">人才培养</a>
+
+          <ul class="nav_item">
+             <li><a href="rcpy/bkjx/xwdt.htm" title="本科教学">本科教学</a></li>
+             <li><a href="rcpy/bs1.htm" title="博士">博士</a></li>
+             <li><a href="rcpy/ss.htm" title="硕士">硕士</a></li>
+             <li><a href="http://mba.whu.edu.cn" title="MBA" target="_blank">MBA</a></li>
+             <li><a href="http://emba.whu.edu.cn" title="EMBA" target="_blank">EMBA</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="hezuo.htm" title="交流合作">交流合作</a>
+
+          <ul class="nav_item">
+             <li><a href="hezuo/gjjl.htm" title="国际交流">国际交流</a></li>
+             <li><a href="hezuo/hzxm.htm" title="合作项目">合作项目</a></li>
+             <li><a href="hezuo/gjrz.htm" title="国际认证">国际认证</a></li>
+             <li><a href="hezuo/bszn.htm" title="办事指南">办事指南</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="xstd/yjsxgw.htm" title="学生天地" target="_blank">学生天地</a>
+
+          <ul class="nav_item">
+             <li><a href="http://emsbks.whu.edu.cn/" title="本科生学工网" target="_blank">本科生学工网</a></li>
+             <li><a href="xstd/yjsxgw.htm" title="研究生学工网">研究生学工网</a></li>
+             <li><a href="xstd/zyfzzx/recruitxx/qzzp.htm" title="职业发展中心">职业发展中心</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="dqgz.htm" title="党群工作">党群工作</a>
+
+          <ul class="nav_item">
+             <li><a href="dqgz/djgz.htm" title="党建工作">党建工作</a></li>
+             <li><a href="dqgz/ghgz.htm" title="工会工作">工会工作</a></li>
+             <li><a href="dqgz/ltxgz.htm" title="离退休工作">离退休工作</a></li>
+             <li><a href="dqgz/gqtgz.htm" title="共青团工作">共青团工作</a></li>
+             <li><a href="dqgz/zfjs1.htm" title="作风建设">作风建设</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="http://edp.whu.edu.cn/" title="高端培训" target="_blank">高端培训</a>
+
+        </li>    
+    
+
+<li> <a href="2025/xx_xiaoyou.jsp?urltype=tree.TreeTempUrl&wbtreeid=1574" title="校友之家">校友之家</a>
+
+          <ul class="nav_item">
+             <li><a href="2025/xx_xiaoyou.jsp?urltype=tree.TreeTempUrl&wbtreeid=1574" title="校友名录">校友名录</a></li>
+             <li><a href="xyzj/jcxy.htm" title="杰出校友">杰出校友</a></li>
+             <li><a href="xyzj/lsmr.htm" title="历史名人">历史名人</a></li>
+             <li><a href="xyzj/xyhd.htm" title="校友活动">校友活动</a></li>
+             <li><a href="xyzj/xyfc.htm" title="校友风采">校友风采</a></li>
+             <li><a href="xyzj/ljwx.htm" title="珞珈往昔">珞珈往昔</a></li>
+          </ul>
+        </li>    
+    
+
+<li> <a href="rczp.htm" title="人才招聘">人才招聘</a>
+
+        </li>    
+    
+</ul></div>
+  </div>
+  <!--  网站导航结束 --> 
+  
+</div>
+
+
+<div class="banner banner-x"><img src="images/b4.jpg" /></div>
+<section id="nav_slide">
+  <div class="n_title"> <a id="bnt_back" href="javascript:history.back(-1);"> <img src="2025/dfiles/27359/whu_ems/images/icon_bnt_back2.png" alt=""> </a>
+    <h1 class="margin_auto_1">
+通知公告</h1>
+    <div id="bnt_sub_nav"> <img src="2025/dfiles/27359/whu_ems/images/bnt_sub_nav2.png" alt=""> </div>
+  </div>
+  <div id="sub_nav_content">
+    <ul class="am-list admin-sidebar-list" id="collapase-nav-1">
+
+    <li class="am-panel on"> <a href="tzgg.htm">通知公告</a><i>&gt;</i> </li>
+      
+
+    
+    </ul>
+  </div>
+</section>
+
+
+
+<div class="contentbox">
+    <div class="container">
+
+      <div class="left-box col-xs-12 ">
+      
+        <h3 class="current">
+通知公告</h3>
+        
+        <div class="left-nav"><ul>
+        
+<li class="active">
+     <a href="tzgg.htm" title="通知公告">通知公告</a>
+     </li>
+        
+
+</ul>
+<script>
+$(document).ready(function () {
+    $('.icon').click(function () {
+        const $subMenu = $(this).closest('li').find('ul');
+        
+        if ($subMenu.is(':hidden')) {
+            $subMenu.show();
+            $(this).addClass("active");
+        } else {
+            $subMenu.hide();
+            $(this).removeClass("active");
+        }
+    });
+});
+</script>
+        
+<script type="text/javascript">
+$(function(){
+    $("#bnt_sub_nav").click(function(){
+    $(this).toggleClass("on");
+        $("#sub_nav_content").slideToggle();
+      });
+
+    $("#sub_nav_content dt.title a").attr("href","javascript:void(0)");
+    $("#sub_nav_content dt.title_on").next("dd").show();
+    $("#sub_nav_content dt.title").click(function() {
+        if ($(this).hasClass("title_on")) {
+            $(this).next("dd").slideToggle();
+            $(this).removeClass("title_on");
+        } else {
+            $("#sub_nav_content dd").slideUp();
+            $("#sub_nav_content dt.title").removeClass("title_on").removeClass("on");
+            $(this).toggleClass("title_on");
+            $(this).next("dd").slideDown();
+        }
+    });  
+    $("#sub_nav_content ul li i").click(function(){
+        $(this).next("ul").slideToggle();
+        $(this).parents("#sub_nav_content ul li").siblings().find("ul").slideUp();
+    });
+    
+    if ($(".list_box00").length) {
+        $(".list_box00 li").each(function (i) {
+            $(this).css({ 'transition-delay': i * 200 + 200 + 'ms' });
+        });
+    }
+    
+})
+
+</script></div>
+
+      </div>
+      <div class="right-box col-md-9 col-sm-9 col-xs-12">
+    <div class="right-current">
+        <div class="location">
+     
+    <a href="index.htm" class="ani300">首页</a><span>&gt;</span>
+    
+
+     
+    <a href="tzgg.htm" class="ani300">通知公告</a><span>&gt;</span>
+    
+</div>
+        <h3 class="columntitle">
+            <span>
+通知公告</span></h3>
+    </div>
+
+
+ <div class="teacher_nav fz20">
+
+<a href="index.htm">首页</a>
+ 
+
+
+<a href="about/xyjj.htm">学院概况</a>
+ 
+
+
+<a href="szdw/qzjs.htm">师资队伍</a>
+ 
+
+
+<a href="xkxs/xkgz.htm">学科学术</a>
+ 
+
+
+<a href="rcpy/bkjx/xwdt.htm">人才培养</a>
+ 
+
+
+<a href="hezuo.htm">交流合作</a>
+ 
+
+
+<a href="xstd/yjsxgw.htm">学生天地</a>
+ 
+
+
+<a href="dqgz.htm">党群工作</a>
+ 
+
+
+<a href="http://edp.whu.edu.cn/">高端培训</a>
+ 
+
+<script>
+document.querySelector('.teacher_nav').style.display = 'none';
+</script>
+
+<a href="2025/xx_xiaoyou.jsp?urltype=tree.TreeTempUrl&wbtreeid=1574">校友之家</a>
+ 
+
+
+<a href="rczp.htm">人才招聘</a>
+ 
+
+
+<a href="zhxw.htm">学院新闻</a>
+ 
+
+
+<a href="ljyd.htm">珞珈有道</a>
+ 
+
+
+<a class="on" href="tzgg.htm">通知公告</a>
+ 
+
+
+<a href="xsxx.htm">学术信息</a>
+ 
+
+
+<a href="xsfc.htm">学生风采</a>
+ 
+
+
+<a href="zsjy/zs.htm">招生就业</a>
+ 
+
+
+<a href="jgyx.htm">经管影像</a>
+ 
+
+
+<a href="llipnu.htm">理论学习</a>
+ 
+
+
+<a href="xxgk3.htm">信息公开</a>
+ 
+
+
+<a href="yq130/index.jsp?urltype=tree.TreeTempUrl&wbtreeid=7098">武汉大学商科教育130周年</a>
+ 
+
+
+<a href="ztwz.htm">专题网站</a>
+ 
+</div>
+
+
+        <div class="newsList">
+ 
+ 
+     <div class="orgWrap">     
+     
+        <div class="item item4">
+        
+           <script language="javascript" src="/system/resource/js/centerCutImg.js"></script><script language="javascript" src="/system/resource/js/dynclicks.js"></script><script language="javascript" src="/system/resource/js/ajax.js"></script><ul>
+            <li id="line_u12_0">
+                        <a href="https://ems.whu.edu.cn/info/2023/304191.htm" title="关于调整理论经济学、应用经济学学术学位硕士研究生统考自命题科目的公告">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">关于调整理论经济学、应用经济学学术学位硕士研究生统考自命题科目的公告</h5>
+                            <span>2026-07-10</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_1">
+                        <a href="info/1588/308491.htm" title="经济与管理学院2026年国庆节值班安排">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">经济与管理学院2026年国庆节值班安排</h5>
+                            <span>2026-09-30</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_2">
+                        <a href="info/1588/308471.htm" title="考察公告">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">考察公告</h5>
+                            <span>2026-09-29</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_3">
+                        <a href="https://ems.whu.edu.cn/info/2022/308411.htm" title="关于做好2026年研究生优秀新生奖学金评选工作的通知">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">关于做好2026年研究生优秀新生奖学金评选工作的通知</h5>
+                            <span>2026-09-28</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_4">
+                        <a href="info/1588/308131.htm" title="经济与管理学院关于严明2026年中秋、国庆期间纪律要求的通知">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">经济与管理学院关于严明2026年中秋、国庆期间纪律要求的通知</h5>
+                            <span>2026-09-24</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_5">
+                        <a href="info/1588/307881.htm" title="经济与管理学院 2026 年中秋节值班安排">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">经济与管理学院 2026 年中秋节值班安排</h5>
+                            <span>2026-09-24</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_6">
+                        <a href="info/1588/307741.htm" title="关于以民主推荐方式选拔经济与管理学院 内设机构副主任的公告">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">关于以民主推荐方式选拔经济与管理学院 内设机构副主任的公告</h5>
+                            <span>2026-09-22</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_7">
+                        <a href="https://finance.whu.edu.cn/content.jsp?urltype=news.NewsContentUrl&wbtreeid=1121&wbnewsid=9931" title="关于部分项目统一通过直采平台采购有关事项的通知">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">关于部分项目统一通过直采平台采购有关事项的通知</h5>
+                            <span>2026-09-21</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_8">
+                        <a href="https://ems.whu.edu.cn/info/2023/307511.htm" title="经济与管理学院2027年接收优秀应届本科毕业生免试攻读研究生工作实施细则">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">经济与管理学院2027年接收优秀应届本科毕业生免试攻读研究生工作实施细则</h5>
+                            <span>2026-09-19</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_9">
+                        <a href="https://ems.whu.edu.cn/info/2023/307491.htm" title="关于公布2027年推免生预推免考核结果的通知">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">关于公布2027年推免生预推免考核结果的通知</h5>
+                            <span>2026-09-19</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_10">
+                        <a href="2025/content.jsp?urltype=news.NewsContentUrl&wbtreeid=1588&wbnewsid=307221" title="经济与管理学院2026—2027学年第一学期本科教学课程助教选聘通知">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">经济与管理学院2026—2027学年第一学期本科教学课程助教选聘通知</h5>
+                            <span>2026-09-16</span>
+                        </a>
+                    </li>
+
+<li id="line_u12_11">
+                        <a href="https://uc.whu.edu.cn/info/1520/128431.htm" title="关于2026年中秋节、国庆节期间教学安排调整的通知">
+                            <i></i>
+                            <h5 class="TXTovehid ani300">关于2026年中秋节、国庆节期间教学安排调整的通知</h5>
+                            <span>2026-09-15</span>
+                        </a>
+                    </li>
+
+
+</ul>
+
+  <div style="clear:both;"></div>
+  
+  <div class="pagebar" style="margin-top:10px;text-align:center;"><span class="p_pages"><span class="p_first_d p_fun_d">首页</span><span class="p_prev_d p_fun_d">上页</span><span class="p_no_d">1</span><span class="p_no"><a href="tzgg/201.htm">2</a></span><span class="p_no"><a href="tzgg/200.htm">3</a></span><span class="p_no"><a href="tzgg/199.htm">4</a></span><span class="p_no"><a href="tzgg/198.htm">5</a></span><span class="p_dot">...</span><span class="p_no"><a href="tzgg/1.htm">202</a></span><span class="p_next p_fun"><a href="tzgg/201.htm">下页</a></span><span class="p_last p_fun"><a href="tzgg/1.htm">尾页</a></span></span></div><script>_showDynClickBatch(['dynclicks_u12_304201','dynclicks_u12_308491','dynclicks_u12_308471','dynclicks_u12_308441','dynclicks_u12_308131','dynclicks_u12_307881','dynclicks_u12_307741','dynclicks_u12_307711','dynclicks_u12_307551','dynclicks_u12_307541','dynclicks_u12_307221','dynclicks_u12_306871'],[304201,308491,308471,308441,308131,307881,307741,307711,307551,307541,307221,306871],"wbnews", 1583652257)</script> 
+            
+            
+        </div>
+
+       
+      
+          
+        
+
+          
+      </div>
+      
+      
+ 
+ 
+ </div>
+
+
+
+
+
+
+
+
+
+ 
+ 
+      </div>
+
+
+
+
+
+
+
+  </div>
+  </div> 
+
+
+<div class="footer"> 
+  <div class="container">
+    
+    
+    <div class="footer-code">
+      <ul><li>
+          <div class="code-box"><img src="2025/dfiles/27359/whu_ems/images/ewm1.jpg">
+            <p class="code-text">学院官方微信</p>
+          </div>
+        </li>
+        <li>
+          <div class="code-box"><img src="2025/dfiles/27359/whu_ems/images/ewm2.jpg">
+            <p class="code-text">MBA/EMBA</p>
+          </div>
+        </li>
+        <li>
+          <div class="code-box"><img src="2025/dfiles/27359/whu_ems/images/ewm3.jpg">
+            <p class="code-text">EDP高端培训</p>
+          </div>
+        </li>
+</ul>
+    </div>
+    <div class="footer-text"><script language="javascript" src="/system/resource/js/news/mp4video.js"></script>
+<p><span>电话：027-68752883</span><span>传真：027-68754150</span></p>
+<p><span>学院邮箱：EMS@whu.edu.cn</span><span>地址：中国 武汉 武汉珞珈山</span></p>
+<p>版权所有 © 2025 武汉大学经济与管理学院 All Rights Reserved</p></div>
+    
+    
+  </div>
+  <div class="clearfix"></div>
+</div>
+
+</body>
+
+</html>

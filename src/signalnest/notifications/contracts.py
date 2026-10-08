@@ -10,9 +10,9 @@ from pydantic import Field, field_validator, model_serializer, model_validator
 
 from signalnest.contracts import Contract, Digest, NonemptyText, WebUrl
 
-FACTS_EXTRACTOR_VERSION = "whu-notice-facts-v3"
-RULES_VERSION = "notification-rules-v3"
-DECISION_ENGINE_VERSION = "notification-decision-v3"
+FACTS_EXTRACTOR_VERSION = "whu-notice-facts-v5"
+RULES_VERSION = "notification-rules-v5"
+DECISION_ENGINE_VERSION = "notification-decision-v5"
 ROUTING_VERSION = "notification-routing-v1"
 
 Topic = Literal[
@@ -23,6 +23,7 @@ Topic = Literal[
     "course_enrollment",
     "minor",
     "recommendation",
+    "teaching_assistant",
 ]
 ProfileField = Literal[
     "role",
@@ -169,13 +170,18 @@ class TopicMatch(Contract):
     primary: bool = Field(default=False, strict=True)
     # None preserves old serialized facts. Current extraction always classifies
     # mentions; a title subject need not be a newly offered opportunity.
-    context: Literal["subject", "opportunity", "incidental"] | None = None
+    context: Literal["subject", "opportunity", "incidental", "uncertain"] | None = None
+    # Cross-field links retain the actual body instruction independently of
+    # the title's Unicode offsets. Omission preserves all older fact hashes.
+    supporting_evidence: tuple[Evidence, ...] = ()
 
     @model_serializer(mode="wrap")
     def compatible_snapshot(self, handler):
         snapshot = handler(self)
         if self.context is None:
             snapshot.pop("context", None)
+        if not self.supporting_evidence:
+            snapshot.pop("supporting_evidence", None)
         return snapshot
 
 

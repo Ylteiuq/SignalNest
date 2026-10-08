@@ -25,6 +25,12 @@ def main(argv: list[str] | None = None) -> int:
     input_group.add_argument("--file", type=Path, help="原始 HTML；同时给出 --url")
     input_group.add_argument("--notice-json", type=Path, help="NoticeContent 规范 JSON 文件")
     preview.add_argument("--url", help="HTML 对应的最终详情 URL，不猜文件名")
+    preview.add_argument(
+        "--parser",
+        choices=("whu-student-notices", "ems-notices"),
+        default="whu-student-notices",
+        help="仅用于本地 HTML；EMS 详情预览不启用该来源的网络采集",
+    )
     preview.add_argument("--at", required=True, help="显式决策时间 ISO-8601，必须含 UTC offset")
     preview.add_argument(
         "--next-digest-at", required=True, help="显式下次 Digest 时间，含 UTC offset"
@@ -702,10 +708,19 @@ def _notification_preview(args):
         if args.file:
             if not args.url:
                 raise ValueError("HTML input requires --url with its final page URL")
-            notice = parse_notice(PageInput(content=read(args.file), page_url=args.url)).content
+            notice_parser = parse_notice
+            if args.parser == "ems-notices":
+                from signalnest.ems_parsing import parse_ems_notice
+
+                notice_parser = parse_ems_notice
+            notice = notice_parser(PageInput(content=read(args.file), page_url=args.url)).content
         else:
             if args.url:
                 raise ValueError("--url is used only with --file")
+            if args.parser != "whu-student-notices":
+                raise ValueError(
+                    "--parser ems-notices requires --file; --notice-json is already normalized"
+                )
             notice = content(args.notice_json)
         previous = content(args.previous_notice_json) if args.previous_notice_json else None
         if (previous is not None or args.previous_route != "none") and args.event_kind != "update":

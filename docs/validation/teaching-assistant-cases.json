@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "note": "One immutable historical official EMS recruitment and one immutable WHU research-course negative, replayed with fictional Profiles and explicit clocks. These six new iteration N1 engineering expectations are not human gold or evidence of a currently open vacancy. EMS detail parsing is offline only; its list and HTTP source are not enabled.",
+  "adaptations": [
+    "N1E01–N1E04 use the unchanged 2024 EMS raw HTML and the new explicit ems-notices detail Parser; all application and media evidence comes from that fixture.",
+    "The master and undergraduate Profiles are fictional. 原则上、本院、全日制、教师签署、实施细则及附件 conditions remain unknown rather than proving eligibility or excluding an undergraduate unconditionally.",
+    "2024 clocks are historical engineering replay only; N1E04 separately evaluates the exact same historical article at 2026-10-08 and must remain closed.",
+    "N1E05–N1E06 reuse WHU 128291: already-appointed course assistants are not recruitment, while the genuine research-course opportunity remains active for a research-interested Profile.",
+    "No research human Action label is assigned, copied or changed. The official personal-news negative remains covered by an explicit transformed-content unit test, not claimed here as a supported production news Parser.",
+    "The original thirteen production cases and the two iteration N0 synthetic cases retain their original input manifests."
+  ],
+  "profiles": {
+    "master": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "master",
+      "interest_topics": [
+        "teaching_assistant"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": []
+    },
+    "undergraduate": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "teaching_assistant"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": []
+    },
+    "research_student": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "teaching_assistant",
+        "research"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "case_id": "N1E01",
+      "input_kind": "fixture_html",
+      "parser": "ems-notices",
+      "fixture": "research/fixtures/teaching-assistant/ems-notice-250571-20261008T102823953399Z.html",
+      "sha256": "84d61d384c1fbc15a5ba964404a60f67adb88aa615b0ba44dda6425e1505e843",
+      "source_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+      "profile": "master",
+      "evaluated_at": "2024-09-10T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-09-11T08:00:00+08:00"
+      },
+      "description": "历史招聘开放期间；普通助教兴趣进入Digest，未核对条件不默认符合。",
+      "engineering_expectation": {
+        "action": "DIGEST",
+        "effective_route": "digest",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "open",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant"
+        ],
+        "facts": {
+          "deadline_at": "2024-09-20T16:00:00+08:00",
+          "unknown_evidence_contains": [
+            "本院",
+            "全日制",
+            "原则上",
+            "签署",
+            "附件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "N1E02",
+      "input_kind": "fixture_html",
+      "parser": "ems-notices",
+      "fixture": "research/fixtures/teaching-assistant/ems-notice-250571-20261008T102823953399Z.html",
+      "sha256": "84d61d384c1fbc15a5ba964404a60f67adb88aa615b0ba44dda6425e1505e843",
+      "source_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+      "profile": "master",
+      "evaluated_at": "2024-09-20T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-09-21T08:00:00+08:00"
+      },
+      "description": "历史招聘申请当天16:00截止；不能被9月27日结果和10/12月考核时间覆盖。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "open",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant",
+          "decision.deadline_soon"
+        ],
+        "facts": {
+          "deadline_at": "2024-09-20T16:00:00+08:00",
+          "unknown_evidence_contains": [
+            "本院",
+            "全日制",
+            "原则上",
+            "签署",
+            "附件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "N1E03",
+      "input_kind": "fixture_html",
+      "parser": "ems-notices",
+      "fixture": "research/fixtures/teaching-assistant/ems-notice-250571-20261008T102823953399Z.html",
+      "sha256": "84d61d384c1fbc15a5ba964404a60f67adb88aa615b0ba44dda6425e1505e843",
+      "source_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+      "profile": "undergraduate",
+      "evaluated_at": "2024-09-20T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2024-09-21T08:00:00+08:00"
+      },
+      "description": "原则上研究生不构成无例外硬排；本科教学是受益课程，紧迫提醒明确需要核对资格。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "open",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant",
+          "decision.deadline_soon"
+        ],
+        "facts": {
+          "deadline_at": "2024-09-20T16:00:00+08:00",
+          "unknown_evidence_contains": [
+            "本院",
+            "全日制",
+            "原则上",
+            "签署",
+            "附件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "N1E04",
+      "input_kind": "fixture_html",
+      "parser": "ems-notices",
+      "fixture": "research/fixtures/teaching-assistant/ems-notice-250571-20261008T102823953399Z.html",
+      "sha256": "84d61d384c1fbc15a5ba964404a60f67adb88aa615b0ba44dda6425e1505e843",
+      "source_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+      "profile": "master",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "当前显式时钟下旧招聘已关闭，不能伪装为当期开放岗位。",
+      "engineering_expectation": {
+        "action": "IGNORE",
+        "effective_route": "none",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "closed",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant"
+        ],
+        "facts": {
+          "deadline_at": "2024-09-20T16:00:00+08:00",
+          "unknown_evidence_contains": [
+            "本院",
+            "全日制",
+            "原则上",
+            "签署",
+            "附件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "N1E05",
+      "input_kind": "fixture_html",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "profile": "undergraduate",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "只关注助教的画像：科研课程现有助教与辅导课不能变成助教招聘。",
+      "engineering_expectation": {
+        "action": "IGNORE",
+        "effective_route": "none",
+        "matched_rules_absent": [
+          "interest.topic.teaching_assistant"
+        ]
+      }
+    },
+    {
+      "case_id": "N1E06",
+      "input_kind": "fixture_html",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "profile": "research_student",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T08:00:00+08:00"
+      },
+      "description": "同时关注科研与助教：保留真实科研报名的当天紧迫性，助教介绍不抢占主题。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ],
+        "matched_rules_absent": [
+          "interest.topic.teaching_assistant"
+        ]
+      }
+    }
+  ]
+}

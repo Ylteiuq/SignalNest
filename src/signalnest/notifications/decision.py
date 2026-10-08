@@ -43,6 +43,7 @@ _REASON_TEXT = {
     "conditions_changed": "之前已取得邮件资格的机会，其可识别条件发生变化。",
     "update_comparison_unknown": "无法可靠核对本次更新与先前内容，提醒核对而不声称条件已经改变。",
     "media_interest_unknown": "关键内容可能仅在未解析图片或附件中，相关性不足以确认，保留待核对。",
+    "topic_relation_unknown": "可见主题与报名行动的关系不明确，保留候选待核对。",
     "historical_context": "显式历史上下文只供本地存档，不产生主动邮件路线。",
     "future_publication": "站点发布日期在评估日期之后，不能将其作为近期已发布机会。",
 }
@@ -63,9 +64,15 @@ def policy_manifest(profile: Profile) -> dict:
             "store_only_scope": (
                 "only matching topics; another active interest or literal phrase wins"
             ),
-            "active_interest": "subject/opportunity topics; incidental mentions are evidence only",
+            "active_interest": (
+                "subject/opportunity topics; incidental mentions are evidence only; "
+                "uncertain interests retained without mail eligibility"
+            ),
             "urgent_topic": (
                 "new urgency/high value requires a linked opportunity or explicit phrase"
+            ),
+            "uncertain_followed_update": (
+                "preserve previously eligible update/comparison reminders without new urgency"
             ),
             "order": (
                 "reliable_exclusion",
@@ -282,7 +289,16 @@ def decide(
             )
         )
     phrases = _phrase_evidence(profile, facts)
-    topics = {match.topic for match in facts.topic_matches if match.context != "incidental"}
+    topics = {
+        match.topic
+        for match in facts.topic_matches
+        if match.context not in {"incidental", "uncertain"}
+    }
+    uncertain_topics = {
+        match.topic
+        for match in facts.topic_matches
+        if match.context == "uncertain" and match.topic in profile.interest_topics
+    }
     primary_topics = {match.topic for match in facts.topic_matches if match.primary}
     opportunity_topics = {
         match.topic for match in facts.topic_matches if match.context in {None, "opportunity"}
@@ -295,13 +311,20 @@ def decide(
     uncertain_interest = (
         not matched
         and not stored
-        and (facts.information_incomplete or (not facts.body_text.strip() and facts.media))
+        and (
+            uncertain_topics
+            or facts.information_incomplete
+            or (not facts.body_text.strip() and facts.media)
+        )
     )
     if uncertain_interest:
         relevance = "unknown"
-        unknowns.append(
-            _unknown("interest_unknown", "interest", "未解析媒体可能包含关注信息。", facts.media)
-        )
+        if not uncertain_topics:
+            unknowns.append(
+                _unknown(
+                    "interest_unknown", "interest", "未解析媒体可能包含关注信息。", facts.media
+                )
+            )
     future = facts.published_date > evaluated_at.astimezone(_SHANGHAI).date()
     if future:
         unknowns.append(
@@ -352,8 +375,9 @@ def decide(
             else Action.IGNORE
         )
         code = "historical_context"
-    elif relevance == "unknown":
-        action, code = Action.STORE_ONLY, "media_interest_unknown"
+    elif relevance == "unknown" and not (followed and uncertain_topics):
+        action = Action.STORE_ONLY
+        code = "topic_relation_unknown" if uncertain_topics else "media_interest_unknown"
     elif relevance == "unmatched" and not followed:
         action, code = Action.IGNORE, "no_interest_match"
     elif facts.category == "reference" and not followed:
@@ -395,6 +419,7 @@ def decide(
     )
     evidence = _unique(
         tuple(match.evidence for match in facts.topic_matches)
+        + tuple(proof for match in facts.topic_matches for proof in match.supporting_evidence)
         + phrases
         + tuple(constraint.evidence for constraint in facts.constraints)
         + facts.opportunity_evidence

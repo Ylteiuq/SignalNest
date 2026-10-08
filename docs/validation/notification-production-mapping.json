@@ -1,0 +1,580 @@
+{
+  "schema_version": 1,
+  "research_review_id": "signalnest-notification-actions-20261008-v1",
+  "research_review_file": "research/experiments/notifications/human-review-20261008.json",
+  "research_review_sha256": "6eff4e20ab7368f01a3935b8b39f4cfaf9d189ee93a2162338fdd951090ea580",
+  "note": "Human Actions apply only to the frozen original research inputs. All production cases are adapted or newly added; no fully identical whole input and no production accuracy metric are claimed. Original facts, needs_review and effective_route are outside the confirmation scope.",
+  "cases": [
+    {
+      "production_case": "P01",
+      "research_case": "S01",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "STORE_ONLY",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P02",
+      "research_case": "S02",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "STORE_ONLY",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P03",
+      "research_case": "S03",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "STORE_ONLY",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P04",
+      "research_case": "S04",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "PUSH_NOW",
+      "engineering_action": "PUSH_NOW",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P05",
+      "research_case": "S05",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "study_level graduate concretized to master; not all postgraduates",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "IGNORE",
+      "review_status": "action_semantics_pending_reconfirmation",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "study_level": {
+          "research": "graduate",
+          "production": "master"
+        }
+      }
+    },
+    {
+      "production_case": "P06",
+      "research_case": "S06",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "PUSH_NOW",
+      "engineering_action": "PUSH_NOW",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P07",
+      "research_case": "S07",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "IGNORE",
+      "review_status": "action_semantics_pending_reconfirmation",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P08",
+      "research_case": "S08",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "PUSH_NOW",
+      "engineering_action": "PUSH_NOW",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P09",
+      "research_case": "S09",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "STORE_ONLY",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P10",
+      "research_case": "S10",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "competition-only interest/high-value Profile; later Parser accepts the existing HTML",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": null,
+      "engineering_action": "PUSH_NOW",
+      "review_status": "historical_parser_failure_no_action_label",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "competition"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "competition"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P11",
+      "research_case": "S11",
+      "relationship": "adapted",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "Unsupported teaching_assistant interest is removed; exact Profile differences are listed in profile_field_changes.",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "DIGEST",
+      "engineering_action": "DIGEST",
+      "review_status": "adapted_action_agrees_not_identical_input",
+      "profile_field_changes": {
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "research",
+            "minor"
+          ]
+        }
+      }
+    },
+    {
+      "production_case": "P12",
+      "research_case": "S02",
+      "relationship": "new_case_reusing_real_fixture",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "new isolated minor-only Profile; not the original reviewed research input",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "STORE_ONLY",
+      "engineering_action": "IGNORE",
+      "review_status": "new_case_not_human_labelled",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "minor"
+          ]
+        },
+        "store_only_topics": {
+          "research": [
+            "course_enrollment"
+          ],
+          "production": []
+        }
+      }
+    },
+    {
+      "production_case": "P13",
+      "research_case": "S08",
+      "relationship": "new_case_reusing_real_fixture",
+      "identical_input_fields": [
+        "fixture",
+        "sha256",
+        "source_url",
+        "evaluated_at"
+      ],
+      "adaptations": [
+        "new isolated minor-only Profile; not the original reviewed research input",
+        "EventContext uses the production contract and supplies a fixed next_digest_at absent from the original research case"
+      ],
+      "original_human_action": "PUSH_NOW",
+      "engineering_action": "PUSH_NOW",
+      "review_status": "new_case_not_human_labelled",
+      "profile_field_changes": {
+        "high_value_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "minor"
+          ]
+        },
+        "interest_topics": {
+          "research": [
+            "research",
+            "minor",
+            "teaching_assistant"
+          ],
+          "production": [
+            "minor"
+          ]
+        },
+        "store_only_topics": {
+          "research": [
+            "course_enrollment"
+          ],
+          "production": []
+        }
+      }
+    },
+    {
+      "production_case": "Q01",
+      "research_case": null,
+      "relationship": "new_synthetic_notice_content",
+      "identical_input_fields": [],
+      "adaptations": [
+        "New minimal engineering regression; no HTML, Parser or human Action label."
+      ],
+      "original_human_action": null,
+      "engineering_action": "PUSH_NOW",
+      "review_status": "new_case_not_human_labelled"
+    },
+    {
+      "production_case": "Q02",
+      "research_case": null,
+      "relationship": "new_synthetic_notice_content",
+      "identical_input_fields": [],
+      "adaptations": [
+        "New minimal engineering regression; no HTML, Parser or human Action label."
+      ],
+      "original_human_action": null,
+      "engineering_action": "PUSH_NOW",
+      "review_status": "new_case_not_human_labelled"
+    }
+  ]
+}

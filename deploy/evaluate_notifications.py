@@ -1,4 +1,4 @@
-"""Replay fixed public fixtures through the installed production notification rules.
+"""Replay fixed public fixtures or explicit synthetic content through production rules.
 
 This offline diagnostic does not open a database, read the personal Profile, or
 send mail. The engineering expectations are regression checks, not human gold.
@@ -18,8 +18,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASES = ROOT / "docs/validation/notification-production-cases.json"
 SOURCE_FILES = (
+    "deploy/evaluate_notifications.py",
     "src/signalnest/contracts.py",
     "src/signalnest/parsing.py",
+    "src/signalnest/ems_parsing.py",
     "src/signalnest/notifications/contracts.py",
     "src/signalnest/notifications/facts.py",
     "src/signalnest/notifications/decision.py",
@@ -45,9 +47,9 @@ def _fixture(path):
     return resolved
 
 
-def _expectation_mismatches(decision, expectation):
+def _expectation_mismatches(decision, expectation, facts):
     mismatches = []
-    for field in ("action", "effective_route"):
+    for field in ("action", "effective_route", "eligibility", "time_status", "needs_review"):
         if field in expectation and decision[field] != expectation[field]:
             mismatches.append(field)
     rules = set(decision["matched_rules"])
@@ -55,6 +57,21 @@ def _expectation_mismatches(decision, expectation):
         mismatches.append("matched_rules_present")
     if any(rule in rules for rule in expectation.get("matched_rules_absent", ())):
         mismatches.append("matched_rules_absent")
+    expected_facts = expectation.get("facts", {})
+    if "deadline_at" in expected_facts and facts["deadline_at"] != expected_facts["deadline_at"]:
+        mismatches.append("facts.deadline_at")
+    unknown_proofs = [proof["excerpt"] for item in facts["unknowns"] for proof in item["evidence"]]
+    if any(
+        not any(phrase in proof for proof in unknown_proofs)
+        for phrase in expected_facts.get("unknown_evidence_contains", ())
+    ):
+        mismatches.append("facts.unknown_evidence_contains")
+    if any(
+        constraint["field"] in expected_facts.get("no_hard_constraint_fields", ())
+        and constraint["operator"] != "unsupported"
+        for constraint in facts["constraints"]
+    ):
+        mismatches.append("facts.no_hard_constraint_fields")
     return mismatches
 
 
@@ -65,7 +82,9 @@ def evaluate_cases(case_file=DEFAULT_CASES):
     # produce a report bearing source hashes from another revision.
     from pydantic import ValidationError
 
-    from signalnest.contracts import PageInput
+    from signalnest.contracts import NoticeContent, PageInput
+    from signalnest.ems_parsing import PARSER_VERSION as EMS_PARSER_VERSION
+    from signalnest.ems_parsing import parse_ems_notice
     from signalnest.notifications.contracts import (
         DECISION_ENGINE_VERSION,
         FACTS_EXTRACTOR_VERSION,
@@ -99,9 +118,30 @@ def evaluate_cases(case_file=DEFAULT_CASES):
             if not isinstance(identifier, str) or not identifier or identifier in identifiers:
                 raise EvaluationError("evaluation_case_invalid")
             identifiers.add(identifier)
-            body = _fixture(case["fixture"]).read_bytes()
-            if hashlib.sha256(body).hexdigest() != case["sha256"]:
-                raise EvaluationError("evaluation_fixture_digest_mismatch")
+            input_kind = case.get("input_kind", "fixture_html")
+            if input_kind == "fixture_html":
+                if "synthetic_notice_content" in case:
+                    raise EvaluationError("evaluation_case_invalid")
+                body = _fixture(case["fixture"]).read_bytes()
+                if hashlib.sha256(body).hexdigest() != case["sha256"]:
+                    raise EvaluationError("evaluation_fixture_digest_mismatch")
+                page = PageInput(content=body, page_url=case["source_url"])
+                selected_parser = case.get("parser", "whu-student-notices")
+                if selected_parser not in {"whu-student-notices", "ems-notices"}:
+                    raise EvaluationError("evaluation_parser_invalid")
+                content = None
+            elif input_kind == "synthetic_notice_content":
+                if any(
+                    name in case
+                    for name in ("fixture", "sha256", "source_url", "research_case", "parser")
+                ):
+                    raise EvaluationError("evaluation_case_invalid")
+                content = NoticeContent.model_validate(case["synthetic_notice_content"])
+                if content.content_sha256() != case["content_sha256"]:
+                    raise EvaluationError("evaluation_content_digest_mismatch")
+                page = None
+            else:
+                raise EvaluationError("evaluation_input_kind_invalid")
             profile = profiles[case["profile"]]
             try:
                 now = aware_time(datetime.fromisoformat(case["evaluated_at"]))
@@ -110,7 +150,6 @@ def evaluate_cases(case_file=DEFAULT_CASES):
             context = EventContext.model_validate(case["context"])
             if context.next_digest_at <= now:
                 raise EvaluationError("evaluation_clock_invalid")
-            page = PageInput(content=body, page_url=case["source_url"])
             expectation = case["engineering_expectation"]
             description = case["description"]
         except (KeyError, TypeError, ValidationError) as exc:
@@ -119,31 +158,53 @@ def evaluate_cases(case_file=DEFAULT_CASES):
             "case_id": identifier,
             "research_case": case.get("research_case"),
             "description": description,
-            "fixture": case["fixture"],
-            "fixture_sha256": case["sha256"],
-            "source_url": case["source_url"],
+            "input_kind": input_kind,
             "profile": profile.model_dump(mode="json"),
             "context": context.model_dump(mode="json"),
             "evaluated_at": case["evaluated_at"],
             "engineering_expectation": expectation,
         }
-        try:
-            notice = parse_notice(page)
-        except ParseError as exc:
+        if page is not None:
             row.update(
-                parse_error={"code": exc.code.value, "field": exc.field},
-                engineering_mismatches=["parse_success"],
+                fixture=case["fixture"],
+                fixture_sha256=case["sha256"],
+                source_url=case["source_url"],
+                parser=selected_parser,
             )
         else:
-            facts = extract_facts(notice.content)
-            decision = decide(profile, facts, context, now=now).model_dump(mode="json")
             row.update(
-                source_document_id=notice.source_document_id,
-                parser_version=notice.parser_version,
+                synthetic_notice_content=content.model_dump(mode="json"),
+                content_sha256=content.content_sha256(),
+                parser_applied=False,
+            )
+        if page is not None:
+            try:
+                notice = (
+                    parse_ems_notice(page)
+                    if selected_parser == "ems-notices"
+                    else parse_notice(page)
+                )
+            except ParseError as exc:
+                row.update(
+                    parse_error={"code": exc.code.value, "field": exc.field},
+                    engineering_mismatches=["parse_success"],
+                )
+            else:
+                content = notice.content
+                row.update(
+                    source_document_id=notice.source_document_id,
+                    parser_version=notice.parser_version,
+                    parser_applied=True,
+                )
+        if content is not None:
+            facts = extract_facts(content)
+            decision = decide(profile, facts, context, now=now).model_dump(mode="json")
+            public_facts = facts.model_dump(mode="json", exclude={"body_text"})
+            row.update(
                 # Offsets/excerpts remain available without copying the full body.
-                facts=facts.model_dump(mode="json", exclude={"body_text"}),
+                facts=public_facts,
                 decision=decision,
-                engineering_mismatches=_expectation_mismatches(decision, expectation),
+                engineering_mismatches=_expectation_mismatches(decision, expectation, public_facts),
             )
         rows.append(row)
     if source_hashes() != before:
@@ -162,6 +223,7 @@ def evaluate_cases(case_file=DEFAULT_CASES):
         "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
         "versions": {
             "parser": PARSER_VERSION,
+            "ems_parser": EMS_PARSER_VERSION,
             "facts_extractor": FACTS_EXTRACTOR_VERSION,
             "rules": RULES_VERSION,
             "decision_engine": DECISION_ENGINE_VERSION,
@@ -176,8 +238,11 @@ def evaluate_cases(case_file=DEFAULT_CASES):
         },
         "summary": {
             "cases": len(rows),
-            "unique_pages": len({row["fixture_sha256"] for row in rows}),
-            "parse_success": len(decisions),
+            "fixture_cases": sum(row["input_kind"] == "fixture_html" for row in rows),
+            "synthetic_cases": sum(row["input_kind"] == "synthetic_notice_content" for row in rows),
+            "unique_pages": len({row["fixture_sha256"] for row in rows if "fixture_sha256" in row}),
+            "parse_success": sum(row.get("parser_applied", False) for row in rows),
+            "decision_success": len(decisions),
             "actions": dict(sorted(Counter(d["action"] for d in decisions).items())),
             "routes": dict(sorted(Counter(d["effective_route"] for d in decisions).items())),
             "needs_review": sum(d["needs_review"] for d in decisions),

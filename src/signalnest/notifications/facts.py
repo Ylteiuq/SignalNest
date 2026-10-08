@@ -29,6 +29,7 @@ TOPIC_PHRASES = MappingProxyType(
         "course_enrollment": ("选课", "课程报名"),
         "minor": ("辅修", "双学士学位"),
         "recommendation": ("推免", "推荐免试"),
+        "teaching_assistant": ("助教", "教学助理"),
     }
 )
 
@@ -144,6 +145,49 @@ _MINOR_AFTER = re.compile(
     r"(?P<action>报名|招生|招收|招募|申请(?:修读|攻读)?)"
 )
 _MINOR_BEFORE = re.compile(r"(?:报名(?:修读|参加)?|申请(?:修读|攻读)?)\s*$")
+_DIRECTIVE_ENTRY = re.compile(
+    r"(?:请|须|需|应)[^。；;\n，,→>]{0,40}(?:完成|进行|提交)"
+    r"[^。；;\n，,→>]{0,12}(?P<action>报名|申请|申报|选课)"
+)
+_PRESENT_ENTRY = re.compile(
+    r"(?:即日起|现(?:已)?(?:启动|开放|接受|开始|开展)|正在接受)\s*"
+    r"(?P<action>报名|申请|申报|征集|招募|招生|招收|选拔|选派|选课)"
+)
+_ENTRY_RECORD = re.compile(r"查看|查询|已有|历史记录|报名记录|(?:报名|申请)情况")
+_MENU_PATH = re.compile(r"菜单|点击|[→>]|报名申请\s*[-→>]")
+_UNBOUND_SUBJECT = re.compile(r"(?:相关|有关)(?:安排|事宜|事项)|(?:安排|事项)(?:如下|见下文)")
+
+
+# Recruitment is a separate action, not a synonym for every mention of 助教.
+_TA_PAIR = re.compile(
+    r"(?P<after>助教|教学助理)(?:岗位|人员|的)?(?P<after_action>招聘|招募|选聘)"
+    r"|(?P<before_action>招聘|招募|选聘)(?:本科教学课程|课程|学生|若干名)?"
+    r"(?P<before>助教|教学助理)"
+)
+_TA_REFERENCE_TITLE = re.compile(
+    r"津贴|薪酬|工资|报酬|退出|退聘|考核|任职介绍|回顾|经验|使用说明|栏目|"
+    r"管理办法|制度|实施细则|结果|名单|怎样当"
+)
+_TA_PRESENT = re.compile(
+    r"即日起|现(?:已)?(?:面向|招聘|招募|选聘)|本(?:次|学期|轮)[^。；;\n]{0,24}(?:招聘|招募|选聘)"
+)
+_TA_FORM_SUBMISSION = re.compile(
+    r"请[^。；;\n]{0,16}(?:助教|申请人|应聘者)[^。；;\n]{0,100}"
+    r"(?:申请审核表|岗位申请表)[^。；;\n]{0,36}提交"
+)
+_TA_UNAVAILABLE = re.compile(
+    r"(?:不|未|暂停|停止|取消)(?:招聘|招募|选聘)(?:课程)?(?:助教|教学助理)"
+    r"|(?:助教|教学助理)(?:岗位)?(?:招聘|招募|选聘)[^。；;\n]{0,8}"
+    r"(?:尚未|暂未|未|暂停|停止|取消)(?:正式)?(?:开放|启动|开始)"
+)
+_TA_ADMIN_BODY = re.compile(r"津贴|薪酬|工资|退出申请|退聘|考核表")
+_TA_AUDIENCE = re.compile(r"(?P<soft>原则上)?从(?P<value>[^。；;\n，,（）()]{1,40})中选聘")
+_TA_APPROVAL = re.compile(r"(?:主讲|任课)教师[^。；;\n]{0,90}(?:签署聘用意见|推荐)")
+_TA_CLOCK = re.compile(
+    r"(?<!\d)(?P<year>20\d{2})年(?P<month>\d{1,2})月(?P<day>\d{1,2})日"
+    r"(?:[（(](?:周|星期)(?P<weekday>[一二三四五六日天])[）)])?"
+    r"下午(?P<hour>1[3-9]|2[0-3])点前"
+)
 
 
 def _sentences(text: str):
@@ -215,7 +259,7 @@ def rule_manifest() -> dict:
         "topic_phrases": {key: list(values) for key, values in TOPIC_PHRASES.items()},
         "primary_topic": "title subject; body keyword alone is incidental, not active interest",
         "topic_context": {
-            "values": ["subject", "opportunity", "incidental"],
+            "values": ["subject", "opportunity", "incidental", "uncertain"],
             "entry_actions": _ENTRY_ACTION.pattern,
             "clause_break": _CONTEXT_BREAK.pattern,
             "administration_step_break": _STEP_BREAK.pattern,
@@ -229,6 +273,16 @@ def rule_manifest() -> dict:
             "negated_entry_pattern": _NEGATED_ENTRY.pattern,
             "closed_entry_pattern": _CLOSED_ENTRY.pattern,
             "unavailable_entry_pattern": _UNAVAILABLE_ENTRY.pattern,
+            "login_completion_directive": _DIRECTIVE_ENTRY.pattern,
+            "present_entry_pattern": _PRESENT_ENTRY.pattern,
+            "record_pattern": _ENTRY_RECORD.pattern,
+            "menu_path_pattern": _MENU_PATH.pattern,
+            "unbound_subject_pattern": _UNBOUND_SUBJECT.pattern,
+            "title_body_link": (
+                "one title topic, explicit current body instruction, no competing body "
+                "opportunity or reference/administration title; retain separate body evidence"
+            ),
+            "ambiguous_link": "uncertain topic and topic_action_link_unknown, never urgency",
             "other_topic": (
                 "another named topic in the gap rejects binding; research course is shared"
             ),
@@ -293,6 +347,33 @@ def rule_manifest() -> dict:
             ),
         },
         "faculty_applicant_pattern": _FACULTY_APPLICANT.pattern,
+        "teaching_assistant": {
+            "recruitment_pair": _TA_PAIR.pattern,
+            "reference_title": _TA_REFERENCE_TITLE.pattern,
+            "present_recruitment": _TA_PRESENT.pattern,
+            "application_form_submission": _TA_FORM_SUBMISSION.pattern,
+            "unavailable": _TA_UNAVAILABLE.pattern,
+            "administrative_body": _TA_ADMIN_BODY.pattern,
+            "applicant_selection": _TA_AUDIENCE.pattern,
+            "teacher_approval": _TA_APPROVAL.pattern,
+            "application_clock": _TA_CLOCK.pattern,
+            "clock_scope": (
+                "initial application form only; explicit year, optional consistent weekday, "
+                "afternoon 13-23 点前; never result/assessment dates or guessed year"
+            ),
+            "bare_mentions": "incidental; never promoted by generic registration fallback",
+            "title_requirement": (
+                "recruitment pair plus linked current body recruitment/application instruction; "
+                "otherwise uncertain, or incidental for explicit historical/administrative closure"
+            ),
+            "generic_instruction": (
+                "one title subject, no competing named body opportunity "
+                "or unavailable recruitment; "
+                "explicit form submission cannot be a historical/menu step"
+            ),
+            "conflicting_availability": "uncertain; never borrow urgency from generic action",
+            "soft_conditions": "原则上 selection remains unsupported, not a hard exclusion",
+        },
         "media": "references remain unparsed; image-only or explicit critical dependency unknown",
         "cancellation": "disabled pending trustworthy positive sample",
         "limits": "literal small rule set; no OCR, attachment parsing, semantic completeness claim",
@@ -303,6 +384,8 @@ def _topics(content):
     matches = []
     for field, text in _source_fields(content):
         for topic, phrases in TOPIC_PHRASES.items():
+            if topic == "teaching_assistant":
+                continue
             for phrase in phrases:
                 for match in re.finditer(re.escape(phrase), text):
                     context, start, end = _topic_context(topic, field, text, match)
@@ -314,6 +397,100 @@ def _topics(content):
                             context=context,
                         )
                     )
+    return tuple(matches) + _teaching_assistant_topics(content)
+
+
+def _teaching_assistant_topics(content):
+    """Require a recruitment pair and present application evidence for body offers.
+
+    A title may publish recruitment; a biography or an existing employee's form
+    cannot. Generic registration fallback deliberately never promotes a bare TA.
+    """
+    title_allowed = not _TA_REFERENCE_TITLE.search(content.title)
+    title_pairs = [
+        match
+        for match in _TA_PAIR.finditer(content.title)
+        if title_allowed and not _entry_blocked(content.title, *match.span())
+    ]
+    submission = _TA_FORM_SUBMISSION.search(content.body_text) if title_pairs else None
+    if submission is not None and _entry_blocked(content.body_text, *submission.span()):
+        submission = None
+    body_pairs = []
+    rejected_body_pair = False
+    for match in _TA_PAIR.finditer(content.body_text):
+        left, right = _clause_bounds(content.body_text, *match.span())
+        clause = content.body_text[left:right]
+        if _entry_blocked(content.body_text, *match.span()):
+            rejected_body_pair = True
+            continue
+        if _TA_PRESENT.search(clause) or (title_pairs and submission is not None):
+            body_pairs.append(match)
+    proofs = tuple(_evidence("body_text", content.body_text, *match.span()) for match in body_pairs)
+    if submission is not None:
+        proofs += (_evidence("body_text", content.body_text, *submission.span()),)
+    # N0's explicit login/application instruction remains valid for a genuine
+    # recruitment title. A named different body opportunity owns its action.
+    competing_subject = any(
+        phrase in content.title
+        for topic, phrases in TOPIC_PHRASES.items()
+        if topic != "teaching_assistant"
+        for phrase in phrases
+    ) or any(
+        _topic_context(topic, "body_text", content.body_text, match)[0] == "opportunity"
+        for topic, phrases in TOPIC_PHRASES.items()
+        if topic != "teaching_assistant"
+        for phrase in phrases
+        for match in re.finditer(re.escape(phrase), content.body_text)
+    )
+    explicitly_unavailable = _TA_UNAVAILABLE.search(content.body_text)
+    if title_pairs and not competing_subject and not explicitly_unavailable:
+        for action in _ENTRY_ACTION.finditer(content.body_text):
+            if _entry_blocked(content.body_text, *action.span()):
+                continue
+            instruction = _instruction(content.body_text, *action.span(), _DIRECTIVE_ENTRY)
+            if instruction is None:
+                instruction = _instruction(content.body_text, *action.span(), _PRESENT_ENTRY)
+            if instruction is None:
+                continue
+            left, right = _clause_bounds(content.body_text, *action.span())
+            if any(
+                phrase in content.body_text[left:right]
+                for topic, phrases in TOPIC_PHRASES.items()
+                if topic != "teaching_assistant"
+                for phrase in phrases
+            ):
+                continue
+            proofs += (_evidence("body_text", content.body_text, *instruction.span()),)
+    unavailable = not proofs and (
+        rejected_body_pair
+        or _TA_UNAVAILABLE.search(content.body_text)
+        or _TA_ADMIN_BODY.search(content.body_text)
+    )
+    conflicting = bool(proofs and explicitly_unavailable)
+    matches = []
+    for field, text in _source_fields(content):
+        pairs = title_pairs if field == "title" else body_pairs
+        for phrase in TOPIC_PHRASES["teaching_assistant"]:
+            for match in re.finditer(re.escape(phrase), text):
+                pair = next(
+                    (pair for pair in pairs if pair.start() <= match.start() < pair.end()), None
+                )
+                context = "incidental"
+                if pair is not None and not unavailable:
+                    context = "opportunity" if field == "body_text" or proofs else "uncertain"
+                    if conflicting:
+                        context = "uncertain"
+                matches.append(
+                    TopicMatch(
+                        topic="teaching_assistant",
+                        primary=field == "title" and context == "opportunity",
+                        context=context,
+                        evidence=_evidence(
+                            field, text, *(pair.span() if pair is not None else match.span())
+                        ),
+                        supporting_evidence=proofs if field == "title" and pair is not None else (),
+                    )
+                )
     return tuple(matches)
 
 
@@ -321,6 +498,18 @@ def _clause_bounds(text, start, end):
     before = list(_CONTEXT_BREAK.finditer(text, 0, start))
     after = _CONTEXT_BREAK.search(text, end)
     return before[-1].end() if before else 0, after.start() if after else len(text)
+
+
+def _instruction(text, start, end, pattern):
+    left, right = _clause_bounds(text, start, end)
+    return next(
+        (
+            match
+            for match in pattern.finditer(text, left, right)
+            if match.span("action") == (start, end)
+        ),
+        None,
+    )
 
 
 def _entry_blocked(text, start, end, *, subject_start=None, subject_end=None):
@@ -340,8 +529,18 @@ def _entry_blocked(text, start, end, *, subject_start=None, subject_end=None):
     step_left = prior_steps[-1].end() if prior_steps else left
     next_step = _STEP_BREAK.search(text, stop, right)
     step_right = next_step.start() if next_step else right
-    if _NAVIGATION.search(text[step_left : min(step_right, stop + 8)]):
+    local = text[step_left : min(step_right, stop + 8)]
+    if _ENTRY_RECORD.search(local):
         return True
+    if _NAVIGATION.search(local):
+        # A witnessed imperative to complete an application is different from
+        # a menu path. It must name this exact action, not another nearby word.
+        if (
+            _instruction(text, start, end, _DIRECTIVE_ENTRY) is None
+            or _MENU_PATH.search(local)
+            or "登录" not in local
+        ):
+            return True
     past = list(_PAST_CONTEXT.finditer(prefix))
     current = list(_CURRENT_CONTEXT.finditer(prefix))
     if past and (not current or past[-1].start() > current[-1].start()):
@@ -397,6 +596,89 @@ def _opportunities(content):
     )
 
 
+def _link_document_actions(content, topics):
+    """Resolve one title subject, retaining limited unresolved relations as unknown."""
+    unbound = [item for item in topics if item.primary and item.context == "subject"]
+    if _RESULTS.search(content.title) or _ADMIN_ACTION.search(content.title):
+        return topics, ()
+    title_topics = {item.topic for item in topics if item.primary and item.context != "incidental"}
+    if title_topics and not unbound:
+        return topics, ()
+    instructions = []
+    for action in _ENTRY_ACTION.finditer(content.body_text):
+        if _entry_blocked(content.body_text, action.start(), action.end()):
+            continue
+        instruction = _instruction(content.body_text, *action.span(), _PRESENT_ENTRY)
+        if instruction is None:
+            instruction = _instruction(content.body_text, *action.span(), _DIRECTIVE_ENTRY)
+        if instruction is None:
+            continue
+        left, right = _clause_bounds(content.body_text, *action.span())
+        clause_topics = {
+            topic
+            for topic, phrases in TOPIC_PHRASES.items()
+            if any(phrase in content.body_text[left:right] for phrase in phrases)
+        }
+        # A named body subject owns its action. Local linking already handles
+        # that subject; a different title cannot borrow it via this fallback.
+        if clause_topics:
+            continue
+        instructions.append(
+            _evidence("body_text", content.body_text, instruction.start(), instruction.end())
+        )
+    if not instructions:
+        return topics, ()
+    if not title_topics:
+        # A neutral body heading plus a separate generic instruction is only
+        # a possible relation. It cannot borrow urgency or become a Digest.
+        for item in topics:
+            if item.context != "incidental":
+                continue
+            left, right = _clause_bounds(content.body_text, item.evidence.start, item.evidence.end)
+            clause = content.body_text[left:right]
+            if _UNBOUND_SUBJECT.search(clause) and not any(
+                pattern.search(clause)
+                for pattern in (
+                    _ADMIN_ACTION,
+                    _NAVIGATION,
+                    _ENTRY_RECORD,
+                    _PAST_CONTEXT,
+                    _ENTRY_ACTION,
+                )
+            ):
+                unbound.append(item)
+        if not unbound:
+            return topics, ()
+    competitors = [
+        item
+        for item in topics
+        if not item.primary and item.context == "opportunity" and item.topic not in title_topics
+    ]
+    unique_subject = len(title_topics) == 1 and not competitors
+    linked = tuple(
+        item.model_copy(
+            update={
+                "context": "opportunity" if unique_subject else "uncertain",
+                "supporting_evidence": tuple(instructions),
+            }
+        )
+        if item in unbound
+        else item
+        for item in topics
+    )
+    if unique_subject:
+        return linked, ()
+    unknown = _unknown(
+        "topic_action_link_unknown",
+        "interest",
+        "可见主题与正文报名行动缺少可靠绑定，无法确定该行动属于哪项机会。",
+        *(item.evidence for item in unbound),
+        *(item.evidence for item in competitors),
+        *instructions,
+    )
+    return linked, (unknown,)
+
+
 def _qualifications(content):
     constraints, unknowns = [], []
     audience_declared = False
@@ -422,14 +704,23 @@ def _qualifications(content):
             negated = re.search(
                 r"不|非", text[max(0, match.start() - 3) : match.start()]
             ) or re.search(r"非(?:本科生|研究生|教师)|不包括|并非", clause)
-            ambiguous = _OR.search(clause) is not None or negated is not None
+            soft = re.search(
+                r"原则上|优先|通常|一般", text[max(0, match.start() - 3) : match.end()]
+            ) is not None and any(
+                item.context == "opportunity" for item in _teaching_assistant_topics(content)
+            )
+            ambiguous = _OR.search(clause) is not None or negated is not None or soft
             if ambiguous:
                 incomplete = True
                 unknowns.append(
                     _unknown(
-                        "unsupported_negation" if negated else "unsupported_or",
+                        "soft_qualification"
+                        if soft
+                        else "unsupported_negation"
+                        if negated
+                        else "unsupported_or",
                         "eligibility",
-                        "资格含未支持的否定、OR 或例外条件。",
+                        "资格含软限定、未支持的否定、OR 或例外条件。",
                         evidence,
                     )
                 )
@@ -638,6 +929,50 @@ def _qualifications(content):
                         proof,
                     )
                 )
+    assistant = any(item.context == "opportunity" for item in _teaching_assistant_topics(content))
+    if assistant:
+        for match in _TA_AUDIENCE.finditer(content.body_text):
+            audience_declared, incomplete = True, True
+            proof = _evidence("body_text", content.body_text, *match.span())
+            clause = match["value"]
+            levels = (
+                ("master",)
+                if "硕士研究生" in clause
+                else ("doctoral",)
+                if "博士研究生" in clause
+                else ("master", "doctoral")
+                if "研究生" in clause
+                else ("undergraduate",)
+                if "本科生" in clause
+                else ()
+            )
+            if levels:
+                constraints.append(
+                    QualificationConstraint(
+                        field="study_level",
+                        values=levels,
+                        operator="unsupported" if match["soft"] else "one_of",
+                        evidence=proof,
+                    )
+                )
+            unknowns.append(
+                _unknown(
+                    "recruitment_condition_unknown",
+                    "eligibility",
+                    "聘任对象含院属、学籍或软限定；不把原则上当作硬排除，也不能确认全部资格。",
+                    proof,
+                )
+            )
+        for match in _TA_APPROVAL.finditer(content.body_text):
+            incomplete = True
+            unknowns.append(
+                _unknown(
+                    "teacher_approval_required",
+                    "eligibility",
+                    "主讲教师的推荐或聘用审核需人工核对。",
+                    _evidence("body_text", content.body_text, *match.span()),
+                )
+            )
     # Multiple declarations on one field can be contradictory, not just an AND mismatch.
     for constraint_field in sorted(
         {item.field for item in constraints if item.operator != "unsupported"}
@@ -666,8 +1001,40 @@ def _qualifications(content):
 
 def _times(content, category):
     openings, deadlines, evidence, unknowns, lower_bounds = [], [], [], [], []
+    assistant = any(item.context == "opportunity" for item in _teaching_assistant_topics(content))
     for field, text in _source_fields(content):
         for clause, start, end in _sentences(text):
+            if assistant and _TA_FORM_SUBMISSION.search(clause):
+                proof = _evidence(field, text, start, end)
+                evidence.append(proof)
+                clocks = list(_TA_CLOCK.finditer(clause))
+                if len(clocks) == 1:
+                    clock = clocks[0]
+                    try:
+                        deadline = datetime(
+                            *(int(clock[name]) for name in ("year", "month", "day", "hour")),
+                            tzinfo=SHANGHAI,
+                        )
+                        if clock["weekday"] is not None and "一二三四五六日"[
+                            deadline.weekday()
+                        ] != clock["weekday"].replace("天", "日"):
+                            raise ValueError("weekday mismatch")
+                    except ValueError:
+                        unknowns.append(
+                            _unknown("invalid_time", "time", "申请表提交日期无效。", proof)
+                        )
+                    else:
+                        deadlines.append(deadline)
+                else:
+                    unknowns.append(
+                        _unknown(
+                            "time_unrecognized",
+                            "time",
+                            "申请表提交时间不属于已验证的表达式。",
+                            proof,
+                        )
+                    )
+                continue
             team_deadline = bool(
                 _TEAM_SUBMISSION.search(clause)
                 and any(
@@ -852,8 +1219,27 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
         for field in ("images", "attachments")
         for index, reference in enumerate(getattr(content, field))
     )
-    topics = _topics(content)
+    topics, link_unknowns = _link_document_actions(content, _topics(content))
+    unresolved_recruitment = tuple(
+        item.evidence
+        for item in topics
+        if item.topic == "teaching_assistant" and item.context == "uncertain"
+    )
+    if unresolved_recruitment:
+        link_unknowns += (
+            _unknown(
+                "topic_action_link_unknown",
+                "interest",
+                "助教招聘标题尚缺可关联的当前申请行动；不能借用其他主题的截止时间。",
+                *unresolved_recruitment,
+            ),
+        )
     opportunities = _opportunities(content)
+    opportunities += tuple(
+        item.evidence
+        for item in topics
+        if item.topic == "teaching_assistant" and item.context == "opportunity"
+    )
     if _RESULTS.search(content.title) or (
         _ADMIN_ACTION.search(content.title)
         and not any(item.context == "opportunity" and item.primary for item in topics)
@@ -868,10 +1254,40 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
     if category != "opportunity":
         opportunities = ()
     constraints, audience, complete, unknowns = _qualifications(content)
+    unknowns.extend(link_unknowns)
     opens_at, deadline_at, deadline_lower_at, time_evidence, time_unknowns = _times(
         content, category
     )
     current_application = _CURRENT_APPLICATION.search(content.body_text)
+    if current_application is None and any(
+        item.topic == "teaching_assistant" and item.context == "opportunity" for item in topics
+    ):
+        current_application = _TA_FORM_SUBMISSION.search(content.body_text)
+        if current_application is None:
+            # The recorded current application instruction confirms opening;
+            # an isolated future date or the recruitment title does not.
+            for item in topics:
+                if item.topic != "teaching_assistant" or item.context != "opportunity":
+                    continue
+                for proof in item.supporting_evidence:
+                    current_application = _DIRECTIVE_ENTRY.search(
+                        content.body_text, proof.start, proof.end
+                    )
+                    if current_application is None:
+                        current_application = _PRESENT_ENTRY.search(
+                            content.body_text, proof.start, proof.end
+                        )
+                    if current_application is not None:
+                        break
+                if current_application is not None:
+                    break
+                if item.evidence.field == "body_text":
+                    left, right = _clause_bounds(
+                        content.body_text, item.evidence.start, item.evidence.end
+                    )
+                    current_application = _TA_PRESENT.search(content.body_text, left, right)
+                    if current_application is not None:
+                        break
     if current_application is not None and category == "opportunity":
         # This explicit present-tense permission confirms the witnessed team's
         # application is open; it does not supply an invented start timestamp.

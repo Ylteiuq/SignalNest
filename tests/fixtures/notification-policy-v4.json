@@ -1,0 +1,466 @@
+{
+  "note": "Captured from actual production v4 before iteration N1 v5 changes; fictional Profile and synthetic notice, compatibility evidence only.",
+  "content": {
+    "title": "国际交流项目报名通知",
+    "published_date": "2026-10-01",
+    "body_html": "<p>面向武汉大学本科生。即日起报名，截止2026年10月6日。</p>",
+    "body_text": "面向武汉大学本科生。即日起报名，截止2026年10月6日。",
+    "links": [],
+    "images": [],
+    "attachments": []
+  },
+  "profile": {
+    "schema_version": 1,
+    "profile_id": "self",
+    "institution": "whu",
+    "study_level": "undergraduate",
+    "college": null,
+    "major": null,
+    "entry_year": null,
+    "interest_topics": [
+      "exchange"
+    ],
+    "include_phrases": [],
+    "exclude_topics": [],
+    "high_value_topics": [],
+    "store_only_topics": []
+  },
+  "context": {
+    "kind": "new",
+    "notification_mode": "hybrid",
+    "previous_facts": null,
+    "previous_action": null,
+    "previous_effective_route": "none",
+    "comparison_known": true,
+    "activation_date_conflict": false,
+    "next_digest_at": "2026-10-06T09:00:00+08:00"
+  },
+  "facts": {
+    "content_sha256": "9de622e8d89fbc072ef84525e677c92ed02a5919ebaa32d474eb94f1ee38715d",
+    "extractor_version": "whu-notice-facts-v4",
+    "title": "国际交流项目报名通知",
+    "published_date": "2026-10-01",
+    "body_text": "面向武汉大学本科生。即日起报名，截止2026年10月6日。",
+    "topic_matches": [
+      {
+        "topic": "exchange",
+        "evidence": {
+          "field": "title",
+          "start": 0,
+          "end": 8,
+          "excerpt": "国际交流项目报名",
+          "index": null,
+          "url": null
+        },
+        "primary": true,
+        "context": "opportunity"
+      },
+      {
+        "topic": "exchange",
+        "evidence": {
+          "field": "title",
+          "start": 2,
+          "end": 8,
+          "excerpt": "交流项目报名",
+          "index": null,
+          "url": null
+        },
+        "primary": true,
+        "context": "opportunity"
+      }
+    ],
+    "category": "opportunity",
+    "opportunity_evidence": [
+      {
+        "field": "title",
+        "start": 6,
+        "end": 8,
+        "excerpt": "报名",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 13,
+        "end": 15,
+        "excerpt": "报名",
+        "index": null,
+        "url": null
+      }
+    ],
+    "constraints": [
+      {
+        "field": "institution",
+        "values": [
+          "whu"
+        ],
+        "operator": "one_of",
+        "evidence": {
+          "field": "body_text",
+          "start": 0,
+          "end": 9,
+          "excerpt": "面向武汉大学本科生",
+          "index": null,
+          "url": null
+        }
+      },
+      {
+        "field": "study_level",
+        "values": [
+          "undergraduate"
+        ],
+        "operator": "one_of",
+        "evidence": {
+          "field": "body_text",
+          "start": 0,
+          "end": 9,
+          "excerpt": "面向武汉大学本科生",
+          "index": null,
+          "url": null
+        }
+      }
+    ],
+    "audience_declared": true,
+    "eligibility_complete": true,
+    "opens_at": "2026-10-01T00:00:00+08:00",
+    "deadline_at": "2026-10-06T23:59:59+08:00",
+    "opening_confirmed": true,
+    "time_evidence": [
+      {
+        "field": "body_text",
+        "start": 10,
+        "end": 28,
+        "excerpt": "即日起报名，截止2026年10月6日",
+        "index": null,
+        "url": null
+      }
+    ],
+    "information_incomplete": false,
+    "media": [],
+    "unknowns": [],
+    "cancelled": false
+  },
+  "decision": {
+    "action": "PUSH_NOW",
+    "needs_review": false,
+    "effective_route": "immediate",
+    "routing_reason_codes": [
+      "hybrid_immediate"
+    ],
+    "reason_codes": [
+      "deadline_soon"
+    ],
+    "reasons": [
+      "相关机会已经开放，可信截止在 72 小时内。"
+    ],
+    "matched_rules": [
+      "interest.topic.exchange",
+      "qualification.institution.match",
+      "qualification.study_level.match",
+      "decision.deadline_soon",
+      "route.hybrid_immediate"
+    ],
+    "relevance": "matched",
+    "eligibility": "eligible",
+    "time_status": "open",
+    "constraint_results": [
+      {
+        "constraint": {
+          "field": "institution",
+          "values": [
+            "whu"
+          ],
+          "operator": "one_of",
+          "evidence": {
+            "field": "body_text",
+            "start": 0,
+            "end": 9,
+            "excerpt": "面向武汉大学本科生",
+            "index": null,
+            "url": null
+          }
+        },
+        "actual": "whu",
+        "result": "match"
+      },
+      {
+        "constraint": {
+          "field": "study_level",
+          "values": [
+            "undergraduate"
+          ],
+          "operator": "one_of",
+          "evidence": {
+            "field": "body_text",
+            "start": 0,
+            "end": 9,
+            "excerpt": "面向武汉大学本科生",
+            "index": null,
+            "url": null
+          }
+        },
+        "actual": "undergraduate",
+        "result": "match"
+      }
+    ],
+    "unknowns": [],
+    "evidence": [
+      {
+        "field": "title",
+        "start": 0,
+        "end": 8,
+        "excerpt": "国际交流项目报名",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "title",
+        "start": 2,
+        "end": 8,
+        "excerpt": "交流项目报名",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 0,
+        "end": 9,
+        "excerpt": "面向武汉大学本科生",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "title",
+        "start": 6,
+        "end": 8,
+        "excerpt": "报名",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 13,
+        "end": 15,
+        "excerpt": "报名",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 10,
+        "end": 28,
+        "excerpt": "即日起报名，截止2026年10月6日",
+        "index": null,
+        "url": null
+      }
+    ],
+    "evaluated_at": "2026-10-05T01:00:00Z",
+    "profile_sha256": "f8b5efb1b2c01ee7ab7c96f49cbe5d1524b7f5fa25076f023fe7c4410ada1eb0",
+    "content_sha256": "9de622e8d89fbc072ef84525e677c92ed02a5919ebaa32d474eb94f1ee38715d",
+    "facts_sha256": "56eb4434d209bde67c0bd191a8b3f11d7c6df04a74b78e9cdfd2cac68189a1b9",
+    "policy_sha256": "3543ffb7fb8320a1c2775ab337b61f0844965567f5a84333e1266240f2ef19c9",
+    "input_sha256": "a6d456a0e145e0f36387e7914a66e80c4d252dc697820587e9f328dd5b7650d2",
+    "facts_extractor_version": "whu-notice-facts-v4",
+    "decision_engine_version": "notification-decision-v4",
+    "rules_version": "notification-rules-v4",
+    "routing_version": "notification-routing-v1"
+  },
+  "manifest": {
+    "profile": {
+      "schema_version": 1,
+      "profile_id": "self",
+      "institution": "whu",
+      "study_level": "undergraduate",
+      "college": null,
+      "major": null,
+      "entry_year": null,
+      "interest_topics": [
+        "exchange"
+      ],
+      "include_phrases": [],
+      "exclude_topics": [],
+      "high_value_topics": [],
+      "store_only_topics": []
+    },
+    "facts_rules": {
+      "facts_extractor_version": "whu-notice-facts-v4",
+      "rules_version": "notification-rules-v4",
+      "topic_phrases": {
+        "exchange": [
+          "国际交流",
+          "交换生",
+          "交流项目",
+          "海外交流",
+          "出国交流",
+          "海外研修"
+        ],
+        "scholarship": [
+          "奖学金",
+          "助学金"
+        ],
+        "research": [
+          "创新研究",
+          "科研训练",
+          "创新创业训练",
+          "大创项目",
+          "本科生科研"
+        ],
+        "competition": [
+          "竞赛",
+          "大赛"
+        ],
+        "course_enrollment": [
+          "选课",
+          "课程报名"
+        ],
+        "minor": [
+          "辅修",
+          "双学士学位"
+        ],
+        "recommendation": [
+          "推免",
+          "推荐免试"
+        ]
+      },
+      "primary_topic": "title subject; body keyword alone is incidental, not active interest",
+      "topic_context": {
+        "values": [
+          "subject",
+          "opportunity",
+          "incidental",
+          "uncertain"
+        ],
+        "entry_actions": "报名|申请|申报|征集|招募|招生|招收|选拔|选派|选课",
+        "clause_break": "[。；;！!？?\\n]",
+        "administration_step_break": "[，,]",
+        "maximum_topic_action_gap": 24,
+        "minor_after_pattern": "\\s*(?:专业|项目|学习|课程)?\\s*(?:的)?\\s*(?:(?:现|即日起)?(?:开始|启动|开放|接受))?\\s*(?P<action>报名|招生|招收|招募|申请(?:修读|攻读)?)",
+        "minor_before_pattern": "(?:报名(?:修读|参加)?|申请(?:修读|攻读)?)\\s*$",
+        "administration_pattern": "缴费|收费|补缴|退费|退课|退出|成绩转换|学分转换|证书申请",
+        "navigation_pattern": "登录|菜单|点击|智慧珞珈|报名申请\\s*[-→>]",
+        "past_pattern": "去年|往年|上学期|上一年度|曾经|曾于|已于|此前|历史",
+        "current_pattern": "即日起|现(?:启动|开放|开展|接受)|本次|本轮|今年",
+        "negated_entry_pattern": "(?:不|未|暂停|停止|取消)[^，,。；;\\n]{0,10}$",
+        "closed_entry_pattern": "\\s*(?:已(?:经)?(?:结束|截止|完成|关闭)|结束|停止|关闭)",
+        "unavailable_entry_pattern": "\\s*(?:尚未|暂未|未|不|暂停|停止|取消)(?:正式)?(?:开放|启动|开始|开展|接受|进行)",
+        "login_completion_directive": "(?:请|须|需|应)[^。；;\\n，,→>]{0,40}(?:完成|进行|提交)[^。；;\\n，,→>]{0,12}(?P<action>报名|申请|申报|选课)",
+        "present_entry_pattern": "(?:即日起|现(?:已)?(?:启动|开放|接受|开始|开展)|正在接受)\\s*(?P<action>报名|申请|申报|征集|招募|招生|招收|选拔|选派|选课)",
+        "record_pattern": "查看|查询|已有|历史记录|报名记录|(?:报名|申请)情况",
+        "menu_path_pattern": "菜单|点击|[→>]|报名申请\\s*[-→>]",
+        "unbound_subject_pattern": "(?:相关|有关)(?:安排|事宜|事项)|(?:安排|事项)(?:如下|见下文)",
+        "title_body_link": "one title topic, explicit current body instruction, no competing body opportunity or reference/administration title; retain separate body evidence",
+        "ambiguous_link": "uncertain topic and topic_action_link_unknown, never urgency",
+        "other_topic": "another named topic in the gap rejects binding; research course is shared",
+        "occurrences": "classify every occurrence; incidental mentions cannot mask later offers"
+      },
+      "category": {
+        "reference_title": "结题|验收结果|评审结果|获奖名单|录取名单|结果公示|公布.*结果",
+        "administration_title": "缴费|收费|补缴|退费|退课|退出|成绩转换|学分转换|证书申请",
+        "administration_reference": "only when no title topic has a linked entry action",
+        "opportunity_phrase": "报名|申请|申报|征集|招募|招生|招收|选拔|选派|选课",
+        "opportunity_exclusions": "same entry exclusions as topic binding"
+      },
+      "audience_patterns": [
+        "(?:仅面向|只面向|面向|仅限|只限|(?:报名|申请|申报|选课)对象(?:与要求)?\\s*[:：]|报名条件\\s*[:：\\n]\\s*(?:\\d+[.．]\\s*)?)(?P<value>[^。；;\\n]+)",
+        "(?:武汉大学)?(?:20\\d{2}级)?(?:全日制)?(?:在校)?(?:本科生|研究生)(?:均可|可|可以)(?:报名|申请|参加)"
+      ],
+      "supported_qualification_fields": [
+        "role: explicit current faculty topic-solicitation applicant, not student beneficiary",
+        "institution: explicit Wuhan University or 全校/我校 scope",
+        "study_level: undergraduate/master/doctoral/faculty",
+        "college: literal 学院名 in audience clause",
+        "major: literal 专业为/专业： or X专业学生",
+        "entry_year: explicit 20XX级"
+      ],
+      "unsupported_qualification_patterns": {
+        "gpa": "GPA|绩点|平均成绩",
+        "language": "(?:英语|语言)[^。；\\n]{0,16}(?:要求|达到|不低于)|CET-[46]|雅思|托福",
+        "grade": "[一二三四五六]年级|大[一二三四五六]",
+        "project_membership": "(?:面向|仅限)[^。；\\n]{0,20}(?:预立项项目|项目成员|项目团队)",
+        "financial_condition": "(?:家庭)?经济困难|贫困(?:生|家庭)",
+        "age": "年龄[^。；\\n]{0,18}(?:周岁|不超过|不低于)|年满\\s*\\d+|\\d+\\s*周岁",
+        "disciplinary_record": "无处分记录|无纪律处分|未受[^。；\\n]{0,8}处分|无违纪记录"
+      },
+      "boolean_logic": "explicit AND only; OR and conflicting constraints remain unknown",
+      "qualification_sections": {
+        "heading_pattern": "(?m)^\\s*(?:[一二三四五六七八九十]+[、.．]\\s*)?(?:(?:报名|申请|申报|选课)(?:条件|要求)|资格(?:条件|要求))\\s*[:：]?\\s*",
+        "next_section_pattern": "(?m)^\\s*[一二三四五六七八九十]+[、.．]\\s*(?:(?:报名|申请|申报|选课|提交)(?:材料|流程|方式|时间|安排|费用)|日程|咨询|联系|附件)",
+        "numbered_condition_pattern": "(?:^|[。\\n；;])\\s*(?:\\d+[.．、)）]|[（(]\\s*(?:\\d+|[一二三四五六七八九十]+)\\s*[)）]|[一二三四五六七八九十]+[、.．])\\s*(?P<value>[^。；;\\n]+)",
+        "unparsed_numbered_conditions": "unsupported; recognizing the first item is insufficient",
+        "or_pattern": "满足(?:其中)?(?:一项|任一项)|符合(?:其中)?任一|任一条件|条件之一|任选",
+        "unscoped_or_pattern": "满足(?:其中)?(?:一项|任一项)|符合(?:其中)?任一(?:项|条件)|任一条件|条件之一"
+      },
+      "time": {
+        "complete_date_pattern": "(?<!\\d)(?P<year>20\\d{2})(?:年|[-/])\\s*(?P<month>\\d{1,2})(?:月|[-/])\\s*(?P<day>\\d{1,2})(?!\\d)(?:日)?(?:\\s*(?P<hour>\\d{1,2})[:：](?P<minute>\\d{2})(?!\\d))?",
+        "deadline_context_pattern": "(?:报名|申请|申报|选课)?(?:截止(?:时间|日期)?(?!后)|最迟)|(?:报名|申请|申报|选课)时间",
+        "timezone": "Asia/Shanghai",
+        "date_only_deadline": "23:59:59 on stated date",
+        "date_only_start": "00:00:00 on stated date",
+        "relative_opening": "即日起/自通知发布之日起 use explicit site publication date",
+        "unsupported_time_suffix_pattern": "\\s*(?:[:：.]|[~～—–-]\\s*\\d{1,2}\\s*[:：]|(?:至|到)\\s*\\d{1,2}\\s*(?:[:：]|日)|[+-]\\s*\\d{2}:|\\b(?:AM|PM|Z)\\b|时|点|秒)",
+        "unsupported_date_clock_pattern": "\\s*(?:[，,（(]\\s*)?(?:清晨|凌晨|早上|上午|中午|下午|傍晚|晚上|夜间|午夜|[晚早]\\s*\\d|T\\s*\\d{1,2}[:：]|\\d{1,2}\\s*[:：时点])",
+        "unsupported_timezone_pattern": "\\b(?:UTC|GMT|EST|EDT|PST|PDT|CST|CDT|MST|MDT|CET|CEST)\\b|纽约时间|伦敦时间|东京时间|当地时间|美国时间|英国时间|(?:美国(?:东部|中部|西部|山地|太平洋)|美东|美中|美西|欧洲中部|中欧|东部|中部|太平洋)时间",
+        "local_timezone_labels": [
+          "北京时间",
+          "上海时间",
+          "中国标准时间"
+        ],
+        "bracketed_timezone_pattern": "[（(]\\s*([\\u4e00-\\u9fff]{2,16}(?:时间|时区))\\s*[)）]",
+        "suffix_timezone_pattern": "\\s*([\\u4e00-\\u9fff]{2,16}(?:时间|时区))",
+        "year_inheritance": "only YYYY date 至/到 M月D日 in one explicit application interval",
+        "midnight": "24:00 exactly means next calendar day 00:00",
+        "before_date": "日前 retains [day start, day end] boundary and imprecise_deadline",
+        "team_submission_pattern": "项目团队(?:完成|须|需)[^。；;\\n]{0,24}(?:提交|材料)",
+        "administrative_deadline_pattern": "(?:指导教师|各项目单位|各学院)[^。；;\\n]{0,32}(?:审核|评审|汇总|提交|发送)",
+        "current_application_pattern": "可提出立项补报申请",
+        "separate_later_round_pattern": "^(?:辅修第一轮录取结果和)?第二轮报名时间将另行通知(?:[，,]请及时关注)?\\s*$",
+        "deferred_deadline_pattern": "截止(?:时间|日期)?\\s*(?:另行通知|(?:见|详见|以)[^，,。；;\\n]{0,20}(?:通知|为准))",
+        "unsupported": "standalone missing year, cross-year guessing, multiple applicant deadlines, seconds, clock ranges, other timezones"
+      },
+      "faculty_applicant_pattern": "现面向(?:全校|我校|武汉大学)教师征集[^。；;\\n]{0,24}选题",
+      "media": "references remain unparsed; image-only or explicit critical dependency unknown",
+      "cancellation": "disabled pending trustworthy positive sample",
+      "limits": "literal small rule set; no OCR, attachment parsing, semantic completeness claim"
+    },
+    "decision_rules": {
+      "deadline_hours": 72,
+      "urgent_deadline_boundary": "lower bound, or now after entering its uncertain interval",
+      "closed_deadline_boundary": "upper bound only; uncertainty is not confirmed expiration",
+      "uncertain_deadline_requires_review": true,
+      "recent_calendar_days": 7,
+      "timezone": "Asia/Shanghai",
+      "store_only_scope": "only matching topics; another active interest or literal phrase wins",
+      "active_interest": "subject/opportunity topics; incidental mentions are evidence only; uncertain interests retained without mail eligibility",
+      "urgent_topic": "new urgency/high value requires a linked opportunity or explicit phrase",
+      "uncertain_followed_update": "preserve previously eligible update/comparison reminders without new urgency",
+      "order": [
+        "reliable_exclusion",
+        "historical",
+        "interest_or_reference",
+        "reference_or_store_only",
+        "followed_update",
+        "closed_or_ineligible",
+        "urgent_or_high_value",
+        "ordinary_digest"
+      ]
+    },
+    "routing_rules": {
+      "store_only_or_ignore": "none",
+      "digest": "digest",
+      "push_now_digest_only": "digest",
+      "push_now_hybrid": "immediate",
+      "activation_recent_default": "digest",
+      "activation_recent_exception": "open_deadline_at_or_before_next_digest",
+      "digest_only_precedes_activation_exception": true
+    },
+    "versions": {
+      "facts_extractor": "whu-notice-facts-v4",
+      "rules": "notification-rules-v4",
+      "decision_engine": "notification-decision-v4",
+      "routing": "notification-routing-v1"
+    }
+  },
+  "profile_sha256": "f8b5efb1b2c01ee7ab7c96f49cbe5d1524b7f5fa25076f023fe7c4410ada1eb0",
+  "facts_sha256": "56eb4434d209bde67c0bd191a8b3f11d7c6df04a74b78e9cdfd2cac68189a1b9",
+  "manifest_sha256": "3543ffb7fb8320a1c2775ab337b61f0844965567f5a84333e1266240f2ef19c9"
+}

@@ -1,0 +1,13 @@
+# EXAMPLE ONLY: fictional graduate applicant for offline teaching-assistant replay.
+# 虚构示例，不是用户画像，也不证明符合经管学院、本院或全日制条件。
+schema_version = 1
+profile_id = "self"
+institution = "whu"
+study_level = "master"
+role = "student"
+# college/major/entry_year unknown; full-time status is not a supported Profile field.
+interest_topics = ["teaching_assistant"]
+include_phrases = []
+exclude_topics = []
+high_value_topics = []
+store_only_topics = []

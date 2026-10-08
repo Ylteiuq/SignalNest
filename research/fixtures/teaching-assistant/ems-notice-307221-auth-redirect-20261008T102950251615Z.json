@@ -1,0 +1,27 @@
+{
+  "requested_url": "https://ems.whu.edu.cn/2025/content.jsp?urltype=news.NewsContentUrl&wbtreeid=1588&wbnewsid=307221",
+  "started_at": "2026-10-08T10:29:50.251615+00:00",
+  "finished_at": "2026-10-08T10:29:50.392663+00:00",
+  "request_method": "GET",
+  "request_headers": {
+    "User-Agent": "SignalNest research (read-only sample verification)",
+    "Accept": "text/html",
+    "Accept-Encoding": "identity"
+  },
+  "status_code": 302,
+  "response_body_bytes": 0,
+  "redirect_location_origin": "https://ems.whu.edu.cn",
+  "redirect_location_path": "/system/resource/code/auth/caslogin.jsp",
+  "redirect_query_keys": [
+    "data_r"
+  ],
+  "redirect_query_values_retained": false,
+  "followed_redirect": false,
+  "fixture": null,
+  "body_complete_for_notice": false,
+  "result": "authentication_redirect_not_followed",
+  "discovered_in": "ems-notices-home-20261008T102826022139Z.html",
+  "listed_title": "经济与管理学院2026—2027学年第一学期本科教学课程助教选聘通知",
+  "listed_published_date": "2026-09-16",
+  "note": "Metadata only. No login, authentication payload retention, alternate-route access, attachment or image request."
+}

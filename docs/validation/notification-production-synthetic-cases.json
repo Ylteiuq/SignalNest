@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "note": "Explicit synthetic NoticeContent, fictional Profile and fixed clock. These two minimal regression cases are not fetched HTML, Parser tests, research cases or human-confirmed labels.",
+  "adaptations": [
+    "Q01/Q02 are new synthetic engineering regressions for this iteration N0; they do not change the original thirteen fixed production cases.",
+    "Only production extract_facts and decide run; no Parser success, source URL or raw bytes are fabricated."
+  ],
+  "profiles": {
+    "ordinary_research": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "research"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": []
+    }
+  },
+  "cases": [
+    {
+      "case_id": "Q01",
+      "input_kind": "synthetic_notice_content",
+      "synthetic_notice_content": {
+        "title": "科研训练项目通知",
+        "published_date": "2026-10-08",
+        "body_html": "<p>面向武汉大学本科生。即日起报名，截止2026年10月8日23:59。</p>",
+        "body_text": "面向武汉大学本科生。即日起报名，截止2026年10月8日23:59。",
+        "links": [],
+        "images": [],
+        "attachments": []
+      },
+      "content_sha256": "9bef2846ef27890e357598a6c4362a8fbf57d53ddbc0b8d4696208251e802b6b",
+      "profile": "ordinary_research",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "合成最小正例：标题声明科研主题，正文明确开放报名和当天截止。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ]
+      }
+    },
+    {
+      "case_id": "Q02",
+      "input_kind": "synthetic_notice_content",
+      "synthetic_notice_content": {
+        "title": "本科生报名通知",
+        "published_date": "2026-10-08",
+        "body_html": "<p>面向武汉大学本科生。即日起，请登录系统完成科研训练报名，截止2026年10月8日23:59。</p>",
+        "body_text": "面向武汉大学本科生。即日起，请登录系统完成科研训练报名，截止2026年10月8日23:59。",
+        "links": [],
+        "images": [],
+        "attachments": []
+      },
+      "content_sha256": "f52511b06a04074cee4b8c5b501af016fa813184c9343947a041e4015d0f35bc",
+      "profile": "ordinary_research",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "合成最小正例：登录系统完成当前科研训练报名，不是导航菜单或历史记录。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ]
+      }
+    }
+  ]
+}
