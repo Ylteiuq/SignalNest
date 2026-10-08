@@ -1,6 +1,6 @@
 # SignalNest 设计与采集持久化
 
-项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断、N0 本地决策与 N1 通知事件持久化已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。新增外部定时部署模板，没有 Python 常驻调度器或邮件发送。
+项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断、N0 本地决策、N1 通知事件持久化、N2 邮件计划/冻结、N3 SMTP 适配器与 N4 发送恢复/政策维护已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。外部定时模板提供采集和独立邮件入口，没有 Python 常驻调度器；后台邮件默认关闭，显式启用后自动计划/发送。政策 v3 与竞赛详情模板已接通，含邮件的备份专项校验见 [邮件恢复](mail-backup.md)。目标 Linux 与真实邮箱仍未验证。
 
 ## 模块边界
 
@@ -24,6 +24,11 @@
 - `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
 - `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
 - `notifications/state.py` / `service.py`：显式启用和真实日期证据，事务外比较/决策准备，同成功 Connection 提交独立 live 基线、事件、选中决策和必要 planned 意图；不渲染或发送邮件。
+- `mail/contracts.py` / `rendering.py` / `planning.py`：纯文本邮件契约与纯渲染、事务外准备/装箱、短事务冻结和精确事件分配；不重新决策、读取原始文件或连接 SMTP。
+- `mail/smtp.py`：显式消费 FrozenMessage，一次 TLS SMTP 会话、单一认证机制和单收件人事务；返回有限接受/可重试/未知/永久失败，不查库、重渲染或重试。
+- `mail/sending.py`：同实例锁下串行发送；网络前后短事务登记尝试与结果，持久 due/暂停、一次人工许可与未知恢复；不改内容成功状态或重新渲染。
+- `mail/background.py`：显式有界计划/发送运行及采集后邮件组合；普通已登记采集失败继续邮件，系统错误停止，默认关闭；独立 timer 推进冻结积压。
+- `notifications/maintenance.py`：固定政策/时间/事件集合的有界预览、政策更新及可恢复重评；不会重路由已有邮件资格。
 - `eventlog.py`：标准库 JSON 日志，CLI 显式启用；不在导入时配置日志。
 
 HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，限制为单连接，不自动跟随重定向或继承环境代理；Fetcher 校验目标 URL/每次跳转、收紧剩余超时并流式读取。依据 [HTTPX Client 文档](https://www.python-httpx.org/api/) 配置，重试只在 Fetcher 一层执行，协调器不另套重试。Beautiful Soup [显式指定后端](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#specifying-the-parser-to-use)，避免本机装有 lxml 时改变结果；本源 fixture 为 UTF-8，解码失败必须报告错误。
@@ -32,7 +37,7 @@ HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，�
 
 Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责列表遍历、详情补抓与复查，复用已有归档/业务入口。没有插件工厂、任务平台或第二套业务成功状态。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
 
-有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。Fetcher 阶段没有改变数据库 schema；N1 的新增表见下文，Parser 版本与内容摘要仍保持不变。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
+有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。Fetcher 阶段没有改变数据库 schema；N1 的新增表见下文，当前 Parser v3 与内容摘要规则见下文。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
 
 ## 最小数据契约
 
@@ -49,7 +54,7 @@ Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责�
 
 ## 日志
 
-CLI 在参数解析后才配置 signalnest logger，帮助和包导入不触发配置。除配置/初始化事件，还记录 raw_archived、response_recorded、page_processed、processing_failed、fetch_started/retried/finished 和 crawl_started/finished；N1 成功提交后记录 notification_event_registered 或 notification_comparison_unknown。每次命令有 run_id；字段白名单为 time、level、event 及 source_id/run_id/document_id/response_id/stage/error_code。身份和阶段/错误仅接受有限长度安全字符；原始消息、args、异常栈、任意 extra、URL、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容。服务函数通过 signalnest logger 发出事件，调用者自行显式配置日志。
+CLI 在参数解析后才配置 signalnest logger，帮助和包导入不触发配置。除配置/初始化事件，还记录 raw_archived、response_recorded、page_processed、processing_failed、fetch_started/retried/finished 和 crawl_started/finished；N1 成功提交后记录 notification_event_registered 或 notification_comparison_unknown；N2 CLI 记录 mail_planned / mail_previewed，不把预览内容写入日志。每次命令有 run_id；字段白名单为 time、level、event 及 source_id/run_id/document_id/response_id/stage/error_code。身份和阶段/错误仅接受有限长度安全字符；原始消息、args、异常栈、任意 extra、URL、网页和配置不进入日志。未知普通日志转成 unstructured_log，不回显内容。服务函数通过 signalnest logger 发出事件，调用者自行显式配置日志。
 
 stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。日志只输出标准流，无文件 handler、后台线程或全局 root logger 改动。新增 status_read、policy_applied、detail_group_finished 事件；分组事件只增加 attempted/succeeded/failed/remaining_due/unserved/oldest_overdue_seconds 的非负整数白名单。字段白名单不是秘密识别器，调用者仍不得把密钥塞进身份字段。外部日志轮转和一致备份见 [运维文档](operations.md)。
 
@@ -64,7 +69,7 @@ stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。
 | `ingestion_runs` | 固定 origin/Parser、起止时间、独立覆盖与运行结果；遗留 running 可恢复为 interrupted。 |
 | `notice_versions` | 通知的规范化内容 JSON、标题、发布日期、解析时间、解析器版本、规范化内容 SHA-256 和原始响应外键。`(document_id, content_sha256, parser_version)` 唯一。 |
 
-`alembic_version` 是迁移工具的版本表，不是业务表。没有用户、搜索、推荐、发送或反馈表；信息源来自 TOML，暂不建立只有静态配置用途的 source 表。
+`alembic_version` 是迁移工具的版本表，不是业务表。该表列出采集核心状态；另有下文的 N1 通知表和 N2 冻结表，没有用户、搜索、推荐或反馈表；N4 投递与尝试表另见下文；信息源来自 TOML，暂不建立只有静态配置用途的 source 表。
 
 本站 `source_document_id` 约定为 `栏目ID:文章ID`（如 `1517:128231`），Parser 已统一新旧链接。标题、URL 和内容摘要不替代稳定身份。原始字节摘要与规范化内容摘要分别计算，不能混用。
 
@@ -132,17 +137,17 @@ process_response 可注入纯 notice_parser/list_parser 函数以支持规则升
 
 “遇到已知通知就停止分页”不能作为完整性的保证；置顶、顺序变化和分页移动会使重叠页策略漏报。当前每次扫描明确选择 full/limited，沿实际 next 继续处理已知页；外部 timer 分别触发普通两页轮询和每日完整核对，不据有限运行推断 full 尝试。
 
-普通运行关注增量及待处理任务；首次历史导入建立历史基线，不能默认把所有旧通知当作新提醒。未来通知策略需独立决定历史导入、首次发现和正文更新是否触发邮件，本阶段没有发送行为。
+普通运行关注增量及待处理任务；首次历史导入建立历史基线，不能默认把所有旧通知当作新提醒。通知策略独立决定历史导入、首次发现和正文更新的路线；离线导入与维护重解析不制造邮件。发送仅消费已冻结且到期的资格。
 
 ## 已完成的 WHU Parser
 
-`PARSER_VERSION = "whu-student-notices-v2"`。分页证据阶段升级列表验证，沿用一个站点规则版本，不另建版本框架；本次协调器未改规则或版本。详情产物也标为 v2，虽然详情选择器、提取、规范化与 NoticeContent 摘要规则均未变化；两份详情 fixture 的内容及摘要与 v1 相同。重新解析已存 v1 详情，现有唯一键允许同内容摘要的 v2 产物共存并成为当前版本，旧产物保留。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
+`PARSER_VERSION = "whu-student-notices-v3"`。v2 提供严格分页证据，v3 增加真实竞赛样本的正文容器；沿用一个站点规则版本，不另建版本框架。列表和既有详情也标为 v3，分页、旧模板提取、规范化与 NoticeContent 摘要规则均未变化；两份既有详情内容与摘要保持一致。重解析可保留同内容摘要的新版产物；live 同原文升级不会制造更新事件，maintenance 不改变 live 基线或产生邮件。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
 
 列表只读取唯一的 `div.list_txt > ul.am-list`，逐条验证其 li / a / span / i。条目失败时整页抛错，item_index 标记位置；不返回部分成功。空列表异常；不硬编码页长 25。保留原始条目顺序和置前旧日期通知，不去重或按日期过滤。分页须独立通过下面的源级证据验证；next_page_url 仅在确认末页时返回 None，缺失结构或活动链接损坏绝不当作末页。
 
 文章身份限本源 `uc.whu.edu.cn` 的 `/info/1517/<正整数>.htm` 和 `/2022/show.jsp?wbtreeid=1517&wbnewsid=<正整数>`。查询顺序与无关参数不影响身份；必要参数缺失、空值、重复参数（即使重复值相同）、新路由查询身份冲突、其他栏目/主机/路径都明确失败。旧路由 urltype 若提供，必须为 news.NewsContentUrl。普通正文外链不受文章身份规则限制。
 
-详情确认外层 `.news_show`、直接标题区 `.title_nei` 及其中唯一 b / i，并在该区域读取唯一 `#vsb_content > .v_news_content`。fixture 内有嵌套的 .news_show，所以不要求正文直接属于最外层。标题需有文字/数字，日期严格来自“时间：YYYY-MM-DD”可见字段并校验日历有效性。缺少、重复或不识别的结构不会用全页标题/其他日期猜测。
+详情确认外层 `.news_show`、直接标题区 `.title_nei` 及其中唯一 b / i，并在该区域读取唯一 `#vsb_content` 或 `#vsb_content_501`，容器内恰有一个直接 `.v_news_content`。竞赛页面模板由真实 18135 样本验证；两个候选同时出现或层级不符均失败。fixture 内有嵌套的 .news_show，所以不要求正文直接属于最外层。标题需有文字/数字，日期严格来自“时间：YYYY-MM-DD”可见字段并校验日历有效性。缺少、重复或不识别的结构不会用全页标题/其他日期猜测。
 
 附件只取通知区 `.fj > ul` 的每个 li 中唯一 a，记录可见名称及绝对 URL。WHU download.jsp 从唯一 owner 与 wbfileid 提取 `owner:wbfileid`；不强制 wbfileid 长度为 32（真实样本有不同长度），但要求字母/数字。普通附件链接可保留而无源文件标识。access 一律 not_checked，看到链接不证明可下载或需要验证码，不抓取文件。
 
@@ -216,7 +221,7 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 - 解析失败记录分类并保留最近成功版本；同一原文以后仍可重试，规则升级后仍可重新解析。
 - 如将来跳过重复处理，必须有对应原文和 parser_version 的已成功解析结果，不能只看原始摘要。内容摘要不含 parser_version；现有数据库唯一键另含版本，所以新版规则产物即使摘要相同也可保留。
 
-现有离线原文、短事务及最小传输/运行事实已足够连接协调器，无需新增 schema。没有任务队列、分页续扫游标或通知 outbox。研究建议精简为三张运行事实表，省去双份详情 due、持久 run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；计数在持锁的本次运行中计算。完整扫描状态接口只接受声明，实际链验证由 `crawl_once` 在调用前完成。
+现有离线原文、短事务及最小传输/运行事实已足够连接协调器，无需新增 schema。没有任务队列或分页续扫游标；N1 的 planned 意图与 N2 的冻结邮件独立于采集状态。研究建议精简为三张运行事实表，省去双份详情 due、持久 run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；计数在持锁的本次运行中计算。完整扫描状态接口只接受声明，实际链验证由 `crawl_once` 在调用前完成。
 
 ## 已完成的恢复验证与后续边界
 
@@ -224,11 +229,15 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 
 随后临时目录低频实采三轮，共 9 次真实 GET。首页 304 的 Vary 缩减触发保守完整回退，第二轮请求预算中断，第三轮沿用原库继续处理。最终 25 个身份、4 个版本、21 条待办，未登记完整扫描成功；观察已固化为离线回归。实验边界、持久结果和复现方式见 [恢复验证记录](recovery-validation.md)。
 
-采集三交付完成后已增加 [处理政策与诊断](runtime-policy.md) 及 [一个定时部署模板](operations.md)。没有新增 schema、持久配额/优先级、扫描模式字段或后台 Python 调度器；后续在目标机观察，再设计 Email 发送记录与补偿。本节点不安装定时器或发送邮件。
+采集三交付完成后已增加 [处理政策与诊断](runtime-policy.md) 及 [一个定时部署模板](operations.md)。没有新增 schema、持久配额/优先级、扫描模式字段或后台 Python 调度器；后续在目标机观察；Email 发送与恢复已另由 N2–N4 完成，本轮接通外部邮件定时入口。没有安装定时器或发送真实邮件。
 
 ## N0 决策与 N1 通知持久化
 
 N0 的调用链为 `NoticeContent → extract_facts → decide(Profile, Facts, EventContext, now=...)`。采集处理成功不证明报名资格；画像缺值、未支持的 OR/条件、时间/媒体缺口保留未知。相关性、资格、时间分别判断，`PUSH_NOW / DIGEST / STORE_ONLY / IGNORE` 与 `needs_review` 分开。纯路线合成也在 N0：digest_only、首启默认汇总及可信短截止例外进入显式输入和决策证据，后续计划器不能重新读取当前 Profile 来改已选路线。
+
+政策 v2 将事实提取/规则/引擎升至 v2，路线仍 v1。不同主动主题不能被另一仅保存主题压住；申报主体的 role 与受益学生的学段分开，缺省 role 保持未知。支持同句完整年份继承、24:00 及有界“日前”精度；按下界及时提醒、按上界判断关闭并保留待核对。不用发布日期补年份，不将导师/学院期限当学生期限。新可空字段未提供时不写入标准快照，保证 v1 已存摘要兼容；新 live 决策必须先显式更新政策，既有冻结邮件不重评，ID-only 恢复复用原固定决策。
+
+当前政策 v3 将事实提取/规则/引擎升至 v3，路线仍 v1，保留上述 v2 行为。主题证据增加 subject/opportunity/incidental；正文顺带提及不成为兴趣，紧迫或高价值命中须有对应机会证据。辅修与具体报名/申请行动直接绑定，局部排除缴费/退出、导航、否定、历史和结束声明；不因整篇出现费用说明而否决真正报名，也不借用另一项报名。标题主题仍可表示普通信息，显式字面关注保持宽泛；已获邮件资格的条件更新不被另一保存主题压制。有限语法不是通用语义理解。旧 context 未提供时省略序列化，v1/v2 已保存事实与决策摘要不变。原文、Parser v3、正文摘要和 schema 均未改；真实生产重放与修复前后结果见 [评估记录](validation/notification-production.md)。
 
 资格只核对少量明确对象条件，不用“研究生”等全页裸词推断对象；发布日期不代替开放或截止。短截止相关机会可在资格未知时提示核对，理由明确不构成资格确认。图片/附件只保留未解析引用；不从 alt、文件名补造事实。具体规范、版本、证据范围和真实样本限制见 [规则说明](notifications.md)。
 
@@ -236,4 +245,40 @@ Profile、事实、政策和决策输入摘要用于追溯 N0 规则输入，不
 
 [N1 实现说明](notification-state.md)定义已可调用的 prepare/commit 和列表证据接口。0004 只新增八张通知表，升级保留旧数据且默认未启用。生产协调器显式传 live；本地导入默认 offline，CLI reparse 为 maintenance，不改变 live 基线。成功事务一起提交版本/状态/due/资源标记、基线、事件、决策和必要 planned 意图；Parser、文件读取及 N0 计算均在事务外。任何登记失败回滚，有限系统性错误终止采集。
 
-重复 200/304 不重复事件，A→B→A 以序号记录两次更新；相同字节的 Parser 升级静默建立新口径，不同原文先用当前规则重解析旧实际正文。比较不能证明时静默推进新成功基线并保留最近未知诊断，可能漏掉同时发生的真实更新。日期证据不从发现时间推导；首启选择和冲突保留。N2 邮件冻结计划、N3 SMTP、N4 发送与重评恢复仍待交付，planned 不是可发送邮件。
+重复 200/304 不重复事件，A→B→A 以序号记录两次更新；相同字节的 Parser 升级静默建立新口径，不同原文先用当前规则重解析旧实际正文。比较不能证明时静默推进新成功基线并保留最近未知诊断，可能漏掉同时发生的真实更新。日期证据不从发现时间推导；首启选择和冲突保留。N2 已完成本地冻结计划，N1 planned 仍是立即投递意图；N3 SMTP 适配器已实现，N4 已另行完成发送登记与重评恢复。
+
+## N2 本地邮件计划与冻结
+
+[邮件计划说明](mail-planning.md)描述新增 `0005_mail_planning` 及三个小表：mail_messages 保存完整冻结 bytes/头/地址/档次与渲染版本，mail_message_members 保存顺序和完整决策快照并以 event_id 唯一，mail_plan_errors 保留有限单项阻断。保留 N1 的八张表和所有历史迁移，避免重建现有循环外键。升级不自动计划或启用。
+
+准备读取已选路线、事件版本和实际正文响应 URL，不用当前 Profile、通知 current_version_id 或日期重新决策；Digest 资格使用当时 context.next_digest_at，旧积压归入最近已到上海档次。普通/待核对组分开，立即与汇总共享唯一成员分配。默认每轮 5 封、每封 50 事件及完整编码 128 KiB；按真实 RFC 5322 大小分片，单项阻断保留待办，后续可继续。
+
+只读准备关闭事务后纯渲染，提交重验不可变 token 与档次/分片并原子登记整组邮件、成员和阻断。文件、网络、Parser、N0 不在写事务内。已冻结邮件的 bytes、地址、Message-ID、时间和成员不重新渲染，load_frozen_mail 校验保存摘要与头字段，为 N3 提供明确交接；不承诺外部 exactly-once。计划 CLI 持统一写锁，预览只读且明确输出地址/正文，日志不输出这些值。
+
+N2 的 mail_messages.state 继续仅标记冻结产物为 pending；N4 的 mail_delivery 是唯一发送状态来源。N3 显式库接口独立返回观察，N4 负责持久化。对 N2 的故障注入/重新打开数据库测试不称为真实进程终止或断电验证。
+
+
+## N3 SMTP 有限结果接口
+
+[SMTP 说明](smtp.md)固定 SendResult：accepted/retryable/uncertain/permanent、有限阶段/错误码、实际回复码及通道/邮件范围和清理诊断。send_frozen 只用 N2 bytes 和地址；默认 verified TLS，凭据在实际调用时读取一次，单机制认证，无网络重试。最终 250 后清理错误不反转接受；进入 DATA 后未取得可信最终回复为 uncertain，不复制完整 smtplib 实现或根据异常名字猜测未发送。
+
+可选 SmtpSettings 只包含传输配置。适配器不更新投递或通知成功状态；N4 网络前提交尝试、网络后提交结果，本地登记失败时停止继续发送。适配器不证明收件箱送达、外部去重或崩溃恢复。本地 socketpair/真实 TLS 握手验证和异常注入不称为公网投递或断电实验。
+
+
+## N4 发送事务与政策维护
+
+[发送说明](mail-sending.md)固定新的 0006 迁移：mail_delivery / mail_attempts / notification_operations，加原通道 pause_reason/paused_at。旧冻结 bytes、成员及通知不重建；旧邮件得到 pending 投递状态，升级本身不发送。N2 新计划将 pending 投递状态同邮件/成员一起提交，SMTP 状态不重复写入旧冻结标签或 N1 意图。
+
+尝试序号终身递增；一次人工许可在网络前消费，失败即再次 blocked。未知最小冷却保存于原尝试，即使额度耗尽或配置变化，人工重试也不能绕过它。恢复结束旧 sending 并一次持久化未知 due，已提交 accepted 不再自动发送。状态诊断计数全部积压、有限展示 100 封，历史未知次数保留；不读取正文或密钥。
+
+SMTP 接受与本地提交无法原子完成。真实 SIGKILL 测试通过父进程模拟服务的独立接受日志证明未知窗口可能重复；同 Message-ID 不能证明外部去重。结果写入失败终止整个 drain，内容处理成功独立保留。详细平台与测试边界见发送说明。
+
+[政策维护](notification-maintenance.md)只更新不可变政策并显式重评最多 100 个当前 live 事件；不自动历史补发。固定原集合/时钟/证据，每项决策/路线/意图/操作进度原子提交。Digest 资格已登记即锁定，即使 outbox 为空。旧政策可审计，当前代码不会假装执行不兼容的旧规则。
+
+## 后台邮件与备份一致性
+
+`run_mail_pass` 同实例锁内先计划再发送，`run_scheduled_cycle` 先采集再邮件；两阶段依次持锁，争锁明确拒绝。普通采集/渲染问题必须已有可靠诊断才可继续，系统错误立即停止。后台配置默认关闭，配置校验不读密钥或开库；发送暂停、due、未知恢复继续以原 N4 表为唯一事实，不新增调度表或第二套重试层。
+
+外部 timer 为上海半小时采集、每日 full 和五分钟邮件，服务注入可选环境凭据文件。采集 20 分钟、邮件 10 分钟服务上限提供部署终止边界；接受后中断的不确定窗口仍存在。详见 [后台邮件](background-mail.md) 和 [目标部署](operations.md)。
+
+一致备份沿用停写、统一锁、SQLite backup API 与 raw 复制。只读校验器增加冻结 MIME/头/摘要、精确成员与历史政策绑定、唯一投递状态、逐次尝试与暂停检查，不运行现行政策或重渲染。恢复副本先暂停、禁用后台、无凭据，避免原副本同时发送；sending 一次恢复为 uncertain，accepted 不重发。校验不能恢复快照之后的外部接受事实，也不是恶意改写认证或断电证明。

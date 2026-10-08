@@ -1,6 +1,6 @@
 # SignalNest
 
-单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**项目骨架、WHU Parser、离线持久化、有界采集、处理政策、状态诊断、N0 本地决策与 N1 通知事件持久化已完成**。显式执行 `crawl-once` 或 `scheduled-run` 获取页面；提供外部定时模板，没有 Python 后台调度器或邮件发送。
+单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**采集、离线恢复、政策 v3、邮件计划/冻结、SMTP 发送恢复及后台邮件入口已实现**。使用外部定时模板触发有界单次运行，没有 Python 常驻调度器；邮件默认关闭，显式启用后可自动计划并发送。目标 Linux 部署与真实邮箱验证尚未进行。
 
 ## 安装与检查
 
@@ -14,8 +14,8 @@ uv run --locked pytest
 uv run --locked ruff check src tests
 uv run --locked ruff format --check src tests
 # 另检查部署辅助程序。
-uv run --locked ruff check deploy/verify_backup.py
-uv run --locked ruff format --check deploy/verify_backup.py
+uv run --locked ruff check deploy/verify_backup.py deploy/evaluate_notifications.py
+uv run --locked ruff format --check deploy/verify_backup.py deploy/evaluate_notifications.py
 ```
 
 `uv.lock` 锁定稳定依赖，禁止预发布版本。包名与 CLI 均为 `signalnest`，也可使用 `uv run --locked python -m signalnest`。技术栈为同步 HTTPX、Beautiful Soup（显式 `html.parser`）、Pydantic、同步 SQLAlchemy Core、Alembic、SQLite、argparse 和标准库 logging。
@@ -27,7 +27,7 @@ cp config.example.toml signalnest.toml
 uv run --locked signalnest config-check --config signalnest.toml
 ```
 
-普通配置为 TOML，包含数据目录、数据库文件路径、信息源、HTTP 超时、请求间隔与 User-Agent。请求间隔是相邻物理请求的间隔，不是轮询周期；一次采集复用同一个 Fetcher，没有后台采集循环。没有尚未使用的邮件/模型密钥配置，未来密钥使用环境变量。
+普通配置为 TOML，包含数据目录、数据库文件路径、信息源、HTTP 超时、请求间隔与 User-Agent。请求间隔是相邻物理请求的间隔，不是轮询周期；一次采集复用同一个 Fetcher，没有后台采集循环。可选 SMTP 配置只存服务、TLS、超时和凭据环境变量名；配置校验不读取凭据。模型密钥尚未使用。
 
 **data_dir 和 database 都相对于配置文件所在目录解析**，database 不相对于 data_dir。配置文件路径本身由调用者定位；绝对路径保持绝对路径，`~` 展开为主目录，符号链接配置以目标文件所在目录为准。
 
@@ -41,7 +41,7 @@ uv run --locked signalnest config-check --config signalnest.toml
 uv run --locked signalnest storage-init --config signalnest.toml
 ```
 
-命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0004_notification_state`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
+命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0006_mail_sending`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
 
 可在临时目录验证（macOS / Linux）：
 
@@ -52,9 +52,9 @@ uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 ```
 
-结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、notifications-activate、策略更新和两种采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
+结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、notifications-activate、mail-plan / mail-drain、政策维护、后台邮件和采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
 
-从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0001–0003 保持冻结。
+从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0005 只新增冻结邮件、精确成员和计划阻断表，保留 N1 事件/意图，不自动计划；0006 新增投递、逐次尝试和政策维护操作状态，给旧冻结邮件登记 pending；升级不发送。0001–0005 保持冻结。
 
 ## 单次采集
 
@@ -154,7 +154,7 @@ uv run --locked signalnest apply-recheck-policy --config signalnest.toml
 
 `status` 区分列表尝试、有效响应、登记与完整扫描，展示首次积压、成功基线复查、冷却、最近运行及过期/预算提示。正常读到警告仍退出 0，存储错误 1、配置错误 2；它不把 running 行当活进程，也不从持久记录猜测本次 F/H 分组。新摘要和组日志提供分配、尝试、成功、失败、未服务、剩余 due 与最老逾期。
 
-交付一个 **Linux/systemd 252+** 模板：普通每半小时，full 每日上海时间 01:15，均单次串行、同实例锁、无自动重启。首次或至少 24 小时停机恢复先执行一次有界 full；错过的普通周期不排队重放。模板尚未安装/启用，目标机需验证。专用日志保留、一致备份与只读恢复校验见 [部署与运维](docs/operations.md)；处理和诊断的准确语义见 [政策说明](docs/runtime-policy.md)。
+交付一个 **Linux/systemd 252+** 模板：普通每半小时，full 每日上海时间 01:15，均单次串行、同实例锁、无自动重启。首次或至少 24 小时停机恢复先执行一次有界 full；错过的普通周期不排队重放。模板尚未安装/启用，目标机需验证。另提供每五分钟邮件 timer，显式启用后可自动推进计划与发送；三个服务共用实例锁。专用日志保留、一致备份与含邮件状态的只读恢复校验见 [部署与运维](docs/operations.md)；处理和诊断的准确语义见 [政策说明](docs/runtime-policy.md)。
 
 ## 本地画像与通知决策预览（N0）
 
@@ -176,15 +176,21 @@ uv run --locked signalnest decision-preview --profile profile.toml \
 
 以上命令不需要 `--config`、数据库初始化或写入锁，不联网、不写数据库或原文、不发送邮件。画像路径、HTML/JSON 路径相对于调用工作目录；时间必须含时区，下一次 Digest 时间必须晚于决策时间。`--file` 必须给出实际最终详情 URL，不能根据文件名猜文章身份。JSON 输入完整字段见 [NoticeContent](src/signalnest/contracts.py)，不是数据库行或 ParsedNotice 包装。
 
-stdout 为 JSON：事实、短原文证据、资格/时间三值判断、Action、独立 `needs_review`、理由、命中规则、未知项、版本和摘要。正文全文不重复输出。Action 为 `PUSH_NOW / DIGEST / STORE_ONLY / IGNORE`；有效路线为 `immediate / digest / none`。该命令的路线只是预览结果，不登记投递意图。N1 的生产成功事务可另行登记 planned 意图；当前没有邮件计划或发送记录。资格未知仍可提示核对可信紧迫的相关机会，不会声称用户已符合资格；近期日期本身不触发推送。
+stdout 为 JSON：事实、短原文证据、资格/时间三值判断、Action、独立 `needs_review`、理由、命中规则、未知项、版本和摘要。正文全文不重复输出。Action 为 `PUSH_NOW / DIGEST / STORE_ONLY / IGNORE`；有效路线为 `immediate / digest / none`。该命令的路线只是预览结果，不登记投递意图。N1 的生产成功事务可另行登记 planned 意图；N2 计划和冻结邮件，N4 独立登记发送尝试与结果。资格未知仍可提示核对可信紧迫的相关机会，不会声称用户已符合资格；近期日期本身不触发推送。
 
 `--event-kind {new,update,activation_recent,historical}` 与 `--mode {hybrid,digest_only}` 仅声明预览上下文。update 可给 `--previous-notice-json` 和 `--previous-route`，缺少旧内容则标明比较未知。首启预览默认汇总，可信截止不晚于下一次 Digest 时保留紧急路线；显式 digest_only 仍优先。命令不证明实际发生新内容或此前已登记邮件资格。校验/参数错误退出 2，Parser 无法支持输入页面退出 1，成功预览退出 0。
 
-当前只支持有限字面主题、对象表达式和完整年份的时间；图片/附件仅保留引用，不做 OCR 或解析下载文件。不能可靠识别的条件与时间保留未知。覆盖、限制及纯函数入口见 [N0 规则说明](docs/notifications.md)。[N1 设计](docs/notification-state.md)记录已实现的启用边界、独立 live 基线和原子成功事务。
+政策 v3 区分标题主题、实际机会和正文顺带提及：新生选课中的“辅修专业单独缴费”不再取得辅修提醒资格，真实辅修报名仍可紧急提醒。保留 v2 的跨主题优先级、申报角色区分及时间边界；科研机会不会被另一个选课仅保存主题压住。生产函数的 [13 项真实样本评估](docs/validation/notification-production.md)保存修复前后结果，可离线重放：
+
+```sh
+uv run --locked python deploy/evaluate_notifications.py --check
+```
+
+既有实例须显式更新政策；旧决策、已有 Digest 资格和冻结邮件不会自动撤回或重写。当前只支持有限词组与上下文、对象和时间；标题主题仍可表示普通相关信息，显式 `include_phrases` 仍是宽泛字面关注。未知资格和未支持表达式保留未知，图片/附件仅保留引用，不做 OCR 或下载解析。覆盖、限制、升级步骤及纯函数入口见 [N0 规则说明](docs/notifications.md)。[N1 设计](docs/notification-state.md)记录启用边界、独立 live 基线和原子成功事务。
 
 ## 通知启用与事件登记（N1）
 
-升级不会自动开启通知。启用前须已有一次由生产协调器证明的完整列表扫描；详情部分失败仍可启用。下面邮箱地址仅为示例，正式启用请提供自己的地址；当前不连接 SMTP。
+升级不会自动开启通知。启用前须已有一次由生产协调器证明的完整列表扫描；详情部分失败仍可启用。下面邮箱地址仅为示例，正式启用请提供自己的地址；此启用命令不连接 SMTP。
 
 ```sh
 uv run --locked signalnest storage-init --config signalnest.toml
@@ -199,21 +205,95 @@ uv run --locked signalnest notifications-activate --config signalnest.toml \
 uv run --locked signalnest notifications-status --config signalnest.toml
 ```
 
-preview/status 只读数据库，不获取写入锁或联网；activate 使用统一实例锁和短事务。`--mode digest_only` 可以固定为汇总路线；默认 hybrid。`--digest-hour/--digest-minute` 默认上海 09:00，用于 N0 的下一档时刻判断，尚无邮件调度。`--no-initial-recent` 关闭首启近期回顾。`--at` 为可选 UTC Unix 秒，默认本次处理时钟（与 N0 预览的 ISO 时间参数不同）；相同启用 ID、Profile 和参数重复执行始终复用原时间/集合，不重置，不同参数明确失败。
+preview/status 只读数据库，不获取写入锁或联网；activate 使用统一实例锁和短事务。`--mode digest_only` 可以固定为汇总路线；默认 hybrid。`--digest-hour/--digest-minute` 默认上海 09:00，用于决策和邮件计划的下一档时刻判断；实际触发由外部 timer 决定。`--no-initial-recent` 关闭首启近期回顾。`--at` 为可选 UTC Unix 秒，默认本次处理时钟（与 N0 预览的 ISO 时间参数不同）；相同启用 ID、Profile 和参数重复执行始终复用原时间/集合，不重置，不同参数明确失败。
 
 窗口固定为启用当日及前 6 个上海自然日，近期日期本身不能触发邮件资格。未知日期保持待核对，积压延期不丢已选候选；冲突保留原始选择和第一对证据。稳定启用集合不使用数据库整数 ID 水位。
 
-之后生产采集显式登记 live 观察与事件；重复 200/304 不追加事件，A→B→A 记录两次 update。离线 import-page 和维护 reparse 可更新业务版本，但保持独立 live 基线与事件。版本/成功/due、资源处理标记、基线、事件、决策、选中路线及必要 planned 意图一起提交，通知登记失败整体回滚。当前立即路线仅有 planned 意图，Digest 仅有资格；**没有邮件正文冻结、邮件计划或发送能力**。完整接口、比较未知的保守行为、迁移和恢复边界见 [N1 说明](docs/notification-state.md)。
+之后生产采集显式登记 live 观察与事件；重复 200/304 不追加事件，A→B→A 记录两次 update。离线 import-page 和维护 reparse 可更新业务版本，但保持独立 live 基线与事件。版本/成功/due、资源处理标记、基线、事件、决策、选中路线及必要 planned 意图一起提交，通知登记失败整体回滚。这些意图和资格由 N2 计划；`crawl-once` 保持仅采集，显式启用的 `scheduled-run` 会在采集后执行邮件阶段。完整接口、比较未知的保守行为、迁移和恢复边界见 [N1 说明](docs/notification-state.md)。
+
+## 邮件计划与预览（N2）
+
+已升级并通过 N1 启用的实例，可以显式消费已保存的路线和决策，生成立即纯文本邮件或到期 Digest。无需 SMTP 配置，以下命令全部本地执行：
+
+```sh
+# 不写入的候选邮件预览。
+uv run --locked signalnest mail-plan --config signalnest.toml --preview
+# 默认每轮 5 封、每封 50 个事件、完整 MIME 128 KiB。
+uv run --locked signalnest mail-plan --config signalnest.toml
+# 更小的批次；用输出的 mail_ids 查看保存的内容。
+uv run --locked signalnest mail-plan --config signalnest.toml \
+  --max-messages 3 --max-events 20 --max-bytes 65536
+uv run --locked signalnest mail-preview --config signalnest.toml --mail-id 1
+```
+
+`--at` 可明确给出 UTC Unix 秒，默认当前时间。JSON 区分本轮计划数、邮件 ID、阻断诊断、未分配立即/Digest、已到期和延后项；单项过大不会丢失事件，后续正常项可继续计划。重复计划不重新分配事件；立即与 Digest 排他，停机积压可分轮补计划。Digest 的待核对项单独展示，默认上海 09:00 沿用 N1 日历。
+
+第一次冻结保存完整邮件 bytes、地址、Message-ID、Date、渲染版本、精确成员及决策理由；后续正文或 Profile 改变不影响它。两个预览的 stdout 有意包含地址、正文与证据，stderr 日志不包含这些内容。预览不取写入锁、不修改数据库。`notifications-status.planned_immediate` 仍是 N1 意图总数，未冻结积压看 mail-plan 的 remaining_*。**mail-plan 只冻结邮件**；可显式 `mail-drain`，或启用后台入口自动计划/发送。迁移、接口、额度与恢复边界见 [邮件计划说明](docs/mail-planning.md)。
+
+## SMTP 适配器（N3）
+
+标准库 `send_frozen(FrozenMessage, SmtpSettings) -> SendResult` 已实现，使用 N2 保存的地址和完整邮件字节。支持强制 STARTTLS 或隐式 TLS、证书/hostname 校验、环境变量凭据和有限超时；返回 accepted/retryable/uncertain/permanent，适配器自身不重试。
+
+`[smtp]` 可以省略，示例默认注释禁用。配置只保存凭据环境变量名，检查配置和导入模块不读取其值或建立连接。正文后的最终 250 才算 accepted；之后 QUIT/close 失败不能触发反转或重发。DATA 边界断线/超时保留 uncertain，不猜测送达。
+
+N4 已接入发送 CLI、持久尝试及恢复；mail-plan 和 crawl-once 不调用 SMTP，显式启用的后台入口会调用 N4。N3 本身不改数据库状态，直接重复调用适配器仍会发送一次；通过 N4 先登记尝试，再调用并保存结果。配置、有限契约、保守分类和测试范围见 [SMTP 说明](docs/smtp.md)。
+
+## 发送、诊断与维护（N4）
+
+先显式升级数据库并核对已冻结邮件。配置示例的 SMTP 默认禁用；启用 `[smtp]` 并提供对应环境变量后，`mail-drain` 可发起邮件连接；另外启用 `[mail_runtime]` 才允许后台命令自动计划/发送。本轮实现没有发送真实邮件。
+
+```sh
+uv run --locked signalnest storage-init --config signalnest.toml
+uv run --locked signalnest mail-status --config signalnest.toml
+uv run --locked signalnest mail-preview --config signalnest.toml --mail-id 1
+# 会发送已冻结且到期的邮件，默认每轮最多 5 封；不会自动补计划。
+uv run --locked signalnest mail-drain --config signalnest.toml --max-messages 5 --run-seconds 300
+uv run --locked signalnest mail-pause --config signalnest.toml
+uv run --locked signalnest mail-resume --config signalnest.toml
+# 仅对 blocked 原邮件授予一次额外尝试，不清零次数或绕过未知结果冷却。
+uv run --locked signalnest mail-retry --config signalnest.toml --mail-id 1
+```
+
+`mail-status` 只读，区分 pending/sending/retry/uncertain/accepted/blocked、到期积压、未计划意图、未分配 Digest、暂停原因和有限尝试诊断。最多展示 100 封，计数覆盖全部邮件；未解决未知与累计未知尝试分别报告。`mail-drain` 使用实际时钟，不接受伪造获取时间的 `--at`。运行预算在每封开始前检查，不能保证中止已进入 SMTP 的阻塞调用。普通单封失败继续；通道错误结束本轮，永久通道错误持久暂停；本地状态登记失败立即终止。drain 有需要处理的失败/暂停/未知返回 1，正常返回 0；参数/缺失 SMTP 配置返回 2。status 成功读出诊断返回 0，并不宣称邮件健康。
+
+默认最多六次自动尝试，退避 5 分钟、15 分钟、1 小时、6 小时、24 小时；未知至少等待 30 分钟。配置 `[mail_sending]` 可缩小数量、时间和尝试上限，有限退避与未知冷却均有校验。遗留 sending 在持锁后一次性登记为未知，冷却跨重启保留。已提交 accepted 永不自动重发；SMTP 接受后本地提交前中断可能重复发送同一邮件，Message-ID 不提供通用外部去重。
+
+政策更新与最多 100 个明确当前事件的重评独立于发送，使用稳定 operation ID；不自动补发历史，也不改已取得资格或已冻结邮件。恢复重评只给原 operation ID，复用原成员、政策、证据和决策时间：
+
+```sh
+uv run --locked signalnest notifications-policy-update --config signalnest.toml \
+  --profile profile.toml --operation-id policy-20261008 --at 1791421200 --preview
+# 核对后去掉 --preview；该操作只更新后续决策政策。
+uv run --locked signalnest notifications-reevaluate --config signalnest.toml \
+  --operation-id review-20261008 --event-id 17 --at 1791421200 --preview
+# 显式执行后若中断，用同一 operation ID 恢复。
+uv run --locked signalnest notifications-reevaluate --config signalnest.toml --operation-id review-20261008
+```
+
+预览不登记操作；首次执行必须给出事件与时间。已登记 Digest 资格即锁定，即使尚无立即 outbox。新规则时先更新政策；重评没有重新选择全部历史的隐含行为。接口、迁移、事务边界和恢复限制见 [发送说明](docs/mail-sending.md) 与 [政策维护说明](docs/notification-maintenance.md)。已有后台邮件 service/timer 模板，尚未安装或验证真实邮箱。
+
+## 后台邮件
+
+数据库升级、通知启用、政策及 SMTP 核对后，在 TOML 中明确设置 `[mail_runtime].enabled = true`，并保留 SMTP 凭据环境变量。默认每轮计划 5 封/每封 50 事件/128 KiB，发送 5 封/300 秒，可分别配置 `[mail_runtime]` 和 `[mail_sending]`。
+
+```sh
+# enabled=false 时只返回跳过；enabled=true 时会计划并发送。
+uv run --locked signalnest scheduled-mail --config signalnest.toml
+# 以下显式启用后台时，在一次采集后继续邮件阶段。
+uv run --locked signalnest scheduled-run --config signalnest.toml --mode regular
+```
+
+普通采集失败或单项渲染阻断不妨碍已有冻结邮件；数据库、归档或状态登记等系统错误停止本轮。暂停允许计划与遗留 sending 恢复，禁止 SMTP。Linux 模板增加独立五分钟邮件 timer 和环境凭据文件，采集服务也接通邮件；锁冲突明确退出，下次周期继续。各阶段输出独立摘要和有限错误，见 [后台邮件说明](docs/background-mail.md)。恢复副本先暂停且不注入凭据；备份校验已专项检查冻结邮件、成员、尝试和投递状态，见 [邮件备份恢复](docs/mail-backup.md)。
 
 ## 日志与当前边界
 
-命令结果写 stdout；结构化事件日志写 stderr，包含 UTC 时间、级别、事件名和可选 source_id/run_id/document_id/response_id/stage/error_code。错误诊断也写 stderr，因此错误输出不是纯 JSON 流。日志不包含原始配置、URL、异常正文或网页正文；只在 CLI 显式配置 SignalNest 的 logger，不修改 root logger。
+命令结果写 stdout；结构化事件日志写 stderr，包含 UTC 时间、级别、事件名和可选 source_id/run_id/document_id/response_id/mail_id/attempt_no/stage/error_code。错误诊断也写 stderr，因此错误输出不是纯 JSON 流。日志不包含原始配置、URL、异常正文或网页正文；只在 CLI 显式配置 SignalNest 的 logger，不修改 root logger。
 
-已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览、N1 启用/事件/决策/意图持久化。
+已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览、N1 启用/事件/决策/意图持久化，以及 N2 纯文本渲染、冻结、排他成员分配、分片和积压补计划，以及 N3 同步 SMTP 适配器、N4 发送尝试/有限重试/诊断/恢复与受限政策维护，以及政策 v3 的机会/提及区分、竞赛详情模板、后台自动邮件和含邮件状态的备份校验。
 
-尚未开展：目标 Linux 定时器实际部署、长期运行观察、Email、历史搜索、LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher 或采集入口；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
+尚未开展：目标 Linux 定时器实际部署、长期运行观察、真实邮箱验证、历史搜索、LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher 或采集入口；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
 
-fixture 驱动的 Parser、离线闭环及三个采集交付均已完成：**有界 Fetcher → 单次采集协调器与 CLI → 整条恢复验证、真实终止实验及少量低频实采**。定时运行与诊断节点现提供政策和部署模板，后续在目标机观察；N1 已提供事件与投递资格，N2–N4 再实现邮件计划、SMTP 与补偿。既有实采验证限于记录中的边界和样本，不等于断电或全站扫描验证。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。当前不会发送任何邮件。
+fixture 驱动的 Parser、离线闭环及三个采集交付均已完成：**有界 Fetcher → 单次采集协调器与 CLI → 整条恢复验证、真实终止实验及少量低频实采**。定时运行与诊断节点现提供政策和部署模板，后续在目标机观察；N1 已提供事件与投递资格，N2 已冻结本地邮件；N3 已提供 SMTP 适配器，N4 已实现发送登记、恢复与政策维护。既有实采验证限于记录中的边界和样本，不等于断电或全站扫描验证。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。显式 mail-drain 或 SMTP 库调用可发送；`scheduled-mail` 与 `scheduled-run` 仅在明确启用后台邮件时发送。
 
 列表 304 不代表没有待补抓详情或到期复查任务；“遇到已知通知就停止分页”不能保证完整性。模块边界、规范化规则、错误分类和后续集成约定见 [设计说明](docs/design.md)。
 
@@ -252,13 +332,15 @@ print(notice.source_document_id, notice.content.content_sha256())
 
 详情保留段落/表格、正文文本及 HTTP(S) 链接/图片/附件引用。HTML 中的 `a[href]` 和 `img[src]` 改为相对于最终页面 URL 的绝对地址；锚点、mailto、javascript 等链接不进入网页引用，并移除 href、保留可见文本。图片与附件仅有元数据；附件 access 保持 `not_checked`。脚本、已知统计节点、正文外区域不参与内容摘要。保留的 HTML **不是安全清洗产物**，后续展示不能直接信任它。
 
-分页阶段将规则版本升级为 `whu-student-notices-v2`，本次协调器交付未改变它。沿用一个全站 Parser 版本，因此详情解析产物也标为 v2；详情的提取、规范化和 NoticeContent 摘要规则未变，两份详情 fixture 的内容摘要与 v1 一致。已有 v1 详情重解析可新增同摘要的 v2 产物，旧版本保留，遵守现有版本唯一键。原始字节摘要仅标识采集证据，不证明解析成功；parser_version 不进入内容摘要。
+当前 Parser 为 `whu-student-notices-v3`，在 v2 分页规则上增加有真实竞赛样本支持的 `#vsb_content_501` 正文模板；仍要求唯一容器与直接 `.v_news_content`，不猜测正文。沿用一个全站版本，列表和既有详情也标为 v3；旧模板提取、规范化和 NoticeContent 摘要规则不变，同内容的新版本产物可共存。live 对同一原文的规则升级不制造内容更新事件，维护 reparse 不生成邮件。原始字节摘要仅标识采集证据，不证明解析成功；parser_version 不进入内容摘要。
 
 失败抛出 `ParseError`，提供 `code`、可选 `field` 和从 0 开始的 `item_index`：编码/空白输入、必要结构缺失、无效字段、身份不支持/含糊、异常空列表、无意义正文分别分类。空字节仍由 PageInput 拒绝。具体代码与规范化保证范围见 [设计说明](docs/design.md)。PageInput 不携带状态码；业务层仅把完整 200 原文交给 Parser，Fetcher 与缓存接口处理 HTTP 状态和 304 基线策略。
 
 分页结构缺失/重复使用 `missing_structure`，非法整数或 URL 使用 `invalid_field`，相互矛盾的页码、数字链接或活动/禁用标记使用新增 `invalid_pagination`。离线入库仍按原规则保存证据和 `parse_` 错误代码，不登记部分条目，不改变原有事务与恢复语义；分页证据不新增数据库字段，重新解析时从归档原文重新取得。
 
 ## 实际验证
+
+以下按交付日期保留记录；当时尚未实现的能力，以后续节点为准。
 
 2026-09-29，macOS / Darwin arm64，CPython 3.12.14，SQLite 3.53.1，uv 0.12.20。锁定的直接依赖为 Pydantic 2.13.5、SQLAlchemy 2.0.54、Alembic 1.20.0、HTTPX 0.28.1、Beautiful Soup 4.15.0；开发检查使用 pytest 8.4.2、Ruff 0.16.9。工具安装于临时隔离环境，未修改系统 Python。
 
@@ -305,3 +387,45 @@ print(notice.source_document_id, notice.content.content_sha256())
 验证启用重放和稳定身份、真实日期/冲突/延期候选、独立 live 基线、重复 200/304、A→B→A、离线和维护隔离、Parser 升级与比较未知追溯、事务外文件/Parser/N0、事件/决策/意图故障整体回滚、重开数据库、0003 升级保留和迁移失败回滚。生产协调器使用模拟 HTTP，直接连接真实归档/缓存/Parser/SQLite；通知登记故障明确终止，移除故障后绑定 304 可恢复。安装入口从不同工作目录在临时实例查看帮助、初始化、读取状态及预览通过，未满足完整扫描条件时明确返回 blocker。逐字节比较 69 份受保护的已跟踪文件：research/fixture、Parser、原契约/N0 规则、0001–0003、pyproject.toml 与 uv.lock 均未改变。
 
 本轮没有新的网站或 SMTP 请求，不对个人实例自动启用。N1 新验证属于模拟 HTTP、故障注入及重开库，不是 N1 真实进程终止或断电实验。立即路线只有 planned 意图，Digest 只有登记资格；N2 冻结计划、N3 SMTP、N4 发送/政策更新与重评待后续交付。没有提交、推送或 PR。
+
+
+2026-10-07 N2 邮件计划与冻结节点：同一 macOS 26.6.2 arm64 / CPython 3.12.14 / SQLite 3.53.1 环境，无新增依赖。完整 pytest **1112 项离线测试通过**（原有 999，新增渲染 37、计划/约束 44、CLI 28、迁移 4）；Ruff 检查、格式检查（75 个 Python 文件）及 git diff --check 通过。
+
+实际 SQLite 验证重复/排他分配、数量和完整 MIME 字节分片、101 项边界、250 项以上积压、到期和停机补计划、待核对分组、冻结后正文/Profile/地址变化、过期/修改准备拒绝、第三条写入及诊断登记故障整体回滚、损坏检测与重开库。0004 升级保留真实 N1 事件/意图/原文，三个 DDL 故障位置回滚，升级不自动计划。安装入口从不同工作目录在新临时实例完成预览、首次一封/重复零封及保存文本/摘要一致；帮助和配置检查不创建存储。70 份 research/fixture、Parser、原契约/N0、0001–0004 与依赖文件逐字节不变。
+
+N2 本批全部完成，仅有 pending 冻结邮件，不连接 SMTP，不发送、不自动调度计划；故障注入/重开库不称为新进程终止或断电实验。N3 可直接消费 load_frozen_mail 的地址和完整 bytes，返回有限发送结果；尝试登记、发送重试与恢复留 N4。没有提交、推送或 PR。详细能力与限制见 [N2 说明](docs/mail-planning.md)。
+
+
+2026-10-07 N3 SMTP 适配器节点：macOS 26.6.2 arm64、CPython 3.12.14、OpenSSL 3.5.8、SQLite 3.53.1，依赖和锁文件不变。全套 **1237 项测试通过**（原有 N2 的 1112 项，新增配置 54、适配器/契约 36、实际 SMTP 协议 29、真实本地 TLS 6）。Ruff、格式检查（80 个 Python 文件）和 git diff --check 通过。
+
+验证连接失败、单机制认证拒绝、MAIL/RCPT/DATA 明确 4xx/5xx、正文保存后断线/超时、异常/过长最终回复、最终 250 后 QUIT/close 失败、凭据缺失/非法、损坏冻结输入、无重渲染及有限结果。真实 N2 归档/Parser/SQLite 冻结邮件也通过本地服务的精确字节验证。两种 TLS 的真实握手与证书/hostname 拒绝均通过，失败不发送 AUTH/MAIL；另有透明 wrapper 和故障注入测试，明确区分验证层级。
+
+从不同工作目录执行安装入口的帮助和带 SMTP 的配置检查通过，无凭据仍可校验，不创建存储；模块导入和配置加载不读凭据、不构造 SMTP 或 SSL context。70 份已跟踪的 research/fixture、Parser、原契约/N0、0001–0004 与依赖文件逐字节未变；保留 N2 未提交工作，N3 未新增数据库迁移。没有外部 SMTP/校园请求、真实账号投递或新终止/断电实验，没有提交、推送或 PR。N3 本批完成，N4 发送登记、诊断与恢复仍待交付。
+
+配置与交接接口见 [N3 说明](docs/smtp.md)。
+
+
+2026-10-08 N4 发送协调/诊断/恢复及政策维护交付：相同 macOS 26.6.2 arm64 / CPython 3.12.14 / SQLite 3.53.1 / OpenSSL 3.5.8 环境，依赖不变。全套 **1435 项离线测试通过**（保留 N3 1237 项，新增 N4 198 项）。Ruff 检查、格式检查（src/tests 与备份校验程序共 90 文件）和 git diff --check 通过。
+
+验证真实 SQLite 的尝试/结果回滚、系统性错误停止、六次自动/一次人工许可、due/未知冷却、暂停、积压、有界诊断及政策操作恢复；真实 0005 升级保留冻结邮件/成员和全部旧事实，五个迁移故障点完整回滚。7 个真实 SIGKILL/新进程恢复场景连接父进程 SMTP 模拟服务独立接受记录，证实未知窗口可能重复、已提交 accepted 不重发；不冒充断电或公网投递验证。完整测试范围与接口见 [N4 说明](docs/mail-sending.md)。
+
+安装入口在不同工作目录的帮助和配置检查通过，不创建存储；无 SMTP 的 drain 返回 2。75 份已跟踪的 research/fixture、Parser、原契约/N0/N1、rawstore/ingestion、0001–0004 与依赖文件逐字节未变；0005 未修改，保留既有 N2/N3 工作。未进行真实 SMTP/校园请求、真实账户发送、邮件定时部署或 Git 提交/推送/PR。N4 本批已经完成；既有计划只定义 N0–N4，N5 范围待明确。
+
+
+2026-10-08 政策 v2、后台邮件及邮件备份节点：同一 macOS 26.6.2 arm64 / CPython 3.12.14 / SQLite 3.53.1 / OpenSSL 3.5.8 环境，依赖和锁文件不变。最终完整 `.venv/bin/pytest -q --tb=short` **1578 项测试通过**；Ruff 检查、格式检查（src/tests 与备份程序共 98 文件）和 git diff --check 通过。
+
+真实通知样本验证跨主题优先级、同句年份继承/24:00、项目团队与学院期限区分、日前紧迫下界及精度未知、教师申报主体与学生受益者区分、竞赛正文及分赛道期限未知。Parser 升至 whu-student-notices-v3，事实/规则/引擎升至 v2，路线仍 v1；旧模板正文与摘要规则不变。保存的真实 v1 manifest 与一致的 v1 序列化样本连接实际归档/SQLite，验证 ID-only 操作恢复、显式政策升级、旧决策和冻结邮件兼容；没有假称执行旧规则引擎或使用外部历史数据库。
+
+后台集成连接实际采集/通知/计划/发送服务，验证自动分批积压、普通采集失败/单项阻断继续已有邮件、系统错误停止、暂停及有限 CLI 错误。新增 5 项真实子进程验证争锁/释放、环境凭据被 SMTP 适配器读取、supervisor 超时终止及暂停恢复；SMTP 为本地 socketpair，进程用例的 TLS wrapper 透明，既有 N3 真实本地 TLS 测试仍通过。不是实际 systemd 或公网邮件验证。
+
+邮件备份及旧备份回归共 60 项通过：真实 SQLite backup API 与 raw 复制保留 pending/accepted/sending/uncertain/暂停、冻结 bytes/成员/尝试；只读校验拒绝 MIME、关联、304 基线、数值类型或状态损坏，恢复副本先暂停，遗留 sending 一次变未知，accepted 不重发，原实例不受影响。
+
+安装入口从不同临时工作目录执行后台帮助、示例配置/画像校验、disabled 邮件及竞赛预览均成功且无存储创建；enabled 缺 SMTP 返回 2。68 份已跟踪 research/fixture、原契约、rawstore/ingestion/crawling、0001–0004 和依赖文件与 HEAD 逐字节一致；0005/0006 沿用既有 N4 文件，本轮没有新增迁移或修改它们。保留已有未提交工作，未进行 Git 提交、推送或 PR。
+
+本轮三项实现已经完成。后台默认关闭，已有实例政策须显式更新，部署须先核对配置和冻结邮件；目标 Linux 的 unit/calendar 验证、EnvironmentFile 加载、实际服务超时及真实账户投递仍待受控验证。本轮没有新的校园/公网 SMTP 请求，没有安装或启用生产服务，不宣称断电耐久性、长期运行或人工标注准确率。
+
+2026-10-08 政策 v3 机会识别修正：同一 macOS 26.6.2 arm64 / CPython 3.12.14 环境，完整 `.venv/bin/pytest -q --tb=short` **1637 项通过**（保留 1578 项，新增主题上下文 47 项、生产评估 12 项）。Ruff 检查与格式检查覆盖 src/tests 和两个部署辅助程序，共 101 个 Python 文件；`git diff --check` 通过。
+
+真实选课负例、辅修报名正例、科研跨主题优先级，以及局部收费/导航/历史/否定、逐次出现、已跟踪关闭/资格收紧、v1/v2 事实摘要兼容通过。生产入口离线重放 8 份真实原文的 13 个固定情境，修正 3 个误入 Digest 的情境，保留原有 5 个立即路线；修复前后原文、画像、上下文、时钟和正文摘要一致，Parser 源码摘要不变。[评估文件](docs/validation/notification-production.md)保留实际版本、源码摘要、工程期望和未知项，不是人工准确率评估。
+
+安装入口从临时工作目录预览上述三个真实负/正/跨主题样本，分别得到 STORE_ONLY/none、PUSH_NOW/immediate、PUSH_NOW/immediate，均保留待核对且未创建存储。研究/fixture、Parser、schema、历史迁移与依赖保持本轮开始时的内容；既有未提交工作保留。未联网、发送邮件、更新个人实例政策或提交 Git。v3 规则有限，标题主题仍可表示普通相关信息，显式字面关注仍可匹配顺带提及；旧 Digest 资格与冻结邮件不自动撤回，已有实例须按[升级步骤](docs/notifications.md#已有实例显式升级政策)显式启用新政策。

@@ -61,6 +61,58 @@ def main(argv: list[str] | None = None) -> int:
         "notifications-status", help="只读检查通知启用与事件状态；不联网、不发送"
     )
     notification_status.add_argument("--config", type=Path, required=True)
+    policy_update = commands.add_parser(
+        "notifications-policy-update", help="显式保存政策版本；已冻结邮件保持原样，不发送"
+    )
+    policy_update.add_argument("--config", type=Path, required=True)
+    policy_update.add_argument("--profile", type=Path, required=True)
+    policy_update.add_argument("--operation-id", required=True, help="本次操作的稳定标识")
+    policy_update.add_argument("--at", required=True, help="显式 UTC Unix 秒")
+    policy_update.add_argument("--preview", action="store_true", help="只读预览，不保存")
+    reevaluate = commands.add_parser(
+        "notifications-reevaluate", help="对显式事件集合有界重评，或恢复原操作；不发送"
+    )
+    reevaluate.add_argument("--config", type=Path, required=True)
+    reevaluate.add_argument("--operation-id", required=True, help="新建/恢复操作的稳定标识")
+    reevaluate.add_argument("--event-id", action="append", help="显式事件 ID，可重复，最多 100 个")
+    reevaluate.add_argument("--at", help="新建操作的显式 UTC Unix 秒；恢复时省略")
+    reevaluate.add_argument("--preview", action="store_true", help="只读预览显式事件集合")
+    mail_plan = commands.add_parser("mail-plan", help="有界计划并冻结本地邮件；不发送")
+    mail_plan.add_argument("--config", type=Path, required=True)
+    mail_plan.add_argument("--at", help="本次计划 UTC Unix 秒，默认当前处理时间")
+    mail_plan.add_argument("--max-messages", default=5, help="本次邮件上限，1–20，默认 5")
+    mail_plan.add_argument("--max-events", default=50, help="本次事件上限，1–100，默认 50")
+    mail_plan.add_argument(
+        "--max-bytes", default=131072, help="每封邮件字节上限，1024–1048576，默认 131072"
+    )
+    mail_plan.add_argument(
+        "--preview", action="store_true", help="只读预览计划，不保存或获取写入锁"
+    )
+    mail_preview = commands.add_parser("mail-preview", help="查看已冻结邮件的地址、正文与精确成员")
+    mail_preview.add_argument("--config", type=Path, required=True)
+    mail_preview.add_argument("--mail-id", required=True, help="已冻结邮件的正整数 ID")
+    background_mail = commands.add_parser(
+        "scheduled-mail", help="按配置计划并发送邮件；须显式启用后台邮件"
+    )
+    background_mail.add_argument("--config", type=Path, required=True)
+    drain = commands.add_parser("mail-drain", help="显式有界发送已冻结邮件；需要 SMTP 配置")
+    drain.add_argument("--config", type=Path, required=True)
+    drain.add_argument("--max-messages", help="本次尝试上限，1–20；默认取 mail_sending 配置")
+    drain.add_argument("--run-seconds", help="运行预算秒，大于 0 且不超过 3600；在邮件之间检查")
+    mail_status = commands.add_parser("mail-status", help="只读诊断发送积压与未知结果；不发送")
+    mail_status.add_argument("--config", type=Path, required=True)
+    mail_status.add_argument("--at", help="诊断 UTC Unix 秒，默认当前时间")
+    retry = commands.add_parser("mail-retry", help="显式授权一封失败邮件多尝试一次；不立即发送")
+    retry.add_argument("--config", type=Path, required=True)
+    retry.add_argument("--mail-id", required=True, help="失败邮件的正整数 ID")
+    retry.add_argument("--at", help="授权 UTC Unix 秒，默认当前时间")
+    for command, description in (
+        ("mail-pause", "暂停发送通道；不发送"),
+        ("mail-resume", "显式恢复发送通道；不发送"),
+    ):
+        control = commands.add_parser(command, help=description)
+        control.add_argument("--config", type=Path, required=True)
+        control.add_argument("--at", help="操作 UTC Unix 秒，默认当前时间")
     validate = commands.add_parser("config-check", help="校验 TOML 配置，不创建本地存储")
     validate.add_argument("--config", type=Path, required=True, help="TOML 配置文件路径")
     initialize = commands.add_parser("storage-init", help="显式初始化本地存储并升级到最新迁移")
@@ -131,7 +183,11 @@ def main(argv: list[str] | None = None) -> int:
         return _offline_command(args, settings, logger, run_id)
     if args.command == "crawl-once":
         return _crawl_command(args, settings, logger, run_id)
+    if args.command == "scheduled-mail":
+        return _background_command(args, settings, logger, run_id)
     if args.command == "scheduled-run":
+        if settings.mail_runtime.enabled:
+            return _background_command(args, settings, logger, run_id)
         budget = getattr(settings.runtime, args.mode)
         args.scan_mode = "limited" if args.mode == "regular" else "full"
         for key, value in budget.model_dump().items():
@@ -145,11 +201,353 @@ def main(argv: list[str] | None = None) -> int:
         "notifications-status",
     }:
         return _notification_state_command(args, settings, logger, run_id)
+    if args.command in {"mail-plan", "mail-preview"}:
+        return _mail_command(args, settings, logger, run_id)
+    if args.command in {"mail-drain", "mail-status", "mail-retry", "mail-pause", "mail-resume"}:
+        return _mail_sending_command(args, settings, logger, run_id)
+    if args.command in {"notifications-policy-update", "notifications-reevaluate"}:
+        return _notification_maintenance_command(args, settings, logger, run_id)
     log_event(logger, Event.CONFIG_VALIDATED, source_id=settings.source.id, run_id=run_id)
     print(f"配置有效: source_id={settings.source.id}")
     print(f"data_dir={settings.storage.data_dir}")
     print(f"database={settings.storage.database}")
     return 0
+
+
+def _background_command(args, settings, logger, run_id) -> int:
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.errors import IngestError
+    from signalnest.instance_lock import WriterLockError
+    from signalnest.mail.background import run_mail_pass, run_scheduled_cycle
+    from signalnest.mail.contracts import MailError
+    from signalnest.rawstore import RawStoreError
+    from signalnest.storage import StorageError
+
+    if settings.mail_runtime.enabled and settings.smtp is None:
+        print("后台邮件配置错误: 启用 mail_runtime 后必须配置 smtp；未执行本轮", file=sys.stderr)
+        return 2
+    try:
+        result = (
+            run_mail_pass(settings, run_id=run_id)
+            if args.command == "scheduled-mail"
+            else run_scheduled_cycle(settings, args.mode, run_id=run_id)
+        )
+    except KeyboardInterrupt:
+        print("后台运行中断；发送尝试可能未知，下次持锁后恢复", file=sys.stderr)
+        return 130
+    except (
+        MailError,
+        IngestError,
+        StorageError,
+        RawStoreError,
+        WriterLockError,
+        SQLAlchemyError,
+    ) as exc:
+        code = (
+            exc.code
+            if isinstance(exc, (MailError, IngestError, RawStoreError, WriterLockError))
+            else "database_unavailable"
+        )
+        log_event(
+            logger,
+            Event.PROCESSING_FAILED,
+            level=logging.ERROR,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage="background_abort",
+            error_code=code,
+        )
+        print(f"后台运行停止: {code}；未继续后续阶段，请检查状态与日志", file=sys.stderr)
+        return 1
+    print(json.dumps(result, ensure_ascii=False))
+    return 1 if result["needs_attention"] else 0
+
+
+def _mail_command(args, settings, logger, run_id) -> int:
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.errors import IngestError
+    from signalnest.instance_lock import WriterLockError, writer_lock
+    from signalnest.mail.contracts import MailError, PlanOptions
+    from signalnest.notifications.state import notification_time
+    from signalnest.storage import StorageError, open_initialized_engine
+
+    options = None
+    at = None
+    mail_id = None
+    try:
+        # Check untrusted local arguments before opening storage or acquiring a lock.
+        if args.command == "mail-plan":
+            options = PlanOptions(
+                max_messages=int(args.max_messages),
+                max_events=int(args.max_events),
+                max_bytes=int(args.max_bytes),
+            )
+            at = int(args.at) if args.at is not None else int(time.time())
+            notification_time(at)
+        else:
+            mail_id = int(args.mail_id)
+            if mail_id <= 0 or mail_id > 2**63 - 1:
+                raise ValueError("mail ID must fit a positive SQLite integer")
+    except (ValueError, ValidationError, IngestError):
+        print("邮件参数错误: 请检查正整数邮件 ID、数量、字节上限及处理时间", file=sys.stderr)
+        return 2
+
+    from signalnest.mail.planning import plan_mail, preview_mail, preview_plan
+
+    engine = None
+    stage = "mail_plan" if args.command == "mail-plan" else "mail_preview"
+    try:
+        if not settings.storage.database.is_file():
+            raise StorageError("数据库不可用或未初始化，请先执行 storage-init")
+        if args.command == "mail-plan" and not args.preview:
+            with writer_lock(settings.storage.database):
+                engine = open_initialized_engine(settings.storage.database)
+                result = plan_mail(engine, settings.source.id, options, at=at)
+        else:
+            engine = open_initialized_engine(settings.storage.database)
+            result = (
+                preview_plan(engine, settings.source.id, options, at=at)
+                if args.command == "mail-plan"
+                else preview_mail(engine, settings.source.id, mail_id)
+            )
+    except (MailError, StorageError, WriterLockError, SQLAlchemyError) as exc:
+        code = exc.code if isinstance(exc, (MailError, WriterLockError)) else "database_unavailable"
+        log_event(
+            logger,
+            Event.PROCESSING_FAILED,
+            level=logging.ERROR,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage=stage,
+            error_code=code,
+        )
+        print(f"邮件计划或预览失败: {code}；请检查启用状态、存储和锁占用", file=sys.stderr)
+        return 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+    event = (
+        Event.MAIL_PLANNED
+        if args.command == "mail-plan" and not args.preview
+        else Event.MAIL_PREVIEWED
+    )
+    log_event(logger, event, source_id=settings.source.id, run_id=run_id, stage=stage)
+    # Body and addresses are explicit preview output, never structured log fields.
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
+
+
+def _mail_sending_command(args, settings, logger, run_id) -> int:
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.errors import IngestError
+    from signalnest.instance_lock import WriterLockError, writer_lock
+    from signalnest.mail.contracts import MailError
+    from signalnest.mail.sending import (
+        DrainOptions,
+        drain_mail,
+        mail_status,
+        retry_mail,
+        set_sending_paused,
+    )
+    from signalnest.notifications.state import notification_time
+    from signalnest.storage import StorageError, open_initialized_engine
+
+    options = None
+    at = None
+    mail_id = None
+    try:
+        if args.command == "mail-drain":
+            budgets = settings.mail_sending.model_dump()
+            if args.max_messages is not None:
+                budgets["max_messages"] = int(args.max_messages)
+            if args.run_seconds is not None:
+                budgets["run_seconds"] = float(args.run_seconds)
+            options = DrainOptions.model_validate(budgets)
+            if settings.smtp is None:
+                print("邮件发送配置错误: 请先明确配置 smtp；本次没有发送", file=sys.stderr)
+                return 2
+        else:
+            at = int(args.at) if args.at is not None else int(time.time())
+            notification_time(at)
+            if args.command == "mail-retry":
+                mail_id = int(args.mail_id)
+                if not 1 <= mail_id <= 2**63 - 1:
+                    raise ValueError("mail ID must fit a positive SQLite integer")
+    except (ValueError, ValidationError, IngestError):
+        print("邮件发送参数错误: 请检查数量、预算、正整数邮件 ID 和处理时间", file=sys.stderr)
+        return 2
+
+    engine = None
+    stage = args.command.replace("-", "_")
+    try:
+        if not settings.storage.database.is_file():
+            raise StorageError("数据库不可用或未初始化，请先执行 storage-init")
+        if args.command == "mail-status":
+            engine = open_initialized_engine(settings.storage.database)
+            result = mail_status(engine, settings.source.id, at=at)
+        else:
+            with writer_lock(settings.storage.database):
+                engine = open_initialized_engine(settings.storage.database)
+                if args.command == "mail-drain":
+                    result = drain_mail(engine, settings.source.id, settings.smtp, options)
+                elif args.command == "mail-retry":
+                    result = retry_mail(engine, settings.source.id, mail_id, at=at)
+                else:
+                    result = set_sending_paused(
+                        engine, settings.source.id, args.command == "mail-pause", at=at
+                    )
+    except (MailError, StorageError, IngestError, WriterLockError, SQLAlchemyError) as exc:
+        code = (
+            exc.code
+            if isinstance(exc, (MailError, IngestError, WriterLockError))
+            else "database_unavailable"
+        )
+        log_event(
+            logger,
+            Event.PROCESSING_FAILED,
+            level=logging.ERROR,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage=stage,
+            error_code=code,
+            mail_id=mail_id,
+        )
+        print(f"邮件发送状态操作失败: {code}；未继续发送，请检查存储、状态和锁", file=sys.stderr)
+        return 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+    event = (
+        Event.MAIL_STATUS
+        if args.command == "mail-status"
+        else Event.MAIL_RETRIED
+        if args.command == "mail-retry"
+        else Event.MAIL_SEND_FINISHED
+        if args.command == "mail-drain"
+        else Event.MAIL_PAUSED
+    )
+    log_event(
+        logger, event, source_id=settings.source.id, run_id=run_id, stage=stage, mail_id=mail_id
+    )
+    print(json.dumps(result, ensure_ascii=False))
+    return 1 if args.command == "mail-drain" and result.get("needs_attention", False) else 0
+
+
+def _notification_maintenance_command(args, settings, logger, run_id) -> int:
+    import re
+
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.errors import IngestError
+    from signalnest.instance_lock import WriterLockError, writer_lock
+    from signalnest.notifications.maintenance import (
+        preview_policy_update,
+        reevaluate_events,
+        update_policy,
+    )
+    from signalnest.notifications.profile import ProfileError, load_profile
+    from signalnest.notifications.state import notification_time
+    from signalnest.storage import StorageError, open_initialized_engine
+
+    profile = None
+    event_ids = None
+    at = None
+    try:
+        if re.fullmatch(r"[A-Za-z0-9_.:-]{1,64}", args.operation_id) is None:
+            raise ValueError("invalid operation ID")
+        if args.command == "notifications-policy-update":
+            profile = load_profile(args.profile)
+            at = int(args.at)
+            notification_time(at)
+        else:
+            if args.event_id is not None:
+                if not 1 <= len(args.event_id) <= 100:
+                    raise ValueError("event selection must contain at most 100 IDs")
+                event_ids = tuple(sorted({int(value) for value in args.event_id}))
+                if any(not 1 <= event_id <= 2**63 - 1 for event_id in event_ids):
+                    raise ValueError("event IDs must fit positive SQLite integers")
+            if args.at is not None:
+                at = int(args.at)
+                notification_time(at)
+            if (event_ids is None) != (at is None) or (args.preview and event_ids is None):
+                raise ValueError("new/preview operations need both event IDs and explicit time")
+    except (ProfileError, ValueError, IngestError):
+        print(
+            "通知维护参数错误: 请检查画像、操作标识、事件集合与显式时间；恢复时省略事件和时间",
+            file=sys.stderr,
+        )
+        return 2
+
+    engine = None
+    stage = args.command.replace("-", "_")
+    try:
+        if not settings.storage.database.is_file():
+            raise StorageError("数据库不可用或未初始化，请先执行 storage-init")
+        if args.preview:
+            engine = open_initialized_engine(settings.storage.database)
+            if args.command == "notifications-policy-update":
+                result = preview_policy_update(engine, settings.source.id, profile, at=at)
+            else:
+                result = reevaluate_events(
+                    engine,
+                    settings.source.id,
+                    args.operation_id,
+                    event_ids=event_ids,
+                    at=at,
+                    preview=True,
+                )
+        else:
+            with writer_lock(settings.storage.database):
+                engine = open_initialized_engine(settings.storage.database)
+                if args.command == "notifications-policy-update":
+                    result = update_policy(
+                        engine, settings.source.id, profile, args.operation_id, at=at
+                    )
+                else:
+                    result = reevaluate_events(
+                        engine, settings.source.id, args.operation_id, event_ids=event_ids, at=at
+                    )
+    except (StorageError, IngestError, WriterLockError, SQLAlchemyError) as exc:
+        code = (
+            exc.code if isinstance(exc, (IngestError, WriterLockError)) else "database_unavailable"
+        )
+        log_event(
+            logger,
+            Event.PROCESSING_FAILED,
+            level=logging.ERROR,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage=stage,
+            error_code=code,
+        )
+        print(f"通知维护失败: {code}；未报告完成，请检查启用状态、存储和锁", file=sys.stderr)
+        return 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+    needs_attention = not args.preview and any(
+        member.get("status") != "applied" for member in result.get("results", [])
+    )
+    log_event(
+        logger,
+        Event.PROCESSING_FAILED
+        if needs_attention
+        else Event.STATUS_READ
+        if args.preview
+        else Event.POLICY_APPLIED,
+        level=logging.WARNING if needs_attention else logging.INFO,
+        source_id=settings.source.id,
+        run_id=run_id,
+        stage=stage,
+        error_code="notification_reevaluation_incomplete" if needs_attention else None,
+    )
+    print(json.dumps(result, ensure_ascii=False))
+    return 1 if needs_attention else 0
 
 
 def _notification_state_command(args, settings, logger, run_id) -> int:

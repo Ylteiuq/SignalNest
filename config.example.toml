@@ -38,6 +38,27 @@ run_seconds = 600.0
 resource_seconds = 60.0
 max_body_bytes = 2097152
 
+# Optional SMTP transport example, deliberately disabled. Planning never sends mail.
+# mail-drain sends explicitly; scheduled-mail/run send only with mail_runtime.enabled=true.
+# Sender and recipient come from the frozen mail, not this section.
+# Credentials are environment variable names only; never put passwords in TOML.
+# [smtp]
+# host = "smtp.example.org"
+# port = 587
+# security = "starttls" # "tls" is also supported; plaintext is not supported.
+# timeout_seconds = 30.0
+# username_env = "SIGNALNEST_SMTP_USERNAME"
+# password_env = "SIGNALNEST_SMTP_PASSWORD"
+
+# Sending is serial and finite. SMTP must also be explicitly configured above.
+# The time budget is checked between messages, not during a socket operation.
+[mail_sending]
+max_attempts = 6
+max_messages = 5
+run_seconds = 300.0
+retry_delays_seconds = [300, 900, 3600, 21600, 86400]
+uncertain_delay_seconds = 1800
+
 [runtime.full]
 max_pages = 64
 max_details = 0
@@ -45,3 +66,12 @@ max_requests = 96
 run_seconds = 600.0
 resource_seconds = 60.0
 max_body_bytes = 2097152
+
+
+# Explicitly opt in only after activation, policy update and frozen-mail preview.
+# scheduled-mail consumes this config; regular/full also run mail after collection.
+[mail_runtime]
+enabled = false
+max_plan_messages = 5
+max_events = 50
+max_bytes = 131072

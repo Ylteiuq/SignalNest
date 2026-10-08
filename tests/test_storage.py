@@ -89,9 +89,15 @@ def test_initialization_and_schema_match(settings, engine):
             "notification_events",
             "notification_decisions",
             "email_outbox",
+            "mail_messages",
+            "mail_message_members",
+            "mail_plan_errors",
+            "mail_delivery",
+            "mail_attempts",
+            "notification_operations",
         }
         context = MigrationContext.configure(connection, opts={"compare_server_default": True})
-        assert context.get_current_revision() == "0004_notification_state"
+        assert context.get_current_revision() == "0006_mail_sending"
         assert compare_metadata(context, metadata) == []
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
 
@@ -101,8 +107,8 @@ def test_repeat_initialization_preserves_data_and_raw_files(settings, engine):
         document_id = insert_document(connection)
     raw = settings.data_dir / "raw" / "retained.bin"
     raw.write_bytes(b"unchanged")
-    assert initialize_storage(settings) == "0004_notification_state"
-    assert initialize_storage(settings) == "0004_notification_state"
+    assert initialize_storage(settings) == "0006_mail_sending"
+    assert initialize_storage(settings) == "0006_mail_sending"
     with engine.connect() as connection:
         assert connection.execute(sa.select(documents.c.id)).all() == [(document_id,)]
     assert raw.read_bytes() == b"unchanged"
@@ -270,10 +276,10 @@ def test_upgrade_existing_database_and_transactional_failure(
         insert_document(connection)
     migration_dir = tmp_path / "migration assets %"
     copytree(Path(storage.__file__).parent / "migrations", migration_dir)
-    revision = migration_dir / "versions" / "0005_test.py"
+    revision = migration_dir / "versions" / "0007_test.py"
     revision.write_text(
         "from alembic import op\nimport sqlalchemy as sa\n"
-        "revision = '0005_test'\ndown_revision = '0004_notification_state'\n"
+        "revision = '0007_test'\ndown_revision = '0006_mail_sending'\n"
         "def upgrade():\n"
         "    op.add_column('documents', sa.Column('test_column', sa.Text()))\n"
         + ("    raise RuntimeError('simulated failure')\n" if fail else "")
@@ -290,11 +296,11 @@ def test_upgrade_existing_database_and_transactional_failure(
         with pytest.raises(RuntimeError, match="simulated failure"):
             initialize_storage(settings)
     else:
-        assert initialize_storage(settings) == "0005_test"
+        assert initialize_storage(settings) == "0007_test"
     with engine.connect() as connection:
         columns = {column["name"] for column in sa.inspect(connection).get_columns("documents")}
         assert ("test_column" in columns) is not fail
-        expected = "0004_notification_state" if fail else "0005_test"
+        expected = "0006_mail_sending" if fail else "0007_test"
         assert MigrationContext.configure(connection).get_current_revision() == expected
         assert connection.execute(sa.select(documents)).first() is not None
 
@@ -340,7 +346,7 @@ def test_upgrade_0001_preserves_success_versions_and_legacy_responses(settings):
                     last_success_at=102,
                 )
             )
-        assert initialize_storage(settings) == "0004_notification_state"
+        assert initialize_storage(settings) == "0006_mail_sending"
         with original.connect() as connection:
             row = connection.execute(sa.select(raw_responses)).mappings().one()
             assert row["page_type"] is None

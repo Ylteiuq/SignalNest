@@ -622,7 +622,7 @@ def test_rediscovering_only_known_entries_retains_nonterminal_evidence(discovere
     assert result.next_page_url
 
 
-def test_global_v2_reparse_retains_v1_detail_artifact_with_same_digest(discovered):
+def test_current_parser_reparse_retains_v1_detail_artifact_with_same_digest(discovered):
     env = discovered
     response_id = record_response(env.engine, env.store, evidence(), raw())
     notice = parse_notice(PageInput(content=raw(), page_url=NOTICE_URL))
@@ -633,7 +633,7 @@ def test_global_v2_reparse_retains_v1_detail_artifact_with_same_digest(discovere
     versions = rows(env, notice_versions)
     assert [version["parser_version"] for version in versions] == [
         "whu-student-notices-v1",
-        "whu-student-notices-v2",
+        PARSER_VERSION,
     ]
     assert versions[0]["content_sha256"] == versions[1]["content_sha256"]
     assert target(env)["current_version_id"] == result.version_id

@@ -260,6 +260,8 @@ notification_channel_state = sa.Table(
     sa.Column("sender", sa.Text, nullable=False),
     sa.Column("recipient", sa.Text, nullable=False),
     sa.Column("paused", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.Column("pause_reason", sa.Text),
+    sa.Column("paused_at", sa.Integer),
     sa.CheckConstraint("id = 'primary'", name="ck_notification_single_channel"),
     sa.CheckConstraint(
         "notification_mode IN ('hybrid','digest_only')", name="ck_notification_mode"
@@ -462,5 +464,214 @@ email_outbox = sa.Table(
     sa.CheckConstraint(
         "state = 'planned' AND kind = 'immediate' AND recipient_key = 'primary'",
         name="ck_outbox_planned_only",
+    ),
+)
+
+# N1 intents stay intact; N2 allocates immutable bytes and one precise mail path.
+mail_messages = sa.Table(
+    "mail_messages",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column(
+        "installation_id",
+        sa.Text,
+        sa.ForeignKey("notification_channel_state.installation_id"),
+        nullable=False,
+    ),
+    sa.Column("immediate_intent_id", sa.Integer, sa.ForeignKey("email_outbox.id"), unique=True),
+    sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("delivery_key", sa.Text, nullable=False, unique=True),
+    sa.Column("digest_slot", sa.Integer),
+    sa.Column("part", sa.Integer, nullable=False),
+    sa.Column("sender", sa.Text, nullable=False),
+    sa.Column("recipient", sa.Text, nullable=False),
+    sa.Column("subject", sa.Text, nullable=False),
+    sa.Column("message_id", sa.Text, nullable=False, unique=True),
+    sa.Column("date_at", sa.Integer, nullable=False),
+    sa.Column("frozen_at", sa.Integer, nullable=False),
+    sa.Column("rendering_version", sa.Text, nullable=False),
+    sa.Column("payload_bytes", sa.LargeBinary, nullable=False),
+    sa.Column("payload_sha256", sa.Text, nullable=False),
+    sa.Column("members_sha256", sa.Text, nullable=False),
+    sa.Column("max_bytes", sa.Integer, nullable=False),
+    sa.Column("max_events", sa.Integer, nullable=False),
+    sa.Column("state", sa.Text, nullable=False, server_default="pending"),
+    sa.UniqueConstraint("installation_id", "digest_slot", "part", name="uq_digest_part"),
+    sa.CheckConstraint(
+        "(kind = 'immediate' AND immediate_intent_id IS NOT NULL "
+        "AND digest_slot IS NULL AND part = 1) OR (kind = 'digest' "
+        "AND immediate_intent_id IS NULL AND digest_slot IS NOT NULL AND part > 0)",
+        name="ck_mail_kind",
+    ),
+    sa.CheckConstraint("state = 'pending'", name="ck_mail_pending_only"),
+    sa.CheckConstraint(
+        "length(payload_sha256) = 64 AND length(members_sha256) = 64", name="ck_mail_digests"
+    ),
+    sa.CheckConstraint(
+        "length(payload_bytes) > 0 AND length(payload_bytes) <= max_bytes AND max_events > 0",
+        name="ck_mail_payload_limit",
+    ),
+)
+
+mail_message_members = sa.Table(
+    "mail_message_members",
+    metadata,
+    sa.Column(
+        "event_id",
+        sa.Integer,
+        sa.ForeignKey("notification_events.id"),
+        primary_key=True,
+        autoincrement=False,
+    ),
+    sa.Column("mail_id", sa.Integer, sa.ForeignKey("mail_messages.id"), nullable=False),
+    sa.Column("position", sa.Integer, nullable=False),
+    sa.Column("decision_id", sa.Integer, nullable=False),
+    sa.Column("snapshot", sa.JSON, nullable=False),
+    sa.ForeignKeyConstraint(
+        ["event_id", "decision_id"],
+        ["notification_decisions.event_id", "notification_decisions.id"],
+        name="fk_mail_member_decision",
+    ),
+    sa.UniqueConstraint("mail_id", "position", name="uq_mail_member_position"),
+    sa.CheckConstraint("position >= 0", name="ck_mail_member_position"),
+)
+
+mail_plan_errors = sa.Table(
+    "mail_plan_errors",
+    metadata,
+    sa.Column(
+        "event_id",
+        sa.Integer,
+        sa.ForeignKey("notification_events.id"),
+        primary_key=True,
+        autoincrement=False,
+    ),
+    sa.Column("decision_id", sa.Integer, nullable=False),
+    sa.Column("rendering_version", sa.Text, nullable=False),
+    sa.Column("max_bytes", sa.Integer, nullable=False),
+    sa.Column("error_code", sa.Text, nullable=False),
+    sa.Column("attempted_at", sa.Integer, nullable=False),
+    sa.ForeignKeyConstraint(
+        ["event_id", "decision_id"],
+        ["notification_decisions.event_id", "notification_decisions.id"],
+        name="fk_mail_error_decision",
+    ),
+    sa.CheckConstraint(
+        "error_code IN ('mail_item_too_large','render_input_invalid','render_content_mismatch')",
+        name="ck_mail_render_error",
+    ),
+)
+
+# Frozen MIME and membership never change. This is the sole SMTP state.
+mail_delivery = sa.Table(
+    "mail_delivery",
+    metadata,
+    sa.Column("mail_id", sa.Integer, sa.ForeignKey("mail_messages.id"), primary_key=True),
+    sa.Column("state", sa.Text, nullable=False, server_default="pending"),
+    sa.Column("attempt_count", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("manual_retry_pending", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.Column("next_attempt_at", sa.Integer),
+    sa.Column("accepted_at", sa.Integer),
+    sa.Column("updated_at", sa.Integer, nullable=False),
+    sa.Column("blocked_reason", sa.Text),
+    sa.CheckConstraint(
+        "state IN ('pending','sending','retry','uncertain','accepted','blocked')",
+        name="ck_delivery_state",
+    ),
+    sa.CheckConstraint("attempt_count >= 0", name="ck_delivery_attempt_count"),
+    sa.CheckConstraint(
+        "(state IN ('pending','retry','uncertain') AND next_attempt_at IS NOT NULL) "
+        "OR (state IN ('sending','accepted','blocked') AND next_attempt_at IS NULL)",
+        name="ck_delivery_due",
+    ),
+    sa.CheckConstraint(
+        "(state = 'accepted') = (accepted_at IS NOT NULL)", name="ck_delivery_accepted"
+    ),
+    sa.CheckConstraint(
+        "(state = 'blocked' AND blocked_reason IS NOT NULL AND blocked_reason IN "
+        "('permanent','retry_exhausted','manual_attempt_failed','frozen_corrupt')) "
+        "OR (state != 'blocked' AND blocked_reason IS NULL)",
+        name="ck_delivery_blocked",
+    ),
+)
+
+mail_attempts = sa.Table(
+    "mail_attempts",
+    metadata,
+    sa.Column("mail_id", sa.Integer, sa.ForeignKey("mail_delivery.mail_id"), primary_key=True),
+    sa.Column("attempt_no", sa.Integer, primary_key=True),
+    sa.Column("started_at", sa.Integer, nullable=False),
+    sa.Column("finished_at", sa.Integer),
+    sa.Column("outcome", sa.Text),
+    sa.Column("stage", sa.Text),
+    sa.Column("error_code", sa.Text),
+    sa.Column("smtp_code", sa.Integer),
+    sa.Column("scope", sa.Text),
+    sa.Column("uncertain_until", sa.Integer),
+    sa.Column("cleanup_failed", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.Column("manual", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.Column("recovered", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.CheckConstraint("attempt_no > 0", name="ck_mail_attempt_number"),
+    sa.CheckConstraint(
+        "(finished_at IS NULL AND outcome IS NULL AND stage IS NULL "
+        "AND error_code IS NULL AND smtp_code IS NULL AND scope IS NULL) OR "
+        "(finished_at IS NOT NULL AND outcome IS NOT NULL AND stage IS NOT NULL "
+        "AND scope IS NOT NULL AND finished_at >= started_at AND outcome IN "
+        "('accepted','retryable','uncertain','permanent') AND stage IN "
+        "('config','connect','hello','tls','auth','mail','rcpt',"
+        "'body_or_final','accepted','unknown') "
+        "AND scope IN ('message','channel'))",
+        name="ck_mail_attempt_result",
+    ),
+    sa.CheckConstraint(
+        "smtp_code IS NULL OR smtp_code BETWEEN 100 AND 599", name="ck_mail_smtp_code"
+    ),
+    sa.CheckConstraint(
+        "outcome IS NULL OR (outcome = 'accepted' AND stage = 'accepted' "
+        "AND smtp_code IS NOT NULL AND smtp_code = 250 AND error_code IS NULL) OR "
+        "(outcome != 'accepted' AND stage != 'accepted' AND error_code IS NOT NULL)",
+        name="ck_mail_acceptance_evidence",
+    ),
+    sa.CheckConstraint(
+        "outcome IS NULL OR outcome != 'uncertain' OR "
+        "(stage IN ('body_or_final','unknown') AND uncertain_until IS NOT NULL "
+        "AND uncertain_until >= finished_at + 1800)",
+        name="ck_mail_uncertain_stage",
+    ),
+    sa.CheckConstraint(
+        "error_code IS NULL OR error_code IN "
+        "('invalid_frozen_mail','credentials_missing','credentials_invalid',"
+        "'tls_verification_failed','tls_not_supported','tls_failed','auth_not_supported',"
+        "'auth_mechanism_not_supported','authentication_rejected','server_rejected',"
+        "'connection_failed','timeout','disconnected','protocol_error','process_interrupted')",
+        name="ck_mail_attempt_error",
+    ),
+)
+
+notification_operations = sa.Table(
+    "notification_operations",
+    metadata,
+    sa.Column("id", sa.Text, primary_key=True),
+    sa.Column(
+        "installation_id",
+        sa.Text,
+        sa.ForeignKey("notification_channel_state.installation_id"),
+        nullable=False,
+    ),
+    sa.Column("source_id", sa.Text, nullable=False),
+    sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("parameters_sha256", sa.Text, nullable=False),
+    sa.Column("parameters", sa.JSON, nullable=False),
+    sa.Column("snapshot", sa.JSON, nullable=False),
+    sa.Column("results", sa.JSON, nullable=False),
+    sa.Column("created_at", sa.Integer, nullable=False),
+    sa.Column("finished_at", sa.Integer),
+    sa.CheckConstraint(
+        "kind IN ('policy_update','reevaluate')", name="ck_notification_operation_kind"
+    ),
+    sa.CheckConstraint("length(parameters_sha256) = 64", name="ck_notification_operation_digest"),
+    sa.CheckConstraint(
+        "finished_at IS NULL OR finished_at >= created_at",
+        name="ck_notification_operation_finished",
     ),
 )

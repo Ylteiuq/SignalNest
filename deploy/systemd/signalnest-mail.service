@@ -1,7 +1,6 @@
-# Linux systemd 252+. Edit the fixed account/paths together before installation.
-# Both instances use ONE config/database and its existing POSIX writer lock.
+# Linux systemd 252+. Same paths/account/database/lock as signalnest@.service.
 [Unit]
-Description=SignalNest bounded %i collection and opt-in mail
+Description=SignalNest bounded mail planning and delivery
 Wants=network-online.target
 After=network-online.target
 
@@ -10,9 +9,9 @@ Type=oneshot
 User=signalnest
 Group=signalnest
 WorkingDirectory=/opt/signalnest
-ExecStart=/opt/signalnest/.venv/bin/signalnest scheduled-run --config /etc/signalnest/signalnest.toml --mode %i
+ExecStart=/opt/signalnest/.venv/bin/signalnest scheduled-mail --config /etc/signalnest/signalnest.toml
 Restart=no
-TimeoutStartSec=20min
+TimeoutStartSec=10min
 TimeoutStopSec=30s
 KillMode=control-group
 UMask=0077
@@ -22,9 +21,8 @@ ProtectHome=yes
 ProtectSystem=strict
 ReadWritePaths=/var/lib/signalnest
 Environment=PYTHONDONTWRITEBYTECODE=1
-# Optional only because mail_runtime.enabled defaults to false.
 EnvironmentFile=-/etc/signalnest/smtp.env
 StandardOutput=journal
 StandardError=journal
 LogNamespace=signalnest
-SyslogIdentifier=signalnest-%i
+SyslogIdentifier=signalnest-mail

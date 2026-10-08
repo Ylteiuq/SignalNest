@@ -28,6 +28,16 @@ class Event(StrEnum):
     NOTIFICATION_EVENT_REGISTERED = "notification_event_registered"
     NOTIFICATION_COMPARISON_UNKNOWN = "notification_comparison_unknown"
     NOTIFICATIONS_ENABLED = "notifications_enabled"
+    MAIL_PLANNED = "mail_planned"
+    MAIL_PREVIEWED = "mail_previewed"
+    MAIL_BACKGROUND_STARTED = "mail_background_started"
+    MAIL_BACKGROUND_FINISHED = "mail_background_finished"
+    MAIL_SEND_STARTED = "mail_send_started"
+    MAIL_SEND_FINISHED = "mail_send_finished"
+    MAIL_SEND_RECOVERED = "mail_send_recovered"
+    MAIL_STATUS = "mail_status"
+    MAIL_PAUSED = "mail_paused"
+    MAIL_RETRIED = "mail_retried"
 
 
 _IDENTIFIER = re.compile(r"[A-Za-z0-9_.:-]{1,100}\Z")
@@ -50,7 +60,16 @@ class JsonFormatter(logging.Formatter):
             "level": record.levelname,
             "event": event,
         }
-        for key in ("source_id", "run_id", "document_id", "response_id", "stage", "error_code"):
+        for key in (
+            "source_id",
+            "run_id",
+            "document_id",
+            "response_id",
+            "mail_id",
+            "attempt_no",
+            "stage",
+            "error_code",
+        ):
             value = _identifier(getattr(record, key, None))
             if value is not None:
                 payload[key] = value
@@ -91,6 +110,8 @@ def log_event(
     run_id: str | None = None,
     document_id: int | None = None,
     response_id: int | None = None,
+    mail_id: int | None = None,
+    attempt_no: int | None = None,
     stage: str | None = None,
     error_code: str | None = None,
     attempted: int | None = None,
@@ -111,6 +132,8 @@ def log_event(
             "run_id": run_id,
             "document_id": document_id,
             "response_id": response_id,
+            "mail_id": mail_id,
+            "attempt_no": attempt_no,
             "stage": stage,
             "error_code": error_code,
             "attempted": attempted,

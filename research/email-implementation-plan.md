@@ -15,9 +15,9 @@ N1/N2同一Agent顺序负责schema/迁移/ingestion接口，避免同时修改�
 
 - 新增Profile/NoticeFacts/Decision契约与纯函数；Action=PUSH_NOW/DIGEST/STORE_ONLY/IGNORE，needs_review/missing_fields独立。资格未知且相关高价值/临近截止可立即提醒待核实，明确不符合分别处理。
 - 定义`Action+mode+首启政策→effective_route`纯合成；默认首启降级有可信截止≤下一Digest的逃逸规则。最终路线必须在N1登记前确定，N2不再降级/重路由。
-- 固定小规则与版本/理由/证据，按[首批规则与真实评估](notification-rule-evaluation.md)确认词组/资格/时间表达式。无LLM/OCR/附件下载/规则DSL；助教招聘与真正取消正样本仍需补齐，不冒充已验证覆盖。拟议期望标签需人工确认后才能作gold验收。
+- 固定小规则与版本/理由/证据，按[首批规则与真实评估](notification-rule-evaluation.md)确认词组/资格/时间表达式。无LLM/OCR/附件下载/规则DSL；助教招聘与真正取消正样本仍需补齐，不冒充已验证覆盖。首批10个非空Action标签已于2026-10-08由用户确认；新案例或固定输入变更仍需再确认，生产接口重放另行记录。
 - 当前已有并行N0骨架，先按[当前快照差异](notification-rule-evaluation.md#5-当前n0快照与研究建议的对齐)做窄范围补齐：保存主题不得压制另一主动主题；申请主体与培养层次分开；只补已取样的年份区间/24:00与对象截止。规则改变更新版本，旧测试中的unsupported预期相应调整，不绕过未知保护。
-- 交付D1–D5/D13/D18–D19纯决策/路线单测及D6–D17的接口场景；N0不迁移/写数据库、不建outbox、不发邮件。未支持表达式明确unknown，人工gold未确认不标“已验收”。
+- 交付D1–D5/D13/D18–D19纯决策/路线单测及D6–D17的接口场景；N0不迁移/写数据库、不建outbox、不发邮件。未支持表达式明确unknown，仅标签获确认不能标实现“已验收”。
 
 ### N1：持久事件与原子投递意图
 
