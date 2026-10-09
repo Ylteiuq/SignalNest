@@ -648,6 +648,19 @@ def save_notice_in_transaction(
     _processing_marks(connection, response, observed, processed_at, notice.parser_version)
     if processing_origin == "live":
         commit_notification_in_transaction(connection, prepared_notification, version_id=version_id)
+    # The derived index must follow the current pointer in this same short transaction.
+    # Local imports and maintenance reparse share this path; no HTML or raw-file I/O here.
+    from signalnest.search import SearchError, sync_document_in_transaction
+
+    try:
+        sync_document_in_transaction(connection, document_id)
+    except SearchError as exc:
+        raise IngestError(
+            "search_index_write_failed",
+            "success_commit",
+            response_id=response_id,
+            document_id=document_id,
+        ) from exc
     return version_id
 
 

@@ -20,6 +20,8 @@
 - `crawling.py`：`CrawlOptions`、`crawl_once` 与 `CrawlSummary`；持有整个运行的实例锁，复用 Fetcher/原文/缓存/业务接口，验证实际跨页覆盖，独立处理数据库详情待办并收尾。不隐式迁移，不保存分页续扫游标。
 - `runtime_policy.py`：到期候选分组/公平批次、上海日历复查档及有限错误延期；显式保守重算旧成功 due 的短事务入口。不取网页、不改 Parser、不引入第二套调度真相。
 - `status.py`：已有数据库的一致只读快照与有限诊断；不修正状态、不获取锁、不读取 raw 或发送请求。
+- `search.py`：当前成功正文的派生词法索引、同事务增量同步、显式重建与只读搜索/详情；不重解析原文，不判断提醒资格。
+- `rollout.py`：只读部署准备与单次观察、明确允许文件的发布指纹/源码快照；本地通过不证明目标机运行、收件或连续在线。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
 - `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
 - `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
@@ -293,3 +295,24 @@ SMTP 接受与本地提交无法原子完成。真实 SIGKILL 测试通过父进
 外部 timer 为上海半小时采集、每日 full 和五分钟邮件，服务注入可选环境凭据文件。采集 20 分钟、邮件 10 分钟服务上限提供部署终止边界；接受后中断的不确定窗口仍存在。详见 [后台邮件](background-mail.md) 和 [目标部署](operations.md)。
 
 一致备份沿用停写、统一锁、SQLite backup API 与 raw 复制。只读校验器增加冻结 MIME/头/摘要、精确成员与历史政策绑定、唯一投递状态、逐次尝试与暂停检查，不运行现行政策或重渲染。恢复副本先暂停、禁用后台、无凭据，避免原副本同时发送；sending 一次恢复为 uncertain，accepted 不重发。校验不能恢复快照之后的外部接受事实，也不是恶意改写认证或断电证明。
+
+## 新迭代 N2 / N3：部署证据与历史搜索
+
+新编号独立于上述邮件 N0–N4。新 N2 的本地部署检查、源码实际字节快照与观察入口已接通，
+目标远端只读核验为原生 Windows、未见 WSL 发行版；现有 POSIX/Linux 目标尚未上线。
+`rollout-check` / `observe` 只读采集/邮件诊断，不获取锁、创建库、恢复 sending 或验证 SMTP。
+准备、凭据存在性与真实外部验收分别表达；实际机器服务、邮箱收件和七天记录须独立取得。
+发布只归档明确允许的源码/锁文件/模板，逐文件摘要覆盖未提交代码，不夹带个人配置。
+新快照拒绝覆盖、路径逃逸和符号链接；两文件发布、fsync 及压缩确定性的保障范围见[上线说明](rollout.md)。
+
+新 N3 新增迁移 0007：`search_documents` 保存当前成功正文的规范化文本及准确版本指针，
+`search_fts` 是 SQLite FTS5 trigram 派生索引，触发器与普通行一起事务提交。
+详情成功事务末尾同步索引，包括离线导入和维护 reparse；索引失败使版本、成功状态、资源标记、
+live 通知事件/决策/意图整组回滚。业务失败后旧成功版本继续可查，A→B→A 正确跟随 current_version_id。
+旧库升级不自动建索引内容，用 `search-rebuild` 持统一写锁从规范化 JSON 全事务重建，无 HTTP/Parser/原文读取。
+
+查询与单条详情使用 mode=ro/query_only，不修复、不取写锁。索引缺失/陈旧明确失败。
+只检索当前成功标题/正文，含站点日期范围与来源过滤、片段及原始 URL；不搜索附件文件或所有历史版本。
+有限固定别名与当前查询版本在结果明示，不修改 NoticeContent 摘要或通知政策。
+FTS 三字候选与短词 instr 回退、排序、重建及备份限制见[历史搜索](search.md)；
+9 篇真实语料和 15 查询的生产 Recall@K 见[工程评估](search-evaluation.md)，不称人工确认的 gold。

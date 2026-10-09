@@ -1,6 +1,6 @@
 # SignalNest
 
-单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**采集、离线恢复、政策 v5、邮件计划/冻结、SMTP 发送恢复及后台邮件入口已实现**。使用外部定时模板触发有界单次运行，没有 Python 常驻调度器；邮件默认关闭，显式启用后可自动计划并发送。目标 Linux 部署与真实邮箱验证尚未进行。
+单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**采集、离线恢复、政策 v5、邮件计划/冻结、SMTP 发送恢复、后台邮件入口及基础历史搜索已实现**。使用外部定时模板触发有界单次运行，没有 Python 常驻调度器；邮件默认关闭，显式启用后可自动计划并发送。目标 Linux 部署与真实邮箱验证尚未进行。
 
 2026-10-08 开始的新迭代 **N0 规则对齐 → N1 助教招聘 → N2 部署运行验收 → N3 基础搜索** 单列于[迭代记录](docs/iteration-20261008.md)。下文原邮件模块 N0–N4 编号继续保留。新 N1 已提供[助教招聘的离线判断与预览](docs/teaching-assistant.md)，含真实历史招聘正例和独立 EMS 详情 Parser；自动发现当期助教机会仍未验收，现有联网来源保持本科生院。
 
@@ -16,8 +16,8 @@ uv run --locked pytest
 uv run --locked ruff check src tests
 uv run --locked ruff format --check src tests
 # 另检查部署辅助程序。
-uv run --locked ruff check deploy/verify_backup.py deploy/evaluate_notifications.py
-uv run --locked ruff format --check deploy/verify_backup.py deploy/evaluate_notifications.py
+uv run --locked ruff check deploy
+uv run --locked ruff format --check deploy
 ```
 
 `uv.lock` 锁定稳定依赖，禁止预发布版本。包名与 CLI 均为 `signalnest`，也可使用 `uv run --locked python -m signalnest`。技术栈为同步 HTTPX、Beautiful Soup（显式 `html.parser`）、Pydantic、同步 SQLAlchemy Core、Alembic、SQLite、argparse 和标准库 logging。
@@ -43,7 +43,7 @@ uv run --locked signalnest config-check --config signalnest.toml
 uv run --locked signalnest storage-init --config signalnest.toml
 ```
 
-命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0006_mail_sending`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
+命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0007_history_search`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
 
 可在临时目录验证（macOS / Linux）：
 
@@ -54,9 +54,9 @@ uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 ```
 
-结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、notifications-activate、mail-plan / mail-drain、政策维护、后台邮件和采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
+结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、search-rebuild、notifications-activate、mail-plan / mail-drain、政策维护、后台邮件和采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
 
-从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0005 只新增冻结邮件、精确成员和计划阻断表，保留 N1 事件/意图，不自动计划；0006 新增投递、逐次尝试和政策维护操作状态，给旧冻结邮件登记 pending；升级不发送。0001–0005 保持冻结。
+从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0005 只新增冻结邮件、精确成员和计划阻断表，保留 N1 事件/意图，不自动计划；0006 新增投递、逐次尝试和政策维护操作状态，给旧冻结邮件登记 pending；升级不发送。0007 新增可重建的当前正文搜索索引，需 SQLite 支持 FTS5 trigram；旧库升级后执行下述 `search-rebuild`。0001–0006 保持冻结。
 
 ## 单次采集
 
@@ -111,6 +111,39 @@ uv run --locked signalnest reparse --config "$trial_dir/signalnest.toml" --respo
 原文为 `data_dir/raw/<sha256>.bin`。写入器先完整写同目录临时文件、校验并 fsync，再原子且不覆盖地发布；已有文件、重新解析读取都验证摘要。拒绝路径逃逸、符号链接和非普通文件，损坏不覆盖。当前文件实现面向 macOS/Linux POSIX；配置加载先解析路径别名，写入器拒绝解析后路径内再出现符号链接。
 
 文件 I/O 和解析均在数据库事务外；详情的版本、当前版本指针、成功状态及响应处理摘要一起提交。失败保留最近成功版本，同一原文可以再次尝试。连失败状态都无法登记时返回 `failure_state_unavailable`，不声称已经恢复。文件发布后、数据库登记前失败可留下孤立文件，保留供人工核对；进程中断也可能留下 `.tmp-*`。停止所有写入后，以 raw_responses 的 body_path 对照文件识别孤立文件；不自动删除。fsync/原子发布不能证明断电持久性，文件与 SQLite 也不构成跨介质原子事务，详见 [设计说明](docs/design.md)。
+
+## 基础历史搜索（新迭代 N3）
+
+搜索已保存的**当前成功版本**，不抓取网站、不判断机会是否仍开放，不搜索未解析成功的通知或附件文件内容：
+
+```sh
+uv run --locked signalnest search --config signalnest.toml --query '助教招聘'
+uv run --locked signalnest search --config signalnest.toml --query '科研训练'
+uv run --locked signalnest search --config signalnest.toml --query '竞赛' \
+  --from 2024-06-01 --to 2024-07-01 --source-id whu-undergrad-student
+# 使用搜索返回的 document_id。
+uv run --locked signalnest notice-show --config signalnest.toml --document-id 12
+# 旧库升级、索引陈旧或恢复后显式重建；持实例写入锁，无网络/原文重解析。
+uv run --locked signalnest search-rebuild --config signalnest.toml
+```
+
+搜索返回标题、站点日期、原始链接、纯文本片段、稳定身份与当前版本；`--limit` / `--offset` 支持有界分页。日期范围含两端，不猜“最近一个月”的锚点。多个空格分隔关键词为 AND，有限别名及版本在结果中明示。查询和详情使用 SQLite 只读连接，不获取写锁、迁移或修复；导入、采集与重解析成功时同步更新派生索引。复查失败仍可检索最近成功正文。说明及限制见[历史搜索](docs/search.md)。
+
+[评估报告](docs/search-evaluation.md)使用 9 篇真实原文、15 个明确查询连接真实入库和生产索引。13 个非空工程相关集 Recall@1/3/5 为 0.852564/0.980769/1.000000，2 个预期空集正确；存在“竞赛”顺带提及误检。这些是可审查的工程标注，**不是用户确认的人工 gold 或全站准确率**。
+
+## 上线检查与观察（新迭代 N2）
+
+```sh
+uv run --locked signalnest rollout-check --config signalnest.toml \
+  --release-root "$PWD" --at "$(date -u +%s)"
+uv run --locked signalnest observe --config signalnest.toml \
+  --release-root "$PWD" --at "$(date -u +%s)"
+# 产生源码实际字节与独立清单，目标必须新建且位于源码目录之外。
+uv run --locked python deploy/release_snapshot.py \
+  --release-root "$PWD" --output /private/tmp/signalnest-release.tar.gz
+```
+
+准备报告检查源码、数据库、积压、冷却和邮件状态；真实画像须显式传 `--profile`，核对后再声明 `--profile-confirmed`。它始终保留 `externally_verified=false`，不会发送邮件或开启定时器。`observe` 输出一行 JSON，可由操作者保存为每日记录；没有后台监视任务。当前指定远端经只读检查为 Windows，未见 WSL 发行版，现有 POSIX/Linux 部署不能直接运行；尚未安装环境、实采、发送真实邮件或开始一周观察。下一步与验收表见[上线说明](docs/rollout.md)。
 
 ## 单次 HTTP 的离线衔接接口
 
@@ -463,3 +496,5 @@ N2 本批全部完成，仅有 pending 冻结邮件，不连接 SMTP，不发送
 真实 EMS 原文保留获取元数据的 2026 时间，验证归档、重复导入、维护重新解析和重开 SQLite；离线不创建 live 事件或邮件任务。显式 2024 回放单独验证确定的纯文本 MIME 预览，不冒充生产冻结或投递。安装入口从另一临时目录完成画像检查、帮助及历史/当前预览，没有创建存储；88 份研究/fixture、本科生院 Parser、核心存储/获取/schema/迁移范围及依赖受保护文件摘要未变，既有工作保留。本轮完全离线，没有修改个人政策、启用定时器、发送真实邮件或提交 Git。
 
 **本轮 N1 离线交付已完成，当期助教自动发现仍未验收**：EMS 当前正文匿名请求的登录限制沿用既有研究证据，未在本轮重新请求。下一项来源适配需公开当期正文、可靠列表分页与单来源实例边界的独立验证；不能仅放宽主机白名单。N2 部署及一周观察、N3 搜索尚未开展。
+
+2026-10-09 新迭代 N2 准备 / N3 搜索：macOS 26.6.2 arm64、CPython 3.12.14、SQLite 3.53.1、uv 0.12.20，全部 **1950 项离线测试通过**（108.08 秒，新增 144 项）。Ruff/格式覆盖 src、tests、deploy 共 119 个 Python 文件，差异检查通过；锁定依赖离线同步通过。覆盖真实归档/Parser/SQLite 搜索、过滤、增量/A→B→A/重建、包含通知意图的事务回滚、旧库升级、只读 CLI、发布确定性/FIFO 子进程及备份索引结构校验。真实语料生产回放和另一临时目录 CLI 演示通过。research/fixture、原 Parser、政策 v5、0001–0006 与依赖文件未改；未提交 Git。N2 远端仅只读核验，未安装 Linux、启用 timer、校园实采、发送邮件或开始一周观察。详见[本轮验证](docs/validation/n2n3-20261009.md)。

@@ -24,6 +24,8 @@ class Event(StrEnum):
     CRAWL_FINISHED = "crawl_finished"
     DETAIL_GROUP_FINISHED = "detail_group_finished"
     STATUS_READ = "status_read"
+    SEARCH_READ = "search_read"
+    SEARCH_INDEX_REBUILT = "search_index_rebuilt"
     POLICY_APPLIED = "policy_applied"
     NOTIFICATION_EVENT_REGISTERED = "notification_event_registered"
     NOTIFICATION_COMPARISON_UNKNOWN = "notification_comparison_unknown"

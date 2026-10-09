@@ -20,15 +20,17 @@ class StorageError(RuntimeError):
     """Storage initialization failed; never report a successful migration."""
 
 
-def make_engine(database: Path, *, must_exist: bool = False) -> Engine:
+def make_engine(database: Path, *, must_exist: bool = False, read_only: bool = False) -> Engine:
     """Create a lazy engine; opening a connection is an explicit caller action."""
     if not database.is_absolute():
         raise ValueError("database path must be absolute; use load_config first")
     options = {}
-    if must_exist:
+    if must_exist or read_only:
         # mode=rw prevents creating an empty database, including after a path race.
         options["creator"] = lambda: sqlite3.connect(
-            database.as_uri() + "?mode=rw", uri=True, timeout=5
+            database.as_uri() + ("?mode=ro" if read_only else "?mode=rw"),
+            uri=True,
+            timeout=5,
         )
     engine = create_engine(
         URL.create("sqlite+pysqlite", database=str(database)),
@@ -43,6 +45,8 @@ def make_engine(database: Path, *, must_exist: bool = False) -> Engine:
         dbapi_connection.isolation_level = None
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        if read_only:
+            cursor.execute("PRAGMA query_only=ON")
         cursor.close()
 
     @event.listens_for(engine, "begin")
@@ -52,9 +56,9 @@ def make_engine(database: Path, *, must_exist: bool = False) -> Engine:
     return engine
 
 
-def open_initialized_engine(database: Path) -> Engine:
+def open_initialized_engine(database: Path, *, read_only: bool = False) -> Engine:
     """Open existing storage at head; never create or migrate it implicitly."""
-    engine = make_engine(database, must_exist=True)
+    engine = make_engine(database, must_exist=True, read_only=read_only)
     try:
         with engine.connect() as connection:
             revision = MigrationContext.configure(connection).get_current_revision()

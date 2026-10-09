@@ -7,6 +7,7 @@ schema, downloads missing files, modifies evidence, or deletes orphan files.
 import argparse
 import hashlib
 import json
+import re
 import sqlite3
 import stat
 import sys
@@ -42,6 +43,70 @@ def _json(value, code):
 
 def _records(connection, table, key="id"):
     return {row[key]: dict(row) for row in connection.execute(f"SELECT * FROM {table}")}
+
+
+def _search_schema(connection):
+    """Require rebuildable 0007 structure, but allow missing/stale derived rows.
+
+    Rebuild repairs postings/content, not a dropped schema object at Alembic head.
+    These checks only read sqlite_master/PRAGMA; FTS's write-style integrity command
+    deliberately does not run while validating a read-only backup.
+    """
+    code = "backup_search_schema_missing"
+    names = (
+        "search_documents",
+        "search_fts",
+        "search_documents_insert",
+        "search_documents_delete",
+        "search_documents_update",
+    )
+    placeholders = ",".join("?" for _ in names)
+    records = {
+        row["name"]: dict(row)
+        for row in connection.execute(
+            "SELECT name,type,tbl_name,sql FROM sqlite_master WHERE name IN (" + placeholders + ")",
+            names,
+        )
+    }
+    if set(records) != set(names):
+        raise BackupVerificationError(code)
+    virtual = re.compile(r"^\s*CREATE\s+VIRTUAL\s+TABLE\b", re.IGNORECASE)
+    regular = records["search_documents"]
+    fts = records["search_fts"]
+    if (
+        regular["type"] != "table"
+        or regular["tbl_name"] != "search_documents"
+        or not regular["sql"]
+        or virtual.match(regular["sql"])
+        or fts["type"] != "table"
+        or fts["tbl_name"] != "search_fts"
+        or not fts["sql"]
+        or not virtual.match(fts["sql"])
+        or not re.search(r"\bUSING\s+fts5\s*\(", fts["sql"], re.IGNORECASE)
+    ):
+        raise BackupVerificationError(code)
+    columns = [tuple(row) for row in connection.execute("PRAGMA table_info(search_documents)")]
+    if [row[1] for row in columns] != [
+        "document_id",
+        "version_id",
+        "title_text",
+        "body_text",
+        "index_version",
+    ]:
+        raise BackupVerificationError(code)
+    if [row[1] for row in connection.execute("PRAGMA table_info(search_fts)")] != [
+        "title_text",
+        "body_text",
+    ]:
+        raise BackupVerificationError(code)
+    for name in names[2:]:
+        trigger = records[name]
+        if (
+            trigger["type"] != "trigger"
+            or trigger["tbl_name"] != "search_documents"
+            or not trigger["sql"]
+        ):
+            raise BackupVerificationError(code)
 
 
 def _numbers(row, fields, code, *, minimum=0, optional=()):
@@ -504,6 +569,7 @@ def verify_backup(database: Path, data_dir: Path) -> dict[str, int | str]:
             ]
             if revisions != [(expected_revision,)]:
                 raise BackupVerificationError("backup_revision_mismatch")
+            _search_schema(connection)
             invalid_success = connection.execute(
                 "SELECT d.id FROM documents d LEFT JOIN notice_versions v "
                 "ON v.id = d.current_version_id AND v.document_id = d.id "

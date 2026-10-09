@@ -1,0 +1,1148 @@
+{
+  "schema_version": 1,
+  "kind": "offline_production_lexical_search_evaluation",
+  "recorded_at": "2026-10-08T16:07:03.248941+00:00",
+  "human_gold": false,
+  "note": "真实HTML上的小型离线词法检索评估。所有相关性标签均为工程判断，尚未经用户逐条确认，不是人工gold；原查询、显式日期和失败均保留。",
+  "query_origin": "依据用户提出的实际查询类别具体化；不是用户搜索日志。",
+  "source_sha256": {
+    "deploy/evaluate_search.py": "e1d4890727e2855499c7bd0bd110ab0426f494bdf626a371c5d2a1213478f0c9",
+    "src/signalnest/search.py": "12f4b361e4eb0799a96d67542db9a70212b0a7b8a8de9254de4da23043f5aa0b",
+    "src/signalnest/contracts.py": "358f49be516bb1f271858911e682032d130b05b21faf8212f2131ed9f68bbce1",
+    "src/signalnest/schema.py": "c5c4bc7689ff4e397c94777b4f9d8b2c761eecb6fbcd960af1930bc487d5f971",
+    "src/signalnest/ingestion.py": "8379ccd768e76b5a45f15983384c08c4f01b9e7086ae37778ed0388989d41887",
+    "src/signalnest/rawstore.py": "1d12e6fcac45ef08b41a9880443bdf8693d6bb3dbbf4a607998692badfd3eadf",
+    "src/signalnest/storage.py": "4905451201b6d5987561ee92dc9bd08d62fdcd88b31d15e7e0e3e79c02fc22ca",
+    "src/signalnest/parsing.py": "b11e291a5d0f0beded00d9b8495bd6e3f00615fca19cbfa986f79c1aa9d21fe8",
+    "src/signalnest/ems_parsing.py": "7dd063655a6b277aebaca09d975f0e61905acbdd92cc92aea959f3f17c14d83e",
+    "src/signalnest/migrations/versions/0007_history_search.py": "ec9eba7784b799f3edab29509577fbf86bbfed622e0fc63a492842a6e20a558b"
+  },
+  "manifest_sha256": "8e686ba4fd8bd7cccba68b4c8c3b1b16ea3529ede7436a2721e35ec41b416c38",
+  "environment": {
+    "python": "3.12.14",
+    "sqlite": "3.53.1",
+    "platform": "macOS-26.6.2-arm64-arm-64bit"
+  },
+  "storage_revision": "0007_history_search",
+  "corpus": [
+    {
+      "corpus_id": "117011",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:117011",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-117011-20261005T133549Z.html",
+      "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "fetched_at": 1791207349,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。",
+      "document_id": 1,
+      "version_id": 1,
+      "title": "关于2023级本科生修读辅修专业报名的通知",
+      "published_date": "2024-11-27",
+      "content_sha256": "035f2a7772100940c0e15aaa995b30b507ace43eb0e867f08f2e3ac9cdf3f5ec",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "127511",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:127511",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-127511-20261005T133829869212Z.html",
+      "sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+      "fetched_at": 1791207511,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。",
+      "document_id": 2,
+      "version_id": 2,
+      "title": "关于公布2025年武汉大学珞珈本科生创新研究基金项目结题验收结果的通知",
+      "published_date": "2026-06-26",
+      "content_sha256": "28f18ef515fc28b7875662c7ca3b74e4e57edb00ff50f049694f0094857e942b",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "128291",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:128291",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "fetched_at": 1791207333,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。",
+      "document_id": 3,
+      "version_id": 3,
+      "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+      "published_date": "2026-09-07",
+      "content_sha256": "348d4b53e66a23cb9d82af3e18bcc145e2e9ea810c786e8b8dc0334852f6bccc",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "14147",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:14147",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-14147-20261005T133543Z.html",
+      "sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+      "fetched_at": 1791207344,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。",
+      "document_id": 4,
+      "version_id": 4,
+      "title": "关于征集2023年大学生创新创业训练计划项目选题的通知",
+      "published_date": "2022-05-14",
+      "content_sha256": "ece75b60e133c025f4c607bffe5f753509aeaac871c55a46931666322262086e",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "17361",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:17361",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-17361-20261005T133538Z.html",
+      "sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+      "fetched_at": 1791207338,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。",
+      "document_id": 5,
+      "version_id": 5,
+      "title": "关于开展2024年大学生创新创业训练计划项目中期检查暨立项工作的通知",
+      "published_date": "2024-01-22",
+      "content_sha256": "d848ec9216a1865cb43bfd743b3aad5b9c1e427009802e1286ebf9c3cc0cbcad",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "18135",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:18135",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-18135-20261005T133554Z.html",
+      "sha256": "5b0a3dcfac752ec0947ccfc8e87bccf5a313be586907b44905494ed592e04aa1",
+      "source_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+      "fetched_at": 1791207354,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。",
+      "document_id": 6,
+      "version_id": 6,
+      "title": "首届全球数智教育创新大赛报名开启！等你来挑战！",
+      "published_date": "2024-06-28",
+      "content_sha256": "58bef0e0e996fb6428ad5cd007fad982739244aded384c585c216abe9dc7a1fc",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "128231",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:128231",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "fetched_at": 1790579171,
+      "provenance": "真实公开详情原文；已有离线示例获取时间依据当时响应 Date，非精确客户端观测。",
+      "document_id": 7,
+      "version_id": 7,
+      "title": "关于2026-2027学年第一学期2026级新生选课的通知",
+      "published_date": "2026-09-04",
+      "content_sha256": "641d653509d3ee8ee0e967cc0253dbb89e8a0c572b32e0ebecadc057a4d06f3a",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "127581",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:127581",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/legacy-notice-detail.html",
+      "sha256": "4e39671b3ceba811baf7ec0c23728596054b585768e02fcddfb0c1500a9260e8",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+      "fetched_at": 1790579063,
+      "provenance": "真实公开详情原文；已有离线示例获取时间依据当时响应 Date，非精确客户端观测。",
+      "document_id": 8,
+      "version_id": 8,
+      "title": "关于2026-2027学年第一学期选课的通知",
+      "published_date": "2026-07-08",
+      "content_sha256": "7816f0d0bd9bf5ea5aee3b893e5ad73fda51a9d5955cc9db2b7ef1e70295d82e",
+      "parser_version": "whu-student-notices-v3"
+    },
+    {
+      "corpus_id": "ems-250571",
+      "source_id": "whu-ems-notices-offline",
+      "source_document_id": "1588:250571",
+      "parser": "ems-notices",
+      "fixture": "research/fixtures/teaching-assistant/ems-notice-250571-20261008T102823953399Z.html",
+      "sha256": "84d61d384c1fbc15a5ba964404a60f67adb88aa615b0ba44dda6425e1505e843",
+      "source_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+      "fetched_at": 1791455304,
+      "provenance": "真实历史详情，手动登记离线目标；不代表 EMS 自动发现或当期来源已启用。",
+      "document_id": 9,
+      "version_id": 9,
+      "title": "经济与管理学院2024—2025学年第一学期本科教学课程助教选聘通知",
+      "published_date": "2024-09-09",
+      "content_sha256": "5ca13f35b6948815b7f60bf4f1ea1c9035398645cac9412fb64f5c0fdc728495",
+      "parser_version": "ems-notices-v1"
+    }
+  ],
+  "methods": {
+    "sqlite_literal_and": {
+      "metrics": {
+        "relevant_query_count": 13,
+        "macro_recall_at_k": {
+          "1": 0.621795,
+          "3": 0.75,
+          "5": 0.769231
+        },
+        "macro_precision_at_k": {
+          "1": 0.769231,
+          "3": 0.384615,
+          "5": 0.246154
+        },
+        "macro_precision_among_returned_at_k": {
+          "1": 0.769231,
+          "3": 0.769231,
+          "5": 0.769231
+        },
+        "empty_query_count": 2,
+        "empty_query_correct": 2
+      },
+      "query_results": {
+        "S01": [
+          "128291",
+          "17361",
+          "14147"
+        ],
+        "S02": [
+          "17361",
+          "14147"
+        ],
+        "S03": [],
+        "S04": [
+          "ems-250571"
+        ],
+        "S05": [],
+        "S06": [
+          "18135"
+        ],
+        "S07": [
+          "117011"
+        ],
+        "S08": [
+          "128291",
+          "128231",
+          "127581",
+          "117011"
+        ],
+        "S09": [
+          "128231"
+        ],
+        "S10": [
+          "128291"
+        ],
+        "S11": [],
+        "S12": [],
+        "S13": [
+          "127511"
+        ],
+        "S14": [
+          "ems-250571"
+        ],
+        "S15": [
+          "14147"
+        ]
+      }
+    },
+    "sqlite_fts5_unicode61": {
+      "metrics": {
+        "relevant_query_count": 13,
+        "macro_recall_at_k": {
+          "1": 0.019231,
+          "3": 0.038462,
+          "5": 0.038462
+        },
+        "macro_precision_at_k": {
+          "1": 0.076923,
+          "3": 0.051282,
+          "5": 0.030769
+        },
+        "macro_precision_among_returned_at_k": {
+          "1": 0.076923,
+          "3": 0.076923,
+          "5": 0.076923
+        },
+        "empty_query_count": 2,
+        "empty_query_correct": 2
+      },
+      "query_results": {
+        "S01": [],
+        "S02": [],
+        "S03": [],
+        "S04": [],
+        "S05": [],
+        "S06": [],
+        "S07": [],
+        "S08": [
+          "127581",
+          "128231"
+        ],
+        "S09": [],
+        "S10": [],
+        "S11": [],
+        "S12": [],
+        "S13": [],
+        "S14": [],
+        "S15": []
+      }
+    },
+    "sqlite_fts5_trigram_literal": {
+      "metrics": {
+        "relevant_query_count": 13,
+        "macro_recall_at_k": {
+          "1": 0.621795,
+          "3": 0.75,
+          "5": 0.769231
+        },
+        "macro_precision_at_k": {
+          "1": 0.769231,
+          "3": 0.384615,
+          "5": 0.246154
+        },
+        "macro_precision_among_returned_at_k": {
+          "1": 0.769231,
+          "3": 0.769231,
+          "5": 0.769231
+        },
+        "empty_query_count": 2,
+        "empty_query_correct": 2
+      },
+      "query_results": {
+        "S01": [
+          "128291",
+          "14147",
+          "17361"
+        ],
+        "S02": [
+          "14147",
+          "17361"
+        ],
+        "S03": [],
+        "S04": [
+          "ems-250571"
+        ],
+        "S05": [],
+        "S06": [
+          "18135"
+        ],
+        "S07": [
+          "117011"
+        ],
+        "S08": [
+          "128291",
+          "128231",
+          "127581",
+          "117011"
+        ],
+        "S09": [
+          "128231"
+        ],
+        "S10": [
+          "128291"
+        ],
+        "S11": [],
+        "S12": [],
+        "S13": [
+          "127511"
+        ],
+        "S14": [
+          "ems-250571"
+        ],
+        "S15": [
+          "14147"
+        ]
+      }
+    },
+    "sqlite_fts5_trigram_fixed_aliases": {
+      "metrics": {
+        "relevant_query_count": 13,
+        "macro_recall_at_k": {
+          "1": 0.852564,
+          "3": 0.980769,
+          "5": 1.0
+        },
+        "macro_precision_at_k": {
+          "1": 1.0,
+          "3": 0.461538,
+          "5": 0.292308
+        },
+        "macro_precision_among_returned_at_k": {
+          "1": 1.0,
+          "3": 0.948718,
+          "5": 0.948718
+        },
+        "empty_query_count": 2,
+        "empty_query_correct": 2
+      },
+      "query_results": {
+        "S01": [
+          "128291",
+          "14147",
+          "17361"
+        ],
+        "S02": [
+          "14147",
+          "17361"
+        ],
+        "S03": [
+          "ems-250571"
+        ],
+        "S04": [
+          "ems-250571"
+        ],
+        "S05": [
+          "18135"
+        ],
+        "S06": [
+          "18135"
+        ],
+        "S07": [
+          "117011"
+        ],
+        "S08": [
+          "128291",
+          "128231",
+          "127581",
+          "117011"
+        ],
+        "S09": [
+          "128231"
+        ],
+        "S10": [
+          "128291"
+        ],
+        "S11": [],
+        "S12": [],
+        "S13": [
+          "127511"
+        ],
+        "S14": [
+          "ems-250571"
+        ],
+        "S15": [
+          "18135",
+          "128291",
+          "14147"
+        ]
+      }
+    },
+    "production": {
+      "metrics": {
+        "relevant_query_count": 13,
+        "macro_recall_at_k": {
+          "1": 0.852564,
+          "3": 0.980769,
+          "5": 1.0
+        },
+        "macro_precision_at_k": {
+          "1": 1.0,
+          "3": 0.461538,
+          "5": 0.292308
+        },
+        "macro_precision_among_returned_at_k": {
+          "1": 1.0,
+          "3": 0.948718,
+          "5": 0.948718
+        },
+        "empty_query_count": 2,
+        "empty_query_correct": 2
+      },
+      "query_results": {
+        "S01": [
+          "128291",
+          "14147",
+          "17361"
+        ],
+        "S02": [
+          "14147",
+          "17361"
+        ],
+        "S03": [
+          "ems-250571"
+        ],
+        "S04": [
+          "ems-250571"
+        ],
+        "S05": [
+          "18135"
+        ],
+        "S06": [
+          "18135"
+        ],
+        "S07": [
+          "117011"
+        ],
+        "S08": [
+          "128291",
+          "128231",
+          "127581",
+          "117011"
+        ],
+        "S09": [
+          "128231"
+        ],
+        "S10": [
+          "128291"
+        ],
+        "S11": [],
+        "S12": [],
+        "S13": [
+          "127511"
+        ],
+        "S14": [
+          "ems-250571"
+        ],
+        "S15": [
+          "18135",
+          "128291",
+          "14147"
+        ]
+      }
+    }
+  },
+  "queries": [
+    {
+      "query_id": "S01",
+      "user_query": "科研训练",
+      "query": "科研训练",
+      "relevant_corpus_ids": [
+        "128291",
+        "14147",
+        "17361"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "科研课程、科研项目征题及立项管理均直接涉及本科科研训练。"
+    },
+    {
+      "query_id": "S02",
+      "user_query": "大学生创新创业训练计划项目",
+      "query": "创新创业 训练计划",
+      "relevant_corpus_ids": [
+        "14147",
+        "17361"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "两篇均直接发布大学生创新创业训练计划事项；按空格分为两个字面片段。"
+    },
+    {
+      "query_id": "S03",
+      "user_query": "助教招聘",
+      "query": "助教招聘",
+      "relevant_corpus_ids": [
+        "ems-250571"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "真实岗位选聘是相关目标，但正文用“选聘”，查询完整短语不存在；保留已知漏检，不自动改写。"
+    },
+    {
+      "query_id": "S04",
+      "user_query": "助教选聘",
+      "query": "助教 选聘",
+      "relevant_corpus_ids": [
+        "ems-250571"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "查询显式采用站点词汇；招聘正例含助教和选聘，课程介绍不是选聘。"
+    },
+    {
+      "query_id": "S05",
+      "user_query": "最近一个月的竞赛",
+      "query": "竞赛",
+      "relevant_corpus_ids": [
+        "18135"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "以2024-07-01为明确评估锚点，2024-06-01至07-01；真实比赛用“大赛”，保留词汇漏检。",
+      "date_from": "2024-06-01",
+      "date_to": "2024-07-01"
+    },
+    {
+      "query_id": "S06",
+      "user_query": "最近一个月的大赛（显式站点词汇）",
+      "query": "大赛",
+      "relevant_corpus_ids": [
+        "18135"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "与S05相同意图和日期范围；仅本例明确使用站点词汇“大赛”。",
+      "date_from": "2024-06-01",
+      "date_to": "2024-07-01"
+    },
+    {
+      "query_id": "S07",
+      "user_query": "辅修报名",
+      "query": "辅修 报名",
+      "relevant_corpus_ids": [
+        "117011"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "本科生辅修报名是真实主题；新生选课页仅顺带缴费说明，不是辅修报名目标。"
+    },
+    {
+      "query_id": "S08",
+      "user_query": "选课",
+      "query": "选课",
+      "relevant_corpus_ids": [
+        "117011",
+        "128291",
+        "128231",
+        "127581"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "四篇分别涉及辅修修读安排、科研课程选课、新生选课与普通学期选课；检索不自动判定机会资格。"
+    },
+    {
+      "query_id": "S09",
+      "user_query": "新生选课",
+      "query": "新生 选课",
+      "relevant_corpus_ids": [
+        "128231"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "明确2026级新生选课标题及正文。"
+    },
+    {
+      "query_id": "S10",
+      "user_query": "2026年9月本科生院科研训练",
+      "query": "科研训练",
+      "relevant_corpus_ids": [
+        "128291"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "只保留站点发布日期2026年9月、指定本科生院来源的科研训练通知。",
+      "date_from": "2026-09-01",
+      "date_to": "2026-09-30",
+      "source_id": "whu-undergrad-student"
+    },
+    {
+      "query_id": "S11",
+      "user_query": "仅本科生院的助教选聘",
+      "query": "助教 选聘",
+      "relevant_corpus_ids": [],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "EMS历史正例被来源过滤排除；本科生院课程介绍不含助教选聘。",
+      "source_id": "whu-undergrad-student"
+    },
+    {
+      "query_id": "S12",
+      "user_query": "2024年9月本科生院助教",
+      "query": "助教",
+      "relevant_corpus_ids": [],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "EMS历史正例被来源过滤排除，课程介绍站点日期2026年不在范围内。",
+      "date_from": "2024-09-01",
+      "date_to": "2024-09-30",
+      "source_id": "whu-undergrad-student"
+    },
+    {
+      "query_id": "S13",
+      "user_query": "项目结题",
+      "query": "项目结题",
+      "relevant_corpus_ids": [
+        "127511"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "本科生创新研究基金结题验收结果为直接目标。"
+    },
+    {
+      "query_id": "S14",
+      "user_query": "EMS助教",
+      "query": "助教",
+      "relevant_corpus_ids": [
+        "ems-250571"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "两字查询必须可用，来源过滤只返回手工离线EMS语料。",
+      "source_id": "whu-ems-notices-offline"
+    },
+    {
+      "query_id": "S15",
+      "user_query": "竞赛（不限定日期）",
+      "query": "竞赛",
+      "relevant_corpus_ids": [
+        "18135"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "直接发布竞赛事项的真实页面为18135；14147科研征题和128291课程仅顺带提到竞赛，作为词法扩展的误检参照。"
+    }
+  ],
+  "production_pages": {
+    "S01": {
+      "query": "科研训练",
+      "items": [
+        {
+          "document_id": 3,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:128291",
+          "version_id": 3,
+          "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+          "published_date": "2026-09-07",
+          "original_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+          "snippet": "…通过本课程系统掌握前沿学科知识与动态，提升科研创新能力和国际学术素养。 一、课程基本信息 课程名称：《国际化拔尖创新人才科研训练》 课程性质：专业选修课/跨专业选修课/通识选修课 学时学分：48学时，计3学分 二、上课安排及学习方式 （一）上课安排（10月-12月，共11周）： 1．直播授课（1-10周）：教授全英文在线直播授课，10月17日开始，集中于周末上课。共10次课，每次3课时（其中两次为4课时），共32课时，计考勤；另每周安排中文助教辅导课，共16课时，计考勤。 2…"
+        },
+        {
+          "document_id": 4,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:14147",
+          "version_id": 4,
+          "title": "关于征集2023年大学生创新创业训练计划项目选题的通知",
+          "published_date": "2022-05-14",
+          "original_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+          "snippet": "…23年大创项目选题，有关事项通知如下。 一、项目说明 1.大创项目是教育部实施的面向本科生的、在导师指导下独立完成的自主科研训练活动。根据项目级别分为国家级（重点和一般）、省级、校级项目；根据项目类型分为创新训练、创业训练、创业实践三类。 2.选题要求：提供的选题应适合本科生实施开展，鼓励面向国家经济社会发展，具有一定理论和现实意义的选题；鼓励科技前沿、新兴学科研究、跨学科的交叉综合研究选题；鼓励来源于生产一线的企业选题。 3.学院、科研单位的教师均可提供选题。鼓励高水平科研…"
+        },
+        {
+          "document_id": 5,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:17361",
+          "version_id": 5,
+          "title": "关于开展2024年大学生创新创业训练计划项目中期检查暨立项工作的通知",
+          "published_date": "2024-01-22",
+          "original_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+          "snippet": "…宜通知如下。 一、中期检查项目范围 1.主要面向2024年预立项项目，名单见附件1。 2.没有参加预立项、但持续自主开展科研训练团队，可提出立项补报申请。有阶段成果的项目优先立项国家级项目。 二、中期检查平台 中期检查工作在本科教务管理系统“大创项目”模块进行（网址：https://jwgl.whu.edu.cn/），操作流程见附件2。系统首页下载专区可下载中期报告模板和中期检查审核要点。 三、中期检查材料 项目团队需在系统中提交以下材料。未参与预立项、补报的项目须先在系统中…"
+        }
+      ],
+      "total": 3,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "科研训练"
+        ]
+      ]
+    },
+    "S02": {
+      "query": "创新创业 训练计划",
+      "items": [
+        {
+          "document_id": 4,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:14147",
+          "version_id": 4,
+          "title": "关于征集2023年大学生创新创业训练计划项目选题的通知",
+          "published_date": "2022-05-14",
+          "original_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+          "snippet": "关于征集2023年大学生创新创业训练计划项目选题的通知 武汉本函﹝2022﹞67号 全校各学院、科研机构： 大学生创新创业训练计划项目（以下简称“大创项目”）是学校推动本科生尽早进入实验室、融入教师科研团队的最主要的载体。为了提升大创项目质量，推进本科生实质性参与教师的科学研究项目，现面向全校教师征集2023年大创项目选题，有关事项通知如下。 一、项目说明 1.大创项目是教育部实施的面向本科生的、在导师指导下独立完成的自主科研训练活动。根据项目级别分为国家级（重点和一般）、省…"
+        },
+        {
+          "document_id": 5,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:17361",
+          "version_id": 5,
+          "title": "关于开展2024年大学生创新创业训练计划项目中期检查暨立项工作的通知",
+          "published_date": "2024-01-22",
+          "original_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+          "snippet": "武大本函〔2024〕14号 各有关单位： 根据《关于申报2024年大学生创新创业训练计划项目的通知》（武大本函〔2023〕109号）工作安排，2024年大学生创新创业训练计划项目（以下简称“大创项目”）中期检查暨立项事宜通知如下。 一、中期检查项目范围 1.主要面向2024年预立项项目，名单见附件1。 2.没有参加预立项、但持续自主开展科研训练团队，可提出立项补报申请。有阶段成果的项目优先立项国家级项目。 二、中期检查平台 中期检查工作在本科教务管理系统“大创项目”模块进行（…"
+        }
+      ],
+      "total": 2,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "创新创业"
+        ],
+        [
+          "训练计划"
+        ]
+      ]
+    },
+    "S03": {
+      "query": "助教招聘",
+      "items": [
+        {
+          "document_id": 9,
+          "source_id": "whu-ems-notices-offline",
+          "source_document_id": "1588:250571",
+          "version_id": 9,
+          "title": "经济与管理学院2024—2025学年第一学期本科教学课程助教选聘通知",
+          "published_date": "2024-09-09",
+          "original_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+          "snippet": "…武大经管函〔2013〕15号），本学期学院继续实行本科教学课程助教制度，为做好此项工作，现将有关事项通知如下： 一、课程助教选聘工作参照《武汉大学经济与管理学院本科教学课程助教制度实施细则》的规定和要求执行。 二、课程助教的聘任实行申请审核制。各课程主讲教师将从符合学院要求的候选人中挑选助教（原则上从本院全日制研究生中选聘），并指导其填写《武汉大学经济与管理学院本科教学课程助教岗位申请审核表》（以下简称《申请审核表》，见附件1），同时签署聘用意见。请各课程助教于2024年9月…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "助教招聘",
+          "助教选聘",
+          "招聘助教",
+          "选聘助教",
+          "助教招募"
+        ]
+      ]
+    },
+    "S04": {
+      "query": "助教 选聘",
+      "items": [
+        {
+          "document_id": 9,
+          "source_id": "whu-ems-notices-offline",
+          "source_document_id": "1588:250571",
+          "version_id": 9,
+          "title": "经济与管理学院2024—2025学年第一学期本科教学课程助教选聘通知",
+          "published_date": "2024-09-09",
+          "original_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+          "snippet": "学院各系（所）： 为贯彻落实《武汉大学关于实行本科教学课程助教制的办法》等文件精神，依据《武汉大学经济与管理学院本科教学课程助教制度实施细则》（武大经管函〔2013〕15号），本学期学院继续实行本科教学课程助教制度，为做好此项工作，现将有关事项通知如下： 一、课程助教选聘工作参照《武汉大学经济与管理学院本科教学课程助教制度实施细则》的规定和要求执行。 二、课程助教的聘任实行申请审核制。各课程主讲教师将从符合学院要求的候选人中挑选助教（原则上从本院全日制研究生中选聘），并指导其…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "助教"
+        ],
+        [
+          "选聘"
+        ]
+      ]
+    },
+    "S05": {
+      "query": "竞赛",
+      "items": [
+        {
+          "document_id": 6,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:18135",
+          "version_id": 6,
+          "title": "首届全球数智教育创新大赛报名开启！等你来挑战！",
+          "published_date": "2024-06-28",
+          "original_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+          "snippet": "…促进联盟成员及全球高校之间的交流与合作，以赛促教，以赛促学，探索数智时代创新人才培养新范式，决定举办首届全球数智教育创新大赛。 一、组织架构 （一）指导单位 中华人民共和国教育部 （二）主办单位 数智教育发展国际大学联盟 （三）承办单位 北京大学教师教学发展中心、北京大学创新创业学院、北京大学教务长办公室、武汉大学本科生院 （四）协办单位 英特尔公司、北京深势科技有限公司、北京科学智能研究院 （五）支持单位 广汽埃安新能源汽车股份有限公司、宁波礼达先导生物技术有限公司 二、大…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "竞赛",
+          "大赛"
+        ]
+      ]
+    },
+    "S06": {
+      "query": "大赛",
+      "items": [
+        {
+          "document_id": 6,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:18135",
+          "version_id": 6,
+          "title": "首届全球数智教育创新大赛报名开启！等你来挑战！",
+          "published_date": "2024-06-28",
+          "original_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+          "snippet": "…促进联盟成员及全球高校之间的交流与合作，以赛促教，以赛促学，探索数智时代创新人才培养新范式，决定举办首届全球数智教育创新大赛。 一、组织架构 （一）指导单位 中华人民共和国教育部 （二）主办单位 数智教育发展国际大学联盟 （三）承办单位 北京大学教师教学发展中心、北京大学创新创业学院、北京大学教务长办公室、武汉大学本科生院 （四）协办单位 英特尔公司、北京深势科技有限公司、北京科学智能研究院 （五）支持单位 广汽埃安新能源汽车股份有限公司、宁波礼达先导生物技术有限公司 二、大…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "大赛"
+        ]
+      ]
+    },
+    "S07": {
+      "query": "辅修 报名",
+      "items": [
+        {
+          "document_id": 1,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:117011",
+          "version_id": 1,
+          "title": "关于2023级本科生修读辅修专业报名的通知",
+          "published_date": "2024-11-27",
+          "original_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+          "snippet": "…《国务院学位委员会关于印发<学士学位授权与授予管理办法>的通知》（学位〔2019〕20号）文件精神和《武汉大学本科生修读辅修专业、双学士学位项目管理办法(试行)》（武大本字〔2024〕42 号）（附件1）相关规定，为促进复合型人才培养、满足学生多样化的学习需求，现启动2023级本科生跨专业类修读辅修专业报名工作，有关事项通知如下： 一、报名条件 1. 具有武汉大学学籍的全日制2023级在校本科生（含2022级五年制、八年制学生），涉及主修转专业学生，应以转入年级为依据。 2.…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "辅修"
+        ],
+        [
+          "报名"
+        ]
+      ]
+    },
+    "S08": {
+      "query": "选课",
+      "items": [
+        {
+          "document_id": 3,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:128291",
+          "version_id": 3,
+          "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+          "published_date": "2026-09-07",
+          "original_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+          "snippet": "…荐参加2027年暑期“CIS Research Fair全球科研创新大赛”，参与学术交流，并有机会获得奖学金资助。 三、选课建议及流程 （一）选课对象与要求：全日制在校本科生 选课学生建议具备良好的英语听说读写能力（高考英语120分、CET-4≥500 分、CET-6通过、托福80分、雅思6分或同等水平）。 （二）每人每学期限选一门课程，开设课程涵盖文理工商等不同学科方向，课程介绍、课程大纲及教授履历等信息详见附件，或点击链接/扫下方二维码查看。 课程介绍链接：https:/…"
+        },
+        {
+          "document_id": 7,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:128231",
+          "version_id": 7,
+          "title": "关于2026-2027学年第一学期2026级新生选课的通知",
+          "published_date": "2026-09-04",
+          "original_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+          "snippet": "武大本函〔2026〕129号 根据《武汉大学本科生选课管理办法（试行）》（武大本字〔2024〕43号）以及学校工作安排，现将2026-2027学年第一学期2026级新生选课相关事项通知如下： 一、登录方式 方式1（推荐）：通过“智慧珞珈”→“应用中心”→“教学科研”→“本科生选课”，直接进入选课页面。 方式2：通过“智慧珞珈”→“应用中心”→“教学科研”→“本科教务”，进入本科教务管理系统后，通过菜单“选课”→“自主选课”进入选课界面。 建议优先使用电脑端操作，推荐谷歌浏览器…"
+        },
+        {
+          "document_id": 8,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:127581",
+          "version_id": 8,
+          "title": "关于2026-2027学年第一学期选课的通知",
+          "published_date": "2026-07-08",
+          "original_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+          "snippet": "武大本函〔2026〕103号 各学院： 根据《武汉大学本科生选课管理办法（试行）》（武大本字〔2024〕43号）以及学校工作安排，2026-2027学年第一学期选课即将开始。现将选课事项通知如下： 一、登录方式 方式1（推荐）：通过“智慧珞珈”→“应用中心”→“教学科研”→“本科生选课”，直接进入选课页面。 方式2：通过“智慧珞珈”→“应用中心”→“教学科研”→“本科教务”，进入本科教务管理系统后，通过菜单“选课”→“自主选课”进入选课界面。 二、选课时段 本学期选课分三个轮…"
+        },
+        {
+          "document_id": 1,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:117011",
+          "version_id": 1,
+          "title": "关于2023级本科生修读辅修专业报名的通知",
+          "published_date": "2024-11-27",
+          "original_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+          "snippet": "…中途不得变更专业，不得无故退出，请提前了解辅修专业培养方案，结合兴趣理性选择。辅修学生录取后，须在辅修专业开设学院指导下选课，特别是跟班修读学生需注意辅修课程与主修课程的学习时间是否存在冲突。 三、学费 辅修专业收费标准为100元/学分，具体缴费流程见各辅修专业开设学院通知。 四、其它注意事项 1. 学生所修学分不足25个学分（或辅修专业证书要求学分），确因困难无法继续修读辅修课程者，可申请退出辅修学习。退出辅修后，可申请将全部辅修课程成绩转为主修课程成绩，不可选择部分课程进…"
+        }
+      ],
+      "total": 4,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "选课"
+        ]
+      ]
+    },
+    "S09": {
+      "query": "新生 选课",
+      "items": [
+        {
+          "document_id": 7,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:128231",
+          "version_id": 7,
+          "title": "关于2026-2027学年第一学期2026级新生选课的通知",
+          "published_date": "2026-09-04",
+          "original_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+          "snippet": "武大本函〔2026〕129号 根据《武汉大学本科生选课管理办法（试行）》（武大本字〔2024〕43号）以及学校工作安排，现将2026-2027学年第一学期2026级新生选课相关事项通知如下： 一、登录方式 方式1（推荐）：通过“智慧珞珈”→“应用中心”→“教学科研”→“本科生选课”，直接进入选课页面。 方式2：通过“智慧珞珈”→“应用中心”→“教学科研”→“本科教务”，进入本科教务管理系统后，通过菜单“选课”→“自主选课”进入选课界面。 建议优先使用电脑端操作，推荐谷歌浏览器…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "新生"
+        ],
+        [
+          "选课"
+        ]
+      ]
+    },
+    "S10": {
+      "query": "科研训练",
+      "items": [
+        {
+          "document_id": 3,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:128291",
+          "version_id": 3,
+          "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+          "published_date": "2026-09-07",
+          "original_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+          "snippet": "…通过本课程系统掌握前沿学科知识与动态，提升科研创新能力和国际学术素养。 一、课程基本信息 课程名称：《国际化拔尖创新人才科研训练》 课程性质：专业选修课/跨专业选修课/通识选修课 学时学分：48学时，计3学分 二、上课安排及学习方式 （一）上课安排（10月-12月，共11周）： 1．直播授课（1-10周）：教授全英文在线直播授课，10月17日开始，集中于周末上课。共10次课，每次3课时（其中两次为4课时），共32课时，计考勤；另每周安排中文助教辅导课，共16课时，计考勤。 2…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "科研训练"
+        ]
+      ]
+    },
+    "S11": {
+      "query": "助教 选聘",
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "助教"
+        ],
+        [
+          "选聘"
+        ]
+      ]
+    },
+    "S12": {
+      "query": "助教",
+      "items": [],
+      "total": 0,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "助教"
+        ]
+      ]
+    },
+    "S13": {
+      "query": "项目结题",
+      "items": [
+        {
+          "document_id": 2,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:127511",
+          "version_id": 2,
+          "title": "关于公布2025年武汉大学珞珈本科生创新研究基金项目结题验收结果的通知",
+          "published_date": "2026-06-26",
+          "original_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+          "snippet": "各学院： 根据《关于开展2025年立项武汉大学珞珈本科生创新研究基金项目结题验收工作的通知》（武大本函〔2026〕76号）工作安排，经项目负责人提交结题报告，学院审核，学校组织评审、答辩、公示，2025年立项的42项武汉大学珞珈本科生创新研究基金项目结题验收结果为：优秀9项，良好12项，合格21项。详细信息见附件。 附件：2025年武汉大学珞珈本科生创新研究基金项目 结题验收结果 武汉大学本科生院 2026年6月25日"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "项目结题"
+        ]
+      ]
+    },
+    "S14": {
+      "query": "助教",
+      "items": [
+        {
+          "document_id": 9,
+          "source_id": "whu-ems-notices-offline",
+          "source_document_id": "1588:250571",
+          "version_id": 9,
+          "title": "经济与管理学院2024—2025学年第一学期本科教学课程助教选聘通知",
+          "published_date": "2024-09-09",
+          "original_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+          "snippet": "学院各系（所）： 为贯彻落实《武汉大学关于实行本科教学课程助教制的办法》等文件精神，依据《武汉大学经济与管理学院本科教学课程助教制度实施细则》（武大经管函〔2013〕15号），本学期学院继续实行本科教学课程助教制度，为做好此项工作，现将有关事项通知如下： 一、课程助教选聘工作参照《武汉大学经济与管理学院本科教学课程助教制度实施细则》的规定和要求执行。 二、课程助教的聘任实行申请审核制。各课程主讲教师将从符合学院要求的候选人中挑选助教（原则上从本院全日制研究生中选聘），并指导其…"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "助教"
+        ]
+      ]
+    },
+    "S15": {
+      "query": "竞赛",
+      "items": [
+        {
+          "document_id": 6,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:18135",
+          "version_id": 6,
+          "title": "首届全球数智教育创新大赛报名开启！等你来挑战！",
+          "published_date": "2024-06-28",
+          "original_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+          "snippet": "…促进联盟成员及全球高校之间的交流与合作，以赛促教，以赛促学，探索数智时代创新人才培养新范式，决定举办首届全球数智教育创新大赛。 一、组织架构 （一）指导单位 中华人民共和国教育部 （二）主办单位 数智教育发展国际大学联盟 （三）承办单位 北京大学教师教学发展中心、北京大学创新创业学院、北京大学教务长办公室、武汉大学本科生院 （四）协办单位 英特尔公司、北京深势科技有限公司、北京科学智能研究院 （五）支持单位 广汽埃安新能源汽车股份有限公司、宁波礼达先导生物技术有限公司 二、大…"
+        },
+        {
+          "document_id": 3,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:128291",
+          "version_id": 3,
+          "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
+          "published_date": "2026-09-07",
+          "original_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+          "snippet": "…争取发表学术论文、获得教授推荐信；成绩优秀学生可获推荐参加2027年暑期“CIS Research Fair全球科研创新大赛”，参与学术交流，并有机会获得奖学金资助。 三、选课建议及流程 （一）选课对象与要求：全日制在校本科生 选课学生建议具备良好的英语听说读写能力（高考英语120分、CET-4≥500 分、CET-6通过、托福80分、雅思6分或同等水平）。 （二）每人每学期限选一门课程，开设课程涵盖文理工商等不同学科方向，课程介绍、课程大纲及教授履历等信息详见附件，或点击链…"
+        },
+        {
+          "document_id": 4,
+          "source_id": "whu-undergrad-student",
+          "source_document_id": "1517:14147",
+          "version_id": 4,
+          "title": "关于征集2023年大学生创新创业训练计划项目选题的通知",
+          "published_date": "2022-05-14",
+          "original_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+          "snippet": "…学生开展科研训练；学校对指导大创项目教师进行工作量奖励；对于参加全国大学生创新创业年会获奖的优秀国家级项目成果，参照学科竞赛国奖标准，进行认定和奖励。 二、申报选题流程 请各单位高度重视，将大创项目与专业认知、毕业论文（设计）、优质研究生选留等工作统筹规划，积极动员教师申报选题。 请有意向的教师填写《武汉大学2023年度大学生创新创业训练计划项目选题征集信息表》，教学单位以学院为单位汇总后提交，科研单位教师可以直接提交，选题接收邮箱whusjjx@whu.edu.cn，邮件主…"
+        }
+      ],
+      "total": 3,
+      "offset": 0,
+      "limit": 100,
+      "index_version": "literal-trigram-v1",
+      "query_version": "literal-alias-v1",
+      "expanded_terms": [
+        [
+          "竞赛",
+          "大赛"
+        ]
+      ]
+    }
+  },
+  "summary": {
+    "corpus_count": 9,
+    "query_count": 15,
+    "indexed_count": 9,
+    "rebuild_results_identical": true,
+    "engineering_mismatch_queries": [],
+    "production_matches_fixed_alias_candidate": true
+  },
+  "metric_definitions": {
+    "macro_recall_at_k": "非空相关集逐查询 |相关∩前K|/|相关| 的平均；空集另报，不计入Recall。",
+    "macro_precision_at_k": "同一批非空查询逐查询 |相关∩前K|/K 的平均；不足K不补结果。",
+    "macro_precision_among_returned_at_k": "同一批非空查询逐查询 |相关∩前K|/|返回前K| 的平均；无返回为0。"
+  },
+  "limitations": [
+    "9篇公开历史HTML及工程构造的真实查询类别，不是用户日志或人工确认gold，不能外推总体中文检索质量。",
+    "仅正文标题与文本，不读取图片、附件文件或受登录保护的当期助教内容。",
+    "查询不解析自然语言相对日期；日期是显式站点日历日期过滤，与获取时间无关。",
+    "词法相关不表示当前可申请、具备资格或应该发邮件；固定别名可能召回顺带提及。",
+    "未基准测试规模、延迟或磁盘成本，不宣称此小样本证明性能优势。"
+  ]
+}

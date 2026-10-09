@@ -1,5 +1,8 @@
 """Upgrade genuine populated N1 storage; faults are injected DDL exceptions."""
 
+import shutil
+import sqlite3
+from contextlib import closing
 from types import SimpleNamespace
 
 import pytest
@@ -28,7 +31,6 @@ from signalnest.schema import (
     mail_message_members,
     mail_messages,
     mail_plan_errors,
-    metadata,
     notification_events,
 )
 from signalnest.storage import initialize_storage, make_engine, migration_config
@@ -49,38 +51,75 @@ def snapshot(engine):
                 ).mappings()
             ]
             for name in sa.inspect(connection).get_table_names()
-            if name != "alembic_version" and name not in NEW_TABLES | N4_TABLES
+            if name != "alembic_version"
+            and name not in NEW_TABLES | N4_TABLES
+            and name != "search_documents"
+            and not name.startswith("search_fts")
         }
 
 
-@pytest.mark.parametrize("failure_table", [None, *sorted(NEW_TABLES)])
-def test_0004_upgrade_preserves_pending_events_and_intents(tmp_path, failure_table, monkeypatch):
-    settings = StorageSettings(
-        data_dir=str(tmp_path / "data"), database=str(tmp_path / "db.sqlite")
+def seed_compatible_0004(settings, engine, tmp_path):
+    """Copy valid business facts into the historical schema's exact columns.
+
+    Current services only write current storage. This is historical-schema data
+    seeding, not execution of an old rule engine or a production index bypass.
+    """
+    current_settings = StorageSettings(
+        data_dir=str(tmp_path / "current-data"), database=str(tmp_path / "current.sqlite")
     )
-    (settings.data_dir / "raw").mkdir(parents=True)
-    engine = make_engine(settings.database)
-    env = SimpleNamespace(settings=settings, engine=engine, store=RawStore(settings.data_dir))
+    initialize_storage(current_settings)
+    current_engine = make_engine(current_settings.database)
+    current = SimpleNamespace(
+        settings=current_settings, engine=current_engine, store=RawStore(current_settings.data_dir)
+    )
     try:
+        discover_historical(current)
+        complete_scan_fact(current)
+        activate_notifications(current_engine, SOURCE, USER_PROFILE, OPTIONS, at=ACTIVATED_AT)
+        start_live(current)
+        live(current)
+        live(current, opportunity(), at=ACTIVATED_AT + 5)
         with engine.begin() as connection:
             config = migration_config()
             config.attributes["connection"] = connection
             command.upgrade(config, "0004_notification_state")
-        from signalnest.notifications import state as notification_state
+        with (
+            closing(sqlite3.connect(current_settings.database)) as source,
+            closing(sqlite3.connect(settings.database)) as destination,
+        ):
+            names = [
+                name
+                for (name,) in destination.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' "
+                    "AND name NOT LIKE 'sqlite_%' AND name != 'alembic_version'"
+                )
+            ]
+            destination.execute("PRAGMA foreign_keys=OFF")
+            destination.execute("BEGIN")
+            for name in names:
+                columns = [row[1] for row in destination.execute(f'PRAGMA table_info("{name}")')]
+                selected = ",".join(f'"{column}"' for column in columns)
+                placeholders = ",".join("?" for _ in columns)
+                destination.executemany(
+                    f'INSERT INTO "{name}" ({selected}) VALUES ({placeholders})',
+                    source.execute(f'SELECT {selected} FROM "{name}"').fetchall(),
+                )
+            destination.commit()
+            destination.execute("PRAGMA foreign_keys=ON")
+            assert destination.execute("PRAGMA foreign_key_check").fetchall() == []
+        shutil.copytree(current_settings.data_dir / "raw", settings.data_dir / "raw")
+    finally:
+        current_engine.dispose()
 
-        # This test seeds the historical N1 schema with its actual column set.
-        # Production entry points always require head; no legacy fallback is added.
-        with engine.connect() as connection:
-            old_channel = sa.Table(
-                "notification_channel_state", sa.MetaData(), autoload_with=connection
-            )
-        monkeypatch.setattr(notification_state, "channel", old_channel)
-        discover_historical(env)
-        complete_scan_fact(env)
-        activate_notifications(engine, SOURCE, USER_PROFILE, OPTIONS, at=ACTIVATED_AT)
-        start_live(env)
-        live(env)
-        live(env, opportunity(), at=ACTIVATED_AT + 5)
+
+@pytest.mark.parametrize("failure_table", [None, *sorted(NEW_TABLES)])
+def test_0004_upgrade_preserves_pending_events_and_intents(tmp_path, failure_table):
+    settings = StorageSettings(
+        data_dir=str(tmp_path / "data"), database=str(tmp_path / "db.sqlite")
+    )
+    engine = make_engine(settings.database)
+    try:
+        seed_compatible_0004(settings, engine, tmp_path)
         original = snapshot(engine)
         assert len(original[notification_events.name]) == 2
         assert len(original[email_outbox.name]) == 1
@@ -105,8 +144,8 @@ def test_0004_upgrade_preserves_pending_events_and_intents(tmp_path, failure_tab
                 )
                 assert not NEW_TABLES.intersection(sa.inspect(connection).get_table_names())
 
-        assert initialize_storage(settings) == "0006_mail_sending"
-        assert initialize_storage(settings) == "0006_mail_sending"
+        assert initialize_storage(settings) == "0007_history_search"
+        assert initialize_storage(settings) == "0007_history_search"
         assert snapshot(engine) == original
         with engine.connect() as connection:
             for table in (mail_messages, mail_message_members, mail_plan_errors):
@@ -117,9 +156,6 @@ def test_0004_upgrade_preserves_pending_events_and_intents(tmp_path, failure_tab
         } == raw_files
         # Migration itself never allocates historical mail. An explicit plan can
         # consume the already eligible N1 intent after upgrade.
-        monkeypatch.setattr(
-            notification_state, "channel", metadata.tables["notification_channel_state"]
-        )
         result = plan_mail(engine, SOURCE, PlanOptions(), at=ACTIVATED_AT + 20)
         assert result["planned"] == 1
         assert result["deferred_digest"] == 1

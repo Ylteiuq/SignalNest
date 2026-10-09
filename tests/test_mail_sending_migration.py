@@ -33,7 +33,10 @@ def historical_snapshot(database):
             for (name,) in connection.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             )
-            if name != "alembic_version" and name not in NEW_TABLES
+            if name != "alembic_version"
+            and name not in NEW_TABLES
+            and name != "search_documents"
+            and not name.startswith("search_fts")
         )
         result = {}
         for name in tables:
@@ -133,7 +136,7 @@ def test_populated_0005_upgrade_and_failures_preserve_all_evidence(
                 assert not NEW_COLUMNS.intersection(columns)
                 assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
 
-        assert initialize_storage(settings) == "0006_mail_sending"
+        assert initialize_storage(settings) == "0007_history_search"
         assert historical_snapshot(settings.database) == original
         with engine.connect() as connection:
             deliveries = connection.execute(sa.select(mail_delivery)).mappings().all()
@@ -148,7 +151,7 @@ def test_populated_0005_upgrade_and_failures_preserve_all_evidence(
             assert connection.execute(sa.select(notification_operations)).all() == []
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
         before = settings.database.read_bytes()
-        assert initialize_storage(settings) == "0006_mail_sending"
+        assert initialize_storage(settings) == "0007_history_search"
         assert settings.database.read_bytes() == before
         assert {
             path.name: path.read_bytes() for path in (settings.data_dir / "raw").iterdir()

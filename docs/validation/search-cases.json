@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "note": "真实HTML上的小型离线词法检索评估。所有相关性标签均为工程判断，尚未经用户逐条确认，不是人工gold；原查询、显式日期和失败均保留。",
+  "human_gold": false,
+  "query_origin": "依据用户提出的实际查询类别具体化；不是用户搜索日志。",
+  "corpus": [
+    {
+      "corpus_id": "117011",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:117011",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-117011-20261005T133549Z.html",
+      "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "fetched_at": 1791207349,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "127511",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:127511",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-127511-20261005T133829869212Z.html",
+      "sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+      "fetched_at": 1791207511,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "128291",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:128291",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "fetched_at": 1791207333,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "14147",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:14147",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-14147-20261005T133543Z.html",
+      "sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+      "fetched_at": 1791207344,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "17361",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:17361",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-17361-20261005T133538Z.html",
+      "sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+      "fetched_at": 1791207338,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "18135",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:18135",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-18135-20261005T133554Z.html",
+      "sha256": "5b0a3dcfac752ec0947ccfc8e87bccf5a313be586907b44905494ed592e04aa1",
+      "source_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+      "fetched_at": 1791207354,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "128231",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:128231",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "fetched_at": 1790579171,
+      "provenance": "真实公开详情原文；已有离线示例获取时间依据当时响应 Date，非精确客户端观测。"
+    },
+    {
+      "corpus_id": "127581",
+      "source_id": "whu-undergrad-student",
+      "source_document_id": "1517:127581",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/legacy-notice-detail.html",
+      "sha256": "4e39671b3ceba811baf7ec0c23728596054b585768e02fcddfb0c1500a9260e8",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+      "fetched_at": 1790579063,
+      "provenance": "真实公开详情原文；已有离线示例获取时间依据当时响应 Date，非精确客户端观测。"
+    },
+    {
+      "corpus_id": "ems-250571",
+      "source_id": "whu-ems-notices-offline",
+      "source_document_id": "1588:250571",
+      "parser": "ems-notices",
+      "fixture": "research/fixtures/teaching-assistant/ems-notice-250571-20261008T102823953399Z.html",
+      "sha256": "84d61d384c1fbc15a5ba964404a60f67adb88aa615b0ba44dda6425e1505e843",
+      "source_url": "https://ems.whu.edu.cn/info/1588/250571.htm",
+      "fetched_at": 1791455304,
+      "provenance": "真实历史详情，手动登记离线目标；不代表 EMS 自动发现或当期来源已启用。"
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "S01",
+      "user_query": "科研训练",
+      "query": "科研训练",
+      "relevant_corpus_ids": [
+        "128291",
+        "14147",
+        "17361"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "科研课程、科研项目征题及立项管理均直接涉及本科科研训练。"
+    },
+    {
+      "query_id": "S02",
+      "user_query": "大学生创新创业训练计划项目",
+      "query": "创新创业 训练计划",
+      "relevant_corpus_ids": [
+        "14147",
+        "17361"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "两篇均直接发布大学生创新创业训练计划事项；按空格分为两个字面片段。"
+    },
+    {
+      "query_id": "S03",
+      "user_query": "助教招聘",
+      "query": "助教招聘",
+      "relevant_corpus_ids": [
+        "ems-250571"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "真实岗位选聘是相关目标，但正文用“选聘”，查询完整短语不存在；保留已知漏检，不自动改写。"
+    },
+    {
+      "query_id": "S04",
+      "user_query": "助教选聘",
+      "query": "助教 选聘",
+      "relevant_corpus_ids": [
+        "ems-250571"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "查询显式采用站点词汇；招聘正例含助教和选聘，课程介绍不是选聘。"
+    },
+    {
+      "query_id": "S05",
+      "user_query": "最近一个月的竞赛",
+      "query": "竞赛",
+      "relevant_corpus_ids": [
+        "18135"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "以2024-07-01为明确评估锚点，2024-06-01至07-01；真实比赛用“大赛”，保留词汇漏检。",
+      "date_from": "2024-06-01",
+      "date_to": "2024-07-01"
+    },
+    {
+      "query_id": "S06",
+      "user_query": "最近一个月的大赛（显式站点词汇）",
+      "query": "大赛",
+      "relevant_corpus_ids": [
+        "18135"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "与S05相同意图和日期范围；仅本例明确使用站点词汇“大赛”。",
+      "date_from": "2024-06-01",
+      "date_to": "2024-07-01"
+    },
+    {
+      "query_id": "S07",
+      "user_query": "辅修报名",
+      "query": "辅修 报名",
+      "relevant_corpus_ids": [
+        "117011"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "本科生辅修报名是真实主题；新生选课页仅顺带缴费说明，不是辅修报名目标。"
+    },
+    {
+      "query_id": "S08",
+      "user_query": "选课",
+      "query": "选课",
+      "relevant_corpus_ids": [
+        "117011",
+        "128291",
+        "128231",
+        "127581"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "四篇分别涉及辅修修读安排、科研课程选课、新生选课与普通学期选课；检索不自动判定机会资格。"
+    },
+    {
+      "query_id": "S09",
+      "user_query": "新生选课",
+      "query": "新生 选课",
+      "relevant_corpus_ids": [
+        "128231"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "明确2026级新生选课标题及正文。"
+    },
+    {
+      "query_id": "S10",
+      "user_query": "2026年9月本科生院科研训练",
+      "query": "科研训练",
+      "relevant_corpus_ids": [
+        "128291"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "只保留站点发布日期2026年9月、指定本科生院来源的科研训练通知。",
+      "date_from": "2026-09-01",
+      "date_to": "2026-09-30",
+      "source_id": "whu-undergrad-student"
+    },
+    {
+      "query_id": "S11",
+      "user_query": "仅本科生院的助教选聘",
+      "query": "助教 选聘",
+      "relevant_corpus_ids": [],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "EMS历史正例被来源过滤排除；本科生院课程介绍不含助教选聘。",
+      "source_id": "whu-undergrad-student"
+    },
+    {
+      "query_id": "S12",
+      "user_query": "2024年9月本科生院助教",
+      "query": "助教",
+      "relevant_corpus_ids": [],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "EMS历史正例被来源过滤排除，课程介绍站点日期2026年不在范围内。",
+      "date_from": "2024-09-01",
+      "date_to": "2024-09-30",
+      "source_id": "whu-undergrad-student"
+    },
+    {
+      "query_id": "S13",
+      "user_query": "项目结题",
+      "query": "项目结题",
+      "relevant_corpus_ids": [
+        "127511"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "本科生创新研究基金结题验收结果为直接目标。"
+    },
+    {
+      "query_id": "S14",
+      "user_query": "EMS助教",
+      "query": "助教",
+      "relevant_corpus_ids": [
+        "ems-250571"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "两字查询必须可用，来源过滤只返回手工离线EMS语料。",
+      "source_id": "whu-ems-notices-offline"
+    },
+    {
+      "query_id": "S15",
+      "user_query": "竞赛（不限定日期）",
+      "query": "竞赛",
+      "relevant_corpus_ids": [
+        "18135"
+      ],
+      "label_origin": "engineering_relevance_judgment_unconfirmed",
+      "rationale": "直接发布竞赛事项的真实页面为18135；14147科研征题和128291课程仅顺带提到竞赛，作为词法扩展的误检参照。"
+    }
+  ],
+  "compared_aliases": {
+    "助教招聘": [
+      "助教招聘",
+      "助教选聘",
+      "招聘助教",
+      "选聘助教",
+      "助教招募"
+    ],
+    "竞赛": [
+      "竞赛",
+      "大赛"
+    ]
+  }
+}

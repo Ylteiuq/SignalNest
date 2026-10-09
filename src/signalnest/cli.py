@@ -136,6 +136,33 @@ def main(argv: list[str] | None = None) -> int:
     replay.add_argument("--processed-at", type=int, help="本次处理 UTC Unix 秒，默认当前处理时间")
     status = commands.add_parser("status", help="只读诊断积压、冷却、覆盖与最近运行；不联网")
     status.add_argument("--config", type=Path, required=True)
+    search = commands.add_parser("search", help="只读查询当前成功通知；不联网、不修复索引")
+    search.add_argument("--config", type=Path, required=True)
+    search.add_argument("--query", required=True, help="字面关键词，空格分隔；固定别名见查询结果")
+    search.add_argument("--from", dest="date_from", help="站点发布日期下界 YYYY-MM-DD，含当天")
+    search.add_argument("--to", dest="date_to", help="站点发布日期上界 YYYY-MM-DD，含当天")
+    search.add_argument("--source-id", help="来源精确过滤，省略则查询全部已保存来源")
+    search.add_argument("--limit", type=int, default=20, help="返回 1–100 条，默认 20")
+    search.add_argument("--offset", type=int, default=0, help="结果偏移 0–10000，默认 0")
+    show = commands.add_parser("notice-show", help="只读查看单条通知的当前成功正文及诊断")
+    show.add_argument("--config", type=Path, required=True)
+    show.add_argument("--document-id", type=int, required=True)
+    rebuild = commands.add_parser("search-rebuild", help="持写入锁重建派生索引；不读取原文或联网")
+    rebuild.add_argument("--config", type=Path, required=True)
+    for name, description in (
+        ("rollout-check", "本地部署准备检查；不发送、不证明真实上线"),
+        ("observe", "输出一条只读运行观察 JSON；由操作者保存"),
+    ):
+        rollout = commands.add_parser(name, help=description)
+        rollout.add_argument("--config", type=Path, required=True)
+        rollout.add_argument("--release-root", type=Path, required=True, help="本次发布源码根目录")
+        rollout.add_argument("--at", type=int, required=True, help="明确的观察 UTC Unix 秒")
+        rollout.add_argument("--profile", type=Path, help="真实个人画像的文件路径")
+        rollout.add_argument(
+            "--profile-confirmed",
+            action="store_true",
+            help="操作者声明已核对个人画像；不代替实采验收",
+        )
     policy = commands.add_parser(
         "apply-recheck-policy", help="显式保守重算成功记录到期时间；不联网"
     )
@@ -201,6 +228,10 @@ def main(argv: list[str] | None = None) -> int:
         return _crawl_command(args, settings, logger, run_id)
     if args.command in {"status", "apply-recheck-policy"}:
         return _maintenance_command(args, settings, logger, run_id)
+    if args.command in {"search", "notice-show", "search-rebuild"}:
+        return _search_command(args, settings, logger, run_id)
+    if args.command in {"rollout-check", "observe"}:
+        return _rollout_command(args, settings, logger, run_id)
     if args.command in {
         "notifications-preview",
         "notifications-activate",
@@ -218,6 +249,94 @@ def main(argv: list[str] | None = None) -> int:
     print(f"data_dir={settings.storage.data_dir}")
     print(f"database={settings.storage.database}")
     return 0
+
+
+def _search_command(args, settings, logger, run_id) -> int:
+    from contextlib import nullcontext
+    from datetime import date
+
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.instance_lock import WriterLockError, writer_lock
+    from signalnest.search import (
+        SearchError,
+        SearchQuery,
+        get_notice,
+        rebuild_index,
+        search_notices,
+    )
+    from signalnest.storage import StorageError, open_initialized_engine
+
+    try:
+        query = None
+        if args.command == "search":
+            query = SearchQuery(
+                query=args.query,
+                date_from=date.fromisoformat(args.date_from) if args.date_from else None,
+                date_to=date.fromisoformat(args.date_to) if args.date_to else None,
+                source_id=args.source_id,
+                limit=args.limit,
+                offset=args.offset,
+            )
+        elif args.command == "notice-show" and args.document_id <= 0:
+            raise ValueError("invalid document ID")
+    except (ValueError, ValidationError):
+        print("查询参数错误：请检查关键词、日期范围、数量或通知 ID", file=sys.stderr)
+        return 2
+    engine = None
+    writing = args.command == "search-rebuild"
+    try:
+        guard = writer_lock(settings.storage.database) if writing else nullcontext()
+        with guard:
+            engine = open_initialized_engine(settings.storage.database, read_only=not writing)
+            if writing:
+                result = rebuild_index(engine)
+            elif query is not None:
+                result = search_notices(engine, query)
+            else:
+                result = get_notice(engine, args.document_id)
+        log_event(
+            logger,
+            Event.SEARCH_INDEX_REBUILT if writing else Event.SEARCH_READ,
+            source_id=settings.source.id,
+            run_id=run_id,
+        )
+        print(result.model_dump_json())
+        return 0
+    except (StorageError, WriterLockError, SearchError, SQLAlchemyError) as exc:
+        code = (
+            getattr(exc, "code", None) if isinstance(exc, (SearchError, WriterLockError)) else None
+        )
+        message = str(exc) if isinstance(exc, StorageError) else (code or "search_database_error")
+        print(f"历史查询错误：{message}；索引陈旧时请显式执行 search-rebuild", file=sys.stderr)
+        return 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+
+
+def _rollout_command(args, settings, logger, run_id) -> int:
+    from signalnest.rollout import RolloutError, inspect_rollout, observe_instance
+
+    try:
+        function = observe_instance if args.command == "observe" else inspect_rollout
+        result = function(
+            settings,
+            at=args.at,
+            release_root=args.release_root,
+            profile_path=args.profile,
+            profile_confirmed=args.profile_confirmed,
+        )
+    except RolloutError as exc:
+        print(f"部署检查错误：{exc.code}", file=sys.stderr)
+        return 1
+    log_event(
+        logger, Event.STATUS_READ, source_id=settings.source.id, run_id=run_id, stage="rollout"
+    )
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    # Observations remain useful with attention items; readiness reports a failing check.
+    return 0 if args.command == "observe" or result["prepared"] else 1
 
 
 def _background_command(args, settings, logger, run_id) -> int:

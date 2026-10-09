@@ -135,6 +135,24 @@ notice_versions = sa.Table(
     sa.CheckConstraint("length(parser_version) > 0", name="ck_version_parser"),
 )
 
+# Rebuildable lexical index of the current successful version only. The FTS5
+# virtual table and its triggers are migration-owned SQLite implementation details.
+search_documents = sa.Table(
+    "search_documents",
+    metadata,
+    sa.Column("document_id", sa.Integer, sa.ForeignKey("documents.id"), primary_key=True),
+    sa.Column("version_id", sa.Integer, nullable=False),
+    sa.Column("title_text", sa.Text, nullable=False),
+    sa.Column("body_text", sa.Text, nullable=False),
+    sa.Column("index_version", sa.Text, nullable=False),
+    sa.ForeignKeyConstraint(
+        ["document_id", "version_id"],
+        ["notice_versions.document_id", "notice_versions.id"],
+        name="fk_search_current_version",
+    ),
+    sa.CheckConstraint("length(index_version) > 0", name="ck_search_index_version"),
+)
+
 source_ingestion_state = sa.Table(
     "source_ingestion_state",
     metadata,
