@@ -5,8 +5,10 @@ __pycache__/
 *.egg-info/
 dist/
 data/
+data-cs/
 campus.toml
 signalnest.toml
+cs.toml
 profile.toml
 # Local raw capture contains named student and academic records; commit only its redacted structure.
 research/fixtures/list-links-20261009/ek-public-link-20261009T030441987287Z.html
