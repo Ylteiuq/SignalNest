@@ -1,6 +1,6 @@
 # WSL 部署与实例生命周期
 
-本指南用于新 N2 的 Windows 宿主 + Linux 实例部署。当前已核验 Ubuntu 24.04 / WSL2、systemd 255（PID 1）、Python 3.12.3、SQLite 3.45.1 及 FTS5 trigram、ext4，并完成受限实采、工程邮件实际收件和 Linux 隔离恢复。完整扫描、宿主重启及一周验收仍未完成；实际结果与限制见[实机记录](validation/n2-wsl-20261009.md)。
+本指南用于新 N2 的 Windows 宿主 + Linux 实例部署。当前已核验 Ubuntu 24.04 / WSL2、systemd 255（PID 1）、Python 3.12.3、SQLite 3.45.1 及 FTS5 trigram、ext4，并完成受限实采、工程邮件实际收件和 Linux 隔离恢复。2026-10-10 已升级至 0008，真实 24 页完整扫描、首页复核、持久成功时间及新快照隔离恢复通过，见[升级验收](validation/n2-wsl-upgrade-20261010.md)。生产通知、宿主重启及一周验收仍未完成；此前中断与邮件工程验收见[历史实机记录](validation/n2-wsl-20261009.md)。
 
 ## Linux 路径与应用前置条件
 
