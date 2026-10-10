@@ -1,0 +1,35 @@
+{
+  "requested_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+  "request_method": "GET",
+  "started_at": "2026-10-09T03:02:45.830039+00:00",
+  "request_headers": {
+    "User-Agent": "SignalNest research (finite anonymous entrypoint check)",
+    "Accept": "text/html",
+    "Accept-Encoding": "identity"
+  },
+  "tls_verified": true,
+  "trust_env": false,
+  "follow_redirects": false,
+  "retries": 0,
+  "body_limit_bytes": 524288,
+  "status_code": 200,
+  "final_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+  "response_headers": {
+    "date": "Fri, 09 Oct 2026 03:02:46 GMT",
+    "content-type": "text/html",
+    "content-length": "43582",
+    "last-modified": "Tue, 15 Sep 2026 06:42:50 GMT",
+    "cache-control": "max-age=600",
+    "vary": "Accept-Encoding",
+    "etag": "\"ae77-65b7fdc0599bf-gzip\"",
+    "server": "WHU-AppSrv 1.0.0"
+  },
+  "body_complete": true,
+  "body_bytes": 43582,
+  "sha256": "2efaf4ec0ebaea2541fd914cbcf066fd3fdee1fed46d63fd4de649f8f1fe8217",
+  "fixture": "cs-ta-recruit-64481.html",
+  "finished_at": "2026-10-09T03:02:45.870843+00:00",
+  "finished_epoch": 1791514965.8708491,
+  "fixture_redacted": true,
+  "redaction_note": "Selected offline copy. Personal contacts, QQ group identifiers, third-party document identifiers, and tracking comments were removed; hashes describe this sanitized copy."
+}

@@ -1,6 +1,6 @@
 # SignalNest 设计与采集持久化
 
-项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断、N0 本地决策、N1 通知事件持久化、N2 邮件计划/冻结、N3 SMTP 适配器与 N4 发送恢复/政策维护已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。外部定时模板提供采集和独立邮件入口，没有 Python 常驻调度器；后台邮件默认关闭，显式启用后自动计划/发送。政策 v5 助教招聘的离线能力、独立 EMS 详情 Parser 与竞赛模板已接通，含邮件的备份专项校验见 [邮件恢复](mail-backup.md)。目标 Linux 与真实邮箱仍未验证。
+项目展示名为 SignalNest，Python 包和命令均为 signalnest。项目骨架、纯 Parser、原始文件存储、离线入库/重新解析、有界 HTTP Fetcher、单次采集协调器、处理政策、只读诊断、N0 本地决策、N1 通知事件持久化、N2 邮件计划/冻结、N3 SMTP 适配器与 N4 发送恢复/政策维护已完成。默认测试完全离线；另已完成真实子进程终止恢复与临时目录少量实采，证据见 [恢复验证记录](recovery-validation.md)。外部定时模板提供采集和独立邮件入口，没有 Python 常驻调度器；后台邮件默认关闭，显式启用后自动计划/发送。政策 v5 助教招聘的离线能力、独立 EMS 详情 Parser 与竞赛模板已接通，含邮件的备份专项校验见 [邮件恢复](mail-backup.md)。WSL 受限采集与两封工程验收邮件已另有[实机记录](validation/n2-wsl-20261009.md)，完整扫描及持续运行仍未验收。当前政策 v8，未适配列表引用的离线登记已接通，外部正文尚不抓取。
 
 ## 模块边界
 
@@ -23,6 +23,7 @@
 - `search.py`：当前成功正文的派生词法索引、同事务增量同步、显式重建与只读搜索/详情；不重解析原文，不判断提醒资格。
 - `rollout.py`：只读部署准备与单次观察、明确允许文件的发布指纹/源码快照；本地通过不证明目标机运行、收件或连续在线。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
+- `cs_parsing.py`：计算机学院本科教学的显式纯列表/详情 Parser，独立 cs-undergrad-notices-v1；复用数据/错误契约与保守正文清洗，不启用联网来源。`ems_parsing.py` 继续提供 EMS 离线详情。
 - `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
 - `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
 - `notifications/state.py` / `service.py`：显式启用和真实日期证据，事务外比较/决策准备，同成功 Connection 提交独立 live 基线、事件、选中决策和必要 planned 意图；不渲染或发送邮件。
@@ -39,12 +40,12 @@ HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，�
 
 Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责列表遍历、详情补抓与复查，复用已有归档/业务入口。没有插件工厂、任务平台或第二套业务成功状态。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
 
-有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。Fetcher 阶段没有改变数据库 schema；N1 的新增表见下文，当前 Parser v3 与内容摘要规则见下文。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
+有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。Fetcher 阶段没有改变数据库 schema；N1 的新增表见下文，当前 Parser v4 与内容摘要规则见下文。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
 
 ## 最小数据契约
 
 - `PageInput`：原始页面 bytes 与 page_url；不包含 Client/Session 等运行依赖。
-- `ListEntry` / `ListPage`：源内稳定身份、绝对详情 URL、标题、日期、条目集合、顶层下一页 URL 和必需的 PaginationEvidence。source_id 由协调层从配置注入；本栏目空列表必须调查，不能默认为正常。entries / next_page_url 的读取方式不变，手工构造 ListPage 须补充分页证据。
+- `ListEntry` / `ListPage`：源内稳定身份、绝对详情 URL、标题、日期、本站条目 entries、独立 PendingReference 集合 references、顶层下一页 URL 和必需的 PaginationEvidence。row_count / ordered_rows() 保留实际混合行数与顺序；entries 仅含可用本站身份。source_id 由协调层从配置注入；本栏目空列表必须调查，不能默认为正常。entries / next_page_url 的读取方式不变，手工构造 ListPage 须补充分页证据。
 - `ParsedNotice` / `NoticeContent`：稳定身份、页面 URL、parser_version，以及标题、日期、正文 HTML/文本、链接/图片/附件引用。HTML 保留结构但未做展示安全处理，不能直接当作可信网页渲染。图片型正文允许 body_text 为空，Parser 必须验证正文有可见文字或有效图片引用。
 - `AttachmentReference`：名称、URL、可选源文件 ID（本站建议 owner:wbfileid）和访问状态。默认 not_checked，仅有证据时标为 manual_required；不下载或绕过验证码。
 - `RawResponseReference`：URL、获取时间（UTC 秒）、HTTP 状态、白名单头和正文路径/摘要。路径与摘要必须成对出现，路径限定为相对的 raw/<sha256>.bin，304 禁止正文引用；契约不操作磁盘，由 RawStore 验证实际文件。
@@ -68,10 +69,11 @@ stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。
 | `raw_responses` | 导入的响应证据：URL、状态、原获取时间、白名单头、原始路径/摘要、page_type、详情 document_id、最近处理时间/错误。列表无目标；详情绑定已发现通知。304 无正文。旧记录类型/目标可空。 |
 | `http_resources` | source/完整 URI/profile 唯一、最新完整 200、禁止复用的 304 证据、成功处理原文/规则/时间；没有详情 due。 |
 | `source_ingestion_state` | 列表尝试/正文证据/登记分别记录，完整扫描与 bootstrap 完成独立，持久冷却。 |
-| `ingestion_runs` | 固定 origin/Parser、起止时间、独立覆盖与运行结果；遗留 running 可恢复为 interrupted。 |
+| `ingestion_runs` | 固定 origin/Parser、起止时间、独立覆盖与运行结果；完整扫描保存响应链、混合行及首页复核证据，旧运行证据为 NULL。遗留 running 可恢复为 interrupted。 |
+| `discovered_references` | 未适配列表目标、标题/日期、首末列表原文/观察/run/位置/Parser 证据；source + 版本化完整 URI 候选键唯一。pending_adapter 不代表通知身份或正文成功，不进入详情待办。 |
 | `notice_versions` | 通知的规范化内容 JSON、标题、发布日期、解析时间、解析器版本、规范化内容 SHA-256 和原始响应外键。`(document_id, content_sha256, parser_version)` 唯一。 |
 
-`alembic_version` 是迁移工具的版本表，不是业务表。该表列出采集核心状态；另有下文的 N1 通知表和 N2 冻结表，没有用户、搜索、推荐或反馈表；N4 投递与尝试表另见下文；信息源来自 TOML，暂不建立只有静态配置用途的 source 表。
+`alembic_version` 是迁移工具的版本表，不是业务表。该表列出采集核心状态；另有下文的 N1 通知表和 N2 冻结表，搜索派生表另见后文，没有用户、推荐或反馈表；N4 投递与尝试表另见下文；信息源来自 TOML，暂不建立只有静态配置用途的 source 表。
 
 本站 `source_document_id` 约定为 `栏目ID:文章ID`（如 `1517:128231`），Parser 已统一新旧链接。标题、URL 和内容摘要不替代稳定身份。原始字节摘要与规范化内容摘要分别计算，不能混用。
 
@@ -87,7 +89,7 @@ stdout 为命令结果，stderr 为事件日志和必要的用户错误诊断。
 
 所有操作时间为 UTC Unix 秒整数；发布日期为页面展示的日历日期，不从 HTTP Last-Modified 推导。`next_due_at` 是详情唯一到期来源；离线成功记录若为空，首次进入 `crawl_once` 时事务性设为运行开始时间，明确加入联网复查。成功用本次上海日历年龄选择 24 小时/7 天/30 天档，失败用有限错误延期，due 与业务状态同事务。旧 due 的政策更新必须显式保守重算，不推迟逾期或消除失败退避；不猜旧 discovery_origin。外部 timer 触发仍是有界单次运行。错误字段存简短分类代码，不存网页正文或可能含秘密的完整异常文本；规则与诊断见 [政策说明](runtime-policy.md)。
 
-处理顺序已实现：先归档并独立登记响应证据，事务结束后读取/验证原文并解析，再用一个短事务提交幂等版本、通知成功状态和响应处理摘要；失败单独短事务记录错误，不覆盖成功产物。数据库约束验证引用、必要字段和幂等性；Parser 验证站点内容，RawStore 验证原始路径和摘要。列表全部条目及该响应处理摘要也在同一事务内提交。
+处理顺序已实现：先归档并独立登记响应证据，事务结束后读取/验证原文并解析，再用一个短事务提交幂等版本、通知成功状态和响应处理摘要；失败单独短事务记录错误，不覆盖成功产物。数据库约束验证引用、必要字段和幂等性；Parser 验证站点内容，RawStore 验证原始路径和摘要。列表全部本站条目、未适配引用、本站日期证据及该响应/资源处理摘要也在同一事务内提交；引用登记失败不能保留半页。
 
 raw_responses.last_attempt_at 是最近一次处理完成/失败的时间，last_error_code 为该尝试的分类：两者为空表示只有证据、尚无已提交处理结果；时间非空且错误为空表示处理成功；错误非空表示失败。不是 HTTP 获取时间、成功游标或完整尝试审计。新的导入独立建立证据行，即使元数据和 bytes 完全相同；重新解析只更新原响应的处理摘要，不改 fetched_at、URL、头或正文引用。原始文件去重与响应行策略独立。
 
@@ -118,14 +120,14 @@ raw_responses.last_attempt_at 是最近一次处理完成/失败的时间，last
 | `open_initialized_engine(database)` | SQLite mode=rw 打开已有最新版库，缺失/旧迁移直接失败，不创建或升级。 |
 | `RawStore.archive(bytes)` / `read(path, sha256)` | 完整归档或验证读取，不访问数据库。 |
 | `record_response(engine, raw_store, evidence, bytes_or_none)` | 验证已发现的目标身份，发布文件后单独提交响应证据；返回 response_id，不表示解析成功。 |
-| `discover_page(engine, source_id, ListPage, discovered_at)` | 每页全部条目事务性 upsert；最新列表 URL/标题覆盖，首次发现/处理状态/成功版本/错误不重置。返回条目处理数，不是新增通知数。 |
+| `discover_page(engine, source_id, ListPage, discovered_at)` | 每页全部本站条目及未适配引用事务性 upsert；最新列表 URL/标题覆盖，首次发现/处理状态/成功版本/错误不重置。返回条目处理数，不是新增通知数。 |
 | `save_notice(engine, response_id, ParsedNotice, processed_at)` | 校验证据/目标/Parser 身份和最终 URL，按版本唯一键写入或复用，并与成功状态一起提交；低层入口要求调用者已验证原文并成功解析。 |
 | `process_response(engine, raw_store, response_id, processed_at)` | 复用原获取证据，验证文件、完整解析、写入成功或失败状态；用于 reparse，也供 HTTP 层处理刚登记的响应。 |
 | `import_page(engine, raw_store, ResponseInput, bytes_or_none, processed_at)` | 上述归档/登记/处理的组合；无显式绑定的 304 返回 evidence_only。 |
 
 process_response 可注入纯 notice_parser/list_parser 函数以支持规则升级和离线测试，无工厂/插件配置。默认仍使用本站固定 Parser。每次调用执行完整解析，原文相同不会跳过失败或新版本规则。两个入口类型、获取时间与通知身份均显式提供；CLI 不等于又发生一次 HTTP 请求。
 
-列表处理的 ProcessingResult 与 CLI JSON 均增加 pagination，保留原 next_page_url；它是 Parser 通过验证的同一个证据对象。详情与 evidence_only 的 304 没有列表证据，pagination 为 None/null，不表示末页。分页对象不持久化到 schema；重新解析归档列表时重新验证并返回证据。证据错误发生在条目事务之前，原文与分类错误可保留，不能登记半页或清除既有成功状态。
+列表处理的 ProcessingResult 与 CLI JSON 均增加 pagination，保留原 next_page_url；它是 Parser 通过验证的同一个证据对象。详情与 evidence_only 的 304 没有列表证据，pagination 为 None/null，不表示末页。重新解析归档列表时重新验证并返回证据；完整扫描收尾在 ingestion_runs.coverage_evidence 保存实际响应、分页和全部有序行的证明，单页导入不伪造完整扫描。新增 reference_count / registered_row_count，原 discovered_count 仍仅为本站条目处理数。证据错误发生在条目事务之前，原文与分类错误可保留，不能登记半页或清除既有成功状态。
 
 预期错误统一为 IngestError，提供 code/stage/response_id/document_id；Parser 分类加 `parse_` 前缀，文件错误为 raw_path_invalid/raw_missing/raw_digest_mismatch/raw_not_regular/raw_io_or_unsafe_path。身份不一致为 identity_mismatch；数据库读/写失败为 database_read_failed/database_write_failed；失败登记失败为 failure_state_unavailable，运行收尾无法登记为 run_finalization_unavailable。未发现目标、类型未知、无正文、非 200、来源不符或时间倒退都有明确代码。只存代码，不存整段异常。未经预期的程序缺陷仍抛出原异常，不转换为解析成功或空结果；不能据此假定失败状态已经保存。
 
@@ -143,11 +145,11 @@ process_response 可注入纯 notice_parser/list_parser 函数以支持规则升
 
 ## 已完成的 WHU Parser
 
-`PARSER_VERSION = "whu-student-notices-v3"`。v2 提供严格分页证据，v3 增加真实竞赛样本的正文容器；沿用一个站点规则版本，不另建版本框架。列表和既有详情也标为 v3，分页、旧模板提取、规范化与 NoticeContent 摘要规则均未变化；两份既有详情内容与摘要保持一致。重解析可保留同内容摘要的新版产物；live 同原文升级不会制造更新事件，maintenance 不改变 live 基线或产生邮件。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
+`PARSER_VERSION = "whu-student-notices-v4"`。v2 提供严格分页证据，v3 增加真实竞赛样本正文容器，v4 将有效但未适配的列表目标登记为独立引用；沿用一个站点规则版本，不另建版本框架。列表和既有详情均标为 v4，分页、详情提取、规范化与 NoticeContent 摘要规则均未变化；两份既有详情内容与摘要保持一致。重解析可保留同内容摘要的新版产物；live 同原文升级不会制造更新事件，maintenance 不改变 live 基线或产生邮件。选择器、提取语义与规范化规则固定在代码中；修改影响结果的规则时更新版本。不读取运行中可变配置，也没有原始摘要短路。
 
 列表只读取唯一的 `div.list_txt > ul.am-list`，逐条验证其 li / a / span / i。条目失败时整页抛错，item_index 标记位置；不返回部分成功。空列表异常；不硬编码页长 25。保留原始条目顺序和置前旧日期通知，不去重或按日期过滤。分页须独立通过下面的源级证据验证；next_page_url 仅在确认末页时返回 None，缺失结构或活动链接损坏绝不当作末页。
 
-文章身份限本源 `uc.whu.edu.cn` 的 `/info/1517/<正整数>.htm` 和 `/2022/show.jsp?wbtreeid=1517&wbnewsid=<正整数>`。查询顺序与无关参数不影响身份；必要参数缺失、空值、重复参数（即使重复值相同）、新路由查询身份冲突、其他栏目/主机/路径都明确失败。旧路由 urltype 若提供，必须为 news.NewsContentUrl。普通正文外链不受文章身份规则限制。
+文章身份限本源 `uc.whu.edu.cn` 的 `/info/1517/<正整数>.htm` 和 `/2022/show.jsp?wbtreeid=1517&wbnewsid=<正整数>`。查询顺序与无关参数不影响身份；必要参数缺失、空值、重复参数（即使重复值相同）、新路由查询身份冲突明确失败。详情的其他栏目/主机/路径仍失败；列表中有效但未适配目标进入 PendingReference， 损坏的已知文章路由不降级。旧路由 urltype 若提供，必须为 news.NewsContentUrl。普通正文外链不受文章身份规则限制。
 
 详情确认外层 `.news_show`、直接标题区 `.title_nei` 及其中唯一 b / i，并在该区域读取唯一 `#vsb_content` 或 `#vsb_content_501`，容器内恰有一个直接 `.v_news_content`。竞赛页面模板由真实 18135 样本验证；两个候选同时出现或层级不符均失败。fixture 内有嵌套的 .news_show，所以不要求正文直接属于最外层。标题需有文字/数字，日期严格来自“时间：YYYY-MM-DD”可见字段并校验日历有效性。缺少、重复或不识别的结构不会用全页标题/其他日期猜测。
 
@@ -180,7 +182,7 @@ next_page_url 保留在 ListPage 顶层，避免两个字段重复储存同一�
 
 这些证据只说明这一份页面的声明有效。`crawl_once` 从首页开始，沿 next 实际目标发送请求；维护跨页实际请求/最终 URI 集合（包含重定向路径），拒绝重复；要求 current 从 1 连续到 total、总数和活动尾页目标一致，并核对实际末页路径包含初始尾页目标。条目提交成功后才计入页面覆盖；后续发现跨页漂移不会撤销已正确登记的条目，但不能宣布 complete。
 
-full 模式还以 `revalidate=True` 发送首页复核，比较最终 URI 与完整 `ListPage`（有序身份/标题/日期/URL、下一页及分页证据）；失败、变化或预算不足均不推进完整扫描成功时间。全部通过后才构造 `ScanCompletion`，再用短事务提交覆盖。limited 从不声明 complete，详情批次独立于扫描覆盖：列表中断/304 后仍查询 SQLite；服务端冷却或全局网络预算则停止所有请求。首页复核不能证明站点同一时刻的一致快照，也不能发现扫描期间其他页短暂变化。少量实采仅运行 limited，没有验证真实全站覆盖；长期观察仍待后续。单次策略与统计定义见 [协调器设计](crawling.md)。
+full 模式还以 `revalidate=True` 发送首页复核，比较最终 URI 与完整 `ListPage`（有序本站身份及引用目标/href/位置、标题/日期/URL、下一页及分页证据）；失败、变化或预算不足均不推进完整扫描成功时间。全部通过后才构造 `ScanCompletion`，再用短事务提交覆盖。limited 从不声明 complete，详情批次独立于扫描覆盖：列表中断/304 后仍查询 SQLite；服务端冷却或全局网络预算则停止所有请求。首页复核不能证明站点同一时刻的一致快照，也不能发现扫描期间其他页短暂变化。少量实采仅运行 limited，没有验证真实全站覆盖；长期观察仍待后续。单次策略与统计定义见 [协调器设计](crawling.md)。
 
 ## 固定规范化规则与范围
 
@@ -223,7 +225,7 @@ Parser 不检查 HTTP 200/403/304，PageInput 未扩展状态码。200 错误页
 - 解析失败记录分类并保留最近成功版本；同一原文以后仍可重试，规则升级后仍可重新解析。
 - 如将来跳过重复处理，必须有对应原文和 parser_version 的已成功解析结果，不能只看原始摘要。内容摘要不含 parser_version；现有数据库唯一键另含版本，所以新版规则产物即使摘要相同也可保留。
 
-现有离线原文、短事务及最小传输/运行事实已足够连接协调器，无需新增 schema。没有任务队列或分页续扫游标；N1 的 planned 意图与 N2 的冻结邮件独立于采集状态。研究建议精简为三张运行事实表，省去双份详情 due、持久 run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；计数在持锁的本次运行中计算。完整扫描状态接口只接受声明，实际链验证由 `crawl_once` 在调用前完成。
+现有离线原文、短事务及最小传输/运行事实已足够连接协调器，无需新增 schema。没有任务队列或分页续扫游标；N1 的 planned 意图与 N2 的冻结邮件独立于采集状态。研究建议精简为三张运行事实表，省去双份详情 due、持久 run 计数/最后页游标、通用任务/租约、列表/扫描调度字段；计数在持锁的本次运行中计算。完整扫描状态接口保留旧声明兼容；新生产 ScanCompletion 含响应和成员记录，提交时核验每行登记及绑定，并与来源成功时间同事务保存。实际链验证仍由 `crawl_once` 在调用前完成。0008 仅为引用恢复/完整覆盖增加必要表和证据列，详见[引用登记](list-references.md)。
 
 ## 已完成的恢复验证与后续边界
 
@@ -242,6 +244,10 @@ N0 的调用链为 `NoticeContent → extract_facts → decide(Profile, Facts, E
 政策 v3 将事实提取/规则/引擎升至 v3，路线仍 v1，保留上述 v2 行为。主题证据增加 subject/opportunity/incidental；正文顺带提及不成为兴趣，紧迫或高价值命中须有对应机会证据。辅修与具体报名/申请行动直接绑定，局部排除缴费/退出、导航、否定、历史和结束声明；不因整篇出现费用说明而否决真正报名，也不借用另一项报名。标题主题仍可表示普通信息，显式字面关注保持宽泛；已获邮件资格的条件更新不被另一保存主题压制。有限语法不是通用语义理解。旧 context 未提供时省略序列化，v1/v2 已保存事实与决策摘要不变。原文、Parser v3、正文摘要和 schema 均未改；真实生产重放与修复前后结果见 [评估记录](validation/notification-production.md)。
 
 政策 v4 补唯一标题主题与正文当前行动的跨字段关联，支持真实登录系统完成申请的指令；菜单、记录、费用、退课、历史和另一个具名机会不能借用此规则。TopicMatch.supporting_evidence 保留独立正文位置，空值省略以保持 v3 已存摘要。无法可靠绑定时 context=uncertain 并保存 topic_action_link_unknown，仅待核对的兴趣保留 STORE_ONLY/relevance unknown；已登记资格的更新仍按跟踪规则提示核对，不因不确定关联升级紧急。原 13 个真实案例与 2 个新合成案例分开评估，人工原标签、适配和工程期望逐例映射；历史快照不覆盖。新迭代编号见[迭代记录](iteration-20261008.md)，与旧邮件 N0–N4 独立。
+
+政策 v6 将已绑定机会的正文当前报名指令作为 opening_confirmed 的证据：具体行动须通过原入场排除并位于 opportunity 的正文证据或标题 supporting_evidence 中。保留指令的原文位置到 time_evidence，不补造 opens_at；可信未来开场与未知截止的判断不变。仅标题、歧义主题、菜单/历史/缴费和另一项行动不能取得此确认。事实/规则/引擎升 v6，路线、Parser、正文摘要和 schema 不变；真实 v5 快照和 seal 保留，旧决策及冻结邮件不自动改写。[当时修复记录](validation/notification-rule-fix-20261010.md)保留 R01/R02 工程边界来源；随后原句漏报已单独冻结并补完。
+
+当前政策 v8 仅补两个有限语法：`即日起` 后允许 `接受` 再接入场行动；`请/须/需/应登录(学校)系统` 后立即接报名/申请/申报/选课，无须额外“完成”。仍须绑定具体机会、通过相同菜单/记录/历史/办理对象排除；不放宽任意登录文本或仅含报名词语的说明。原样行动表达的 O01/O02 在 v7 实际为 DIGEST/IGNORE，v8 均为 PUSH_NOW；内容、Profile、事件和时钟不变。直接登录指令只确认当前申请，不补造 opens_at；未知截止与资格继续未知。事实/规则/决策引擎升 v8，路线 v1、三个 Parser、正文摘要、schema 0008 不变，实际 v7 评估与全量 seal 保留。实例必须显式更新政策，不撤回旧资格或重写冻结邮件，见[原句修复验证](validation/notification-original-misses-20261010.md)。
 
 资格只核对少量明确对象条件，不用“研究生”等全页裸词推断对象；发布日期不代替开放或截止。短截止相关机会可在资格未知时提示核对，理由明确不构成资格确认。图片/附件只保留未解析引用；不从 alt、文件名补造事实。具体规范、版本、证据范围和真实样本限制见 [规则说明](notifications.md)。
 
@@ -316,3 +322,9 @@ live 通知事件/决策/意图整组回滚。业务失败后旧成功版本继�
 有限固定别名与当前查询版本在结果明示，不修改 NoticeContent 摘要或通知政策。
 FTS 三字候选与短词 instr 回退、排序、重建及备份限制见[历史搜索](search.md)；
 9 篇真实语料和 15 查询的生产 Recall@K 见[工程评估](search-evaluation.md)，不称人工确认的 gold。
+
+## 计算机学院离线验收与政策 v7
+
+[真实样本离线适配](cs-undergrad.md)复用 ListPage/PaginationEvidence、PendingReference、NoticeContent 与归档/短事务入口。三个实际列表为 1/4、2/4、4/4，共43个已观察身份；第3页未取得，离线导入不登记完整覆盖。新的 Parser 不放宽本科生院 URL、Fetcher 或默认 CLI 导入规则。
+
+真实64481保留2026学年、可见发布时间与2025落款冲突、本科/研究生申请分支、85分/年级/教师审核和纯文本外部申请渠道。政策v7只补有证据的有限词形、对象分支和风险；不硬排本科、不宣称硕士符合，不补截止年份，不以考核时间制造紧迫提醒。假设本科画像得到待核对Digest。事实/规则/引擎升v7，routing仍v1；原Parser版本、正文摘要与schema不变，历史决策/资格/冻结邮件不改写。已有实例须显式更新政策。自动采集是下一节点，仍须接来源隔离、目标校验、缓存和完整扫描证明。

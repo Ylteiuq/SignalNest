@@ -68,6 +68,27 @@ class ListEntry(Contract):
     published_date: date
 
 
+REFERENCE_NORMALIZATION_VERSION = "http-url-v1"
+
+
+class PendingReference(Contract):
+    """A valid list target with no adapter; it is not a discovered article identity.
+
+    HttpUrl normalizes authority/default ports, retaining path/query order and
+    fragment. The original href is kept separately. No fetch permission is implied.
+    """
+
+    raw_href: str = Field(min_length=1, max_length=8192)
+    resolved_url: WebUrl
+    title: NonemptyText
+    published_date: date
+    row_index: int = Field(ge=0, strict=True)
+    reference_kind: Literal["external", "unsupported_column", "unsupported_route"]
+
+    def candidate_key(self) -> str:
+        return "link:v1:" + hashlib.sha256(str(self.resolved_url).encode("utf-8")).hexdigest()
+
+
 class PaginationEvidence(Contract):
     """Validated visible declarations, not a guarantee of complete cross-page coverage."""
 
@@ -96,15 +117,33 @@ class PaginationEvidence(Contract):
 
 class ListPage(Contract):
     # For this source, an empty page must be investigated rather than treated as success.
-    entries: tuple[ListEntry, ...] = Field(min_length=1)
+    entries: tuple[ListEntry, ...] = ()
+    references: tuple[PendingReference, ...] = ()
     next_page_url: WebUrl | None = None
     pagination: PaginationEvidence
 
     @model_validator(mode="after")
     def next_matches_evidence(self) -> "ListPage":
+        if not self.row_count:
+            raise ValueError("list requires at least one notice or pending reference")
+        positions = [reference.row_index for reference in self.references]
+        if len(set(positions)) != len(positions) or any(p >= self.row_count for p in positions):
+            raise ValueError("reference positions must uniquely locate actual list rows")
         if self.pagination.is_last_page != (self.next_page_url is None):
             raise ValueError("next-page URL must agree with terminal evidence")
         return self
+
+    @property
+    def row_count(self) -> int:
+        return len(self.entries) + len(self.references)
+
+    def ordered_rows(self) -> tuple[ListEntry | PendingReference, ...]:
+        references = {reference.row_index: reference for reference in self.references}
+        entries = iter(self.entries)
+        return tuple(
+            references[index] if index in references else next(entries)
+            for index in range(self.row_count)
+        )
 
 
 class AttachmentReference(Contract):

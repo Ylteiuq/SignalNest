@@ -18,10 +18,16 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from alembic.script import ScriptDirectory
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from signalnest.cache import reuse_reason, validation_reason
-from signalnest.contracts import NoticeContent, RequestProfile
+from signalnest.contracts import (
+    REFERENCE_NORMALIZATION_VERSION,
+    NoticeContent,
+    RequestProfile,
+    WebUrl,
+)
+from signalnest.ingestion_state import ScanCompletion
 from signalnest.mail.contracts import SendErrorCode, SendOutcome, SendResult, SendStage
 from signalnest.notifications.contracts import Decision, canonical_sha256
 from signalnest.rawstore import RawStore, RawStoreError
@@ -549,6 +555,95 @@ def _verify_mail(connection):
     }
 
 
+def _list_binding(records, source_id, body_id, observed_id):
+    body, observed = records.get(body_id), records.get(observed_id)
+    if (
+        body is None
+        or observed is None
+        or any(
+            row["source_id"] != source_id or row["page_type"] != "list" for row in (body, observed)
+        )
+        or body["status_code"] != 200
+        or body["body_path"] is None
+    ):
+        raise BackupVerificationError("backup_list_evidence_invalid")
+    if observed_id != body_id and (
+        observed["status_code"] != 304
+        or observed["validated_response_id"] != body_id
+        or any(
+            observed[field] != body[field]
+            for field in ("resource_id", "requested_url", "final_url")
+        )
+    ):
+        raise BackupVerificationError("backup_list_evidence_invalid")
+    return body, observed
+
+
+def _verify_references(connection):
+    responses = _records(connection, "raw_responses")
+    references = _records(connection, "discovered_references")
+    validator = TypeAdapter(WebUrl)
+    for row in references.values():
+        try:
+            uri = str(validator.validate_python(row["resolved_url"]))
+        except ValidationError as exc:
+            raise BackupVerificationError("backup_reference_invalid") from exc
+        if (
+            row["normalization_version"] != REFERENCE_NORMALIZATION_VERSION
+            or uri != row["resolved_url"]
+            or row["candidate_key"] != "link:v1:" + hashlib.sha256(uri.encode("utf-8")).hexdigest()
+            or row["status"] != "pending_adapter"
+        ):
+            raise BackupVerificationError("backup_reference_invalid")
+        for prefix in ("first", "last"):
+            _, observed = _list_binding(
+                responses,
+                row["source_id"],
+                row[f"{prefix}_body_response_id"],
+                row[f"{prefix}_observed_response_id"],
+            )
+            if row[f"{prefix}_seen_at"] < observed["fetched_at"]:
+                raise BackupVerificationError("backup_reference_invalid")
+    ledgers = 0
+    for run in connection.execute(
+        "SELECT * FROM ingestion_runs WHERE coverage_evidence IS NOT NULL"
+    ):
+        try:
+            completion = ScanCompletion.model_validate(
+                _json(run["coverage_evidence"], "backup_scan_evidence_invalid")
+            )
+        except ValidationError as exc:
+            raise BackupVerificationError("backup_scan_evidence_invalid") from exc
+        if run["coverage"] != "complete":
+            raise BackupVerificationError("backup_scan_evidence_invalid")
+        if completion.registrations is None:
+            continue  # Explicit legacy-style attestation, not an invented response ledger.
+        for page in (*completion.registrations, completion.home_recheck):
+            body, _ = _list_binding(
+                responses, run["source_id"], page.body_response_id, page.observed_response_id
+            )
+            if body["requested_url"] != str(page.response_requested_url) or body[
+                "final_url"
+            ] != str(page.final_url):
+                raise BackupVerificationError("backup_scan_evidence_invalid")
+            for kind, key in page.rows:
+                table, column = (
+                    ("documents", "source_document_id")
+                    if kind == "notice"
+                    else ("discovered_references", "candidate_key")
+                )
+                if (
+                    connection.execute(
+                        f"SELECT 1 FROM {table} WHERE source_id=? AND {column}=?",
+                        (run["source_id"], key),
+                    ).fetchone()
+                    is None
+                ):
+                    raise BackupVerificationError("backup_scan_evidence_invalid")
+        ledgers += 1
+    return {"discovered_references": len(references), "complete_scan_ledgers": ledgers}
+
+
 def verify_backup(database: Path, data_dir: Path) -> dict[str, int | str]:
     """Check relational integrity and every raw reference without opening a writer."""
     database = database.absolute()
@@ -587,6 +682,7 @@ def verify_backup(database: Path, data_dir: Path) -> dict[str, int | str]:
                 for table in ("documents", "notice_versions", "raw_responses", "ingestion_runs")
             }
             counts.update(_verify_mail(connection))
+            counts.update(_verify_references(connection))
         raw_store = RawStore(data_dir)
         raw_dir = data_dir / "raw"
         if not raw_dir.is_dir() or any(path.is_symlink() for path in (raw_dir, *raw_dir.parents)):

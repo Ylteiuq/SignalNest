@@ -24,7 +24,12 @@ from sqlalchemy.pool import NullPool
 from signalnest.config import Settings
 from signalnest.contracts import Contract
 from signalnest.errors import validate_time
-from signalnest.schema import documents, ingestion_runs, source_ingestion_state
+from signalnest.schema import (
+    discovered_references,
+    documents,
+    ingestion_runs,
+    source_ingestion_state,
+)
 from signalnest.storage import StorageError, migration_config
 
 COMPLETE_SCAN_STALE_SECONDS = 26 * 3600
@@ -116,6 +121,7 @@ class StatusReport(Contract):
     recent_runs: tuple[RunStatus, ...]
     unfinished_runs: int
     diagnostics: tuple[Diagnostic, ...]
+    unadapted_references: int = 0
 
 
 def _read_only_engine(database: Path) -> Engine:
@@ -391,6 +397,11 @@ def inspect_status(settings: Settings, *, at: int | None = None) -> StatusReport
                     ingestion_runs.c.result == "running",
                 )
             ).scalar_one()
+            references = connection.scalar(
+                sa.select(sa.func.count())
+                .select_from(discovered_references)
+                .where(discovered_references.c.source_id == settings.source.id)
+            )
             return StatusReport(
                 source_id=settings.source.id,
                 observed_at=observed_at,
@@ -402,6 +413,7 @@ def inspect_status(settings: Settings, *, at: int | None = None) -> StatusReport
                 recent_runs=recent,
                 unfinished_runs=unfinished,
                 diagnostics=_diagnostics(source, backlog, rechecks, recent, unfinished),
+                unadapted_references=references,
             )
     except (SQLAlchemyError, CommandError) as exc:
         raise StorageError("数据库无法只读查询或未初始化，请检查存储并先执行 storage-init") from exc

@@ -10,9 +10,9 @@ from pydantic import Field, field_validator, model_serializer, model_validator
 
 from signalnest.contracts import Contract, Digest, NonemptyText, WebUrl
 
-FACTS_EXTRACTOR_VERSION = "whu-notice-facts-v5"
-RULES_VERSION = "notification-rules-v5"
-DECISION_ENGINE_VERSION = "notification-decision-v5"
+FACTS_EXTRACTOR_VERSION = "whu-notice-facts-v8"
+RULES_VERSION = "notification-rules-v8"
+DECISION_ENGINE_VERSION = "notification-decision-v8"
 ROUTING_VERSION = "notification-routing-v1"
 
 Topic = Literal[

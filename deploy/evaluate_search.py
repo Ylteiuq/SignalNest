@@ -29,6 +29,7 @@ SOURCE_FILES = (
     "src/signalnest/parsing.py",
     "src/signalnest/ems_parsing.py",
     "src/signalnest/migrations/versions/0007_history_search.py",
+    "src/signalnest/migrations/versions/0008_list_references.py",
 )
 K_VALUES = (1, 3, 5)
 

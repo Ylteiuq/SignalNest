@@ -46,8 +46,12 @@ signalnest notifications-reevaluate --config config.toml --operation-id review-2
 
 限制：只重评明确选择的当前 live 事件；不提供候选查询语言、自动全历史重评、资格撤销、取消后改投或持续时钟驱动重评。旧政策可审计，不保证当前代码能执行任意旧引擎；已经冻结的决策和邮件不重新计算。测试覆盖真实 SQLite 事务故障和关闭重开后的操作恢复，这部分不宣称完成断电验证。
 
-## 政策 v5 的显式升级
+## 政策 v6 的显式升级
 
-事实提取/规则/引擎已更新为 v5，路线仍为 v1；本次补助教招聘门槛、申请主体软条件与真实申请表时间，保留 v4 标题/正文关联及登录提交指令、v3 机会/提及区分和 v2 跨主题优先级。EMS 当期自动发现未验收，详见[助教边界](teaching-assistant.md)。已有实例先保留备份，用新代码预览画像和真实样本，再显式 `notifications-policy-update --profile ... --operation-id ... --at ...`，使用新的 operation ID；不通过初始化或修改原 revision 自动更新。旧政策期间生产 live 处理会明确返回过期政策错误，应先更新后恢复采集。升级不补发历史、不改已有投递资格或冻结 bytes；旧误命中的 Digest 资格不会自动撤回。
+事实提取/规则/引擎已更新为 v6，路线仍为 v1；本次仅补已绑定正文报名指令的开放证据，保留 v5 助教招聘、软条件与申请表时间、v4 标题/正文关联及登录提交指令、v3 机会/提及区分和 v2 跨主题优先级。EMS 当期自动发现未验收，详见[助教边界](teaching-assistant.md)。已有实例先保留备份，用新代码预览画像和真实样本，再显式 `notifications-policy-update --profile ... --operation-id ... --at ...`，使用新的 operation ID；不通过初始化或修改原 revision 自动更新。旧政策期间生产 live 处理会明确返回过期政策错误，应先更新后恢复采集。升级不补发历史、不改已有投递资格或冻结 bytes；旧误命中的 Digest 资格不会自动撤回。
 
-已持久登记的 v1/v2/v3/v4 维护操作按原 operation ID 单独恢复，复用原固定快照/时钟/决策，不调用新版规则；需要新版评估时另建明确操作。Profile/Facts 的新增可空字段未提供时省略，包括 TopicMatch.context 与空 supporting_evidence，原摘要继续可校验。规则升级步骤、样本结果和未知范围见 [政策 v5](notifications.md)。
+已持久登记的 v1/v2/v3/v4/v5 维护操作按原 operation ID 单独恢复，复用原固定快照/时钟/决策，不调用新版规则；需要新版评估时另建明确操作。Profile/Facts 的新增可空字段未提供时省略，包括 TopicMatch.context 与空 supporting_evidence，原摘要继续可校验。规则升级步骤、样本结果和未知范围见 [政策 v6](notifications.md)。
+
+## 政策 v7 的显式升级
+
+计算机学院真实样本验收后，当前事实/规则/引擎为v7，routing仍v1；新增CS离线Parser不等于开启CS来源。先使用 `profile-check` 和 `decision-preview --parser cs-undergrad-notices` 核对真实样本及画像，再用新的 `policy-v7-...` operation ID 预览/保存政策更新；采集配置/source_id不因更新而改变。v1–v6既有政策、决定、投递资格和冻结邮件保持原样，未完成维护操作继续复用自己的固定快照。本次没有在已部署实例发布v7；旧激活政策仍须显式更新后才能用新版规则处理live正文。不得因规则更新自动补发历史或撤回既有Digest。详细规则和限制见[CS离线节点](cs-undergrad.md)。

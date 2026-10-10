@@ -1,8 +1,8 @@
 # SignalNest
 
-单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**采集、离线恢复、政策 v5、邮件计划/冻结、SMTP 发送恢复、后台邮件入口及基础历史搜索已实现**。使用外部定时模板触发有界单次运行，没有 Python 常驻调度器；邮件默认关闭，显式启用后可自动计划并发送。目标 Linux 部署与真实邮箱验证尚未进行。
+单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**采集、离线恢复、政策 v7、邮件计划/冻结、SMTP 发送恢复、后台邮件入口及基础历史搜索已实现**。使用外部定时模板触发有界单次运行，没有 Python 常驻调度器；邮件默认关闭，显式启用后可自动计划并发送。已在 WSL/Linux 部署并验证受限实采、两封工程测试邮件的实际收件和隔离恢复；此前完整扫描因栏目外链中断；现已实现待适配引用登记，但尚未在目标实例复验完整扫描，生产通知及一周运行仍未验收，见[实机记录](docs/validation/n2-wsl-20261009.md)。
 
-2026-10-08 开始的新迭代 **N0 规则对齐 → N1 助教招聘 → N2 部署运行验收 → N3 基础搜索** 单列于[迭代记录](docs/iteration-20261008.md)。下文原邮件模块 N0–N4 编号继续保留。新 N1 已提供[助教招聘的离线判断与预览](docs/teaching-assistant.md)，含真实历史招聘正例和独立 EMS 详情 Parser；自动发现当期助教机会仍未验收，现有联网来源保持本科生院。
+2026-10-08 开始的新迭代 **N0 规则对齐 → N1 助教招聘 → N2 部署运行验收 → N3 基础搜索** 单列于[迭代记录](docs/iteration-20261008.md)。下文原邮件模块 N0–N4 编号继续保留。新 N1 已提供[助教招聘的离线判断与预览](docs/teaching-assistant.md)，含真实历史招聘正例和独立 EMS 详情 Parser；已补[计算机学院本科教学的脱敏样本离线解析与决策验收](docs/cs-undergrad.md)，含列表、正文和待核对申请分支；自动发现当期助教机会仍未验收，现有联网来源保持本科生院。
 
 ## 安装与检查
 
@@ -43,7 +43,7 @@ uv run --locked signalnest config-check --config signalnest.toml
 uv run --locked signalnest storage-init --config signalnest.toml
 ```
 
-命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0007_history_search`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
+命令创建数据目录、`raw/`、数据库父目录，并通过 Alembic 升级至最新迁移（当前 `0008_list_references`）。重复运行保留数据，后续安装新版本也用此命令升级；不使用 `create_all`，不提供清空或降级命令。成功退出码为 0，存储/处理错误为 1，配置、导入元数据或命令用法错误为 2。迁移失败回滚，已创建的目录或空数据库文件可能保留。导入和重新解析要求已初始化到最新迁移，不会隐式建库或升级。
 
 可在临时目录验证（macOS / Linux）：
 
@@ -56,7 +56,7 @@ uv run --locked signalnest storage-init --config "$trial_dir/signalnest.toml"
 
 结果位于 `$trial_dir/data/`。初始化、升级、import-page、reparse、search-rebuild、notifications-activate、mail-plan / mail-drain、政策维护、后台邮件和采集入口共用数据库旁的 POSIX advisory 写入锁；并行写入立即拒绝，进程退出释放锁，锁文件保留。库调用者须使用同一 writer_lock 覆盖整个写入运行；`crawl_once` 自行持有整次运行的锁。升级个人数据前保留数据库与 raw 目录备份。
 
-从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0005 只新增冻结邮件、精确成员和计划阻断表，保留 N1 事件/意图，不自动计划；0006 新增投递、逐次尝试和政策维护操作状态，给旧冻结邮件登记 pending；升级不发送。0007 新增可重建的当前正文搜索索引，需 SQLite 支持 FTS5 trigram；旧库升级后执行下述 `search-rebuild`。0001–0006 保持冻结。
+从早期节点升级：执行 `uv sync --locked` 并显式运行 `storage-init`；**继续使用原配置文件及原 database 路径**即可，不需要更名或搬动数据。0001/0002 保持冻结；0003 增加响应完整性/缓存绑定、首次发现来源和三个运行事实表，直接 ADD COLUMN，不重建旧表。既有响应不猜测类型或目标；重新解析这些旧记录时返回明确错误，可用已知元数据重新导入同一原文。0004 只新增通知启用/日期证据/基线/事件/决策及 planned 意图表，保留既有数据；升级默认未启用，不补发历史通知。0005 只新增冻结邮件、精确成员和计划阻断表，保留 N1 事件/意图，不自动计划；0006 新增投递、逐次尝试和政策维护操作状态，给旧冻结邮件登记 pending；升级不发送。0007 新增可重建的当前正文搜索索引，需 SQLite 支持 FTS5 trigram；旧库升级后执行下述 `search-rebuild`。0008 新增待适配列表引用及可空的完整扫描证据，不重建既有表，不抓外部正文；0001–0007 保持冻结。
 
 ## 单次采集
 
@@ -74,11 +74,11 @@ uv run --locked signalnest crawl-once --config signalnest.toml \
 
 `--scan {full,limited}` 必填。列表页上限默认 full=64、limited=2；详情默认 20，`--max-details 0` 可只处理列表。物理请求默认 120 次、运行预算 600 秒、每个资源预算 60 秒、完整正文上限 2 MiB，分别由 `--max-requests`、`--run-seconds`、`--resource-seconds`、`--max-body-bytes` 设置。首页复核、重定向、重试和完整获取回退都计入请求/时间预算；期限不是阻塞 DNS/read 的硬终止保证。
 
-每次扫描从首页开始，沿实际 next 链校验请求/最终 URI、连续页码、总数与尾页，并提交每页全部条目。full 还重新请求首页（`Cache-Control: no-cache`，允许条件验证），比较最终 URI 和完整结构化列表。受限、循环、漂移、预算耗尽或失败均不推进完整扫描成功时间。主动选择 limited 时，即使到达末页也保留 limited；full 被页预算截断则报告 interrupted。列表 304 或普通列表失败后，仍从数据库查询详情待办；服务端冷却、全局请求/时间预算约束所有网络请求。
+每次扫描从首页开始，沿实际 next 链校验请求/最终 URI、连续页码、总数与尾页，并提交每页全部条目。full 还重新请求首页（`Cache-Control: no-cache`，允许条件验证），比较最终 URI 和完整结构化列表（含未适配引用）。完整扫描保存原响应绑定、有序通知/引用行及首页复核证据；仅列表覆盖完整不代表所有正文已经处理。受限、循环、漂移、预算耗尽或失败均不推进完整扫描成功时间。主动选择 limited 时，即使到达末页也保留 limited；full 被页预算截断则报告 interrupted。列表 304 或普通列表失败后，仍从数据库查询详情待办；服务端冷却、全局请求/时间预算约束所有网络请求。
 
 旧的 processed 通知若 `next_due_at` 为空，在运行开始事务中入队首次联网复查，不根据发布日期猜测。详情成功后 24 小时到期，普通失败后 15 分钟可重试；首次失败无成功版本，复查失败保留旧版本。第一次 complete 前发现来源为 bootstrap，之后为 regular，不生成邮件事件。详情处理按数据库有效到期时间（空值用首次发现时间，数据库 ID 仅用于平局）取有界批次，单篇普通 HTTP/解析失败继续处理其他篇；归档、数据库或失败登记不能可靠完成时终止。
 
-stdout 返回 JSON 摘要：`scanned_entries` 是已提交遍历页的全部行数（可含跨页重叠，不含首页复核），`new_documents` 是本来源的真实新增身份；另含详情尝试/成功/失败、实际请求、覆盖、运行结果及待办。`remaining_due` 为当前可处理数，`remaining_unprocessed` 为 discovered/failed 数，含保留旧成功版本的复查失败。succeeded 退出 0，其他运行结果/存储错误退出 1，参数错误退出 2，用户中断退出 130；limited 覆盖与成功运行可以同时成立。详见 [协调器设计与恢复边界](docs/crawling.md)。
+stdout 返回 JSON 摘要：`scanned_entries` 是已提交遍历页的全部行数（可含跨页重叠，不含首页复核），`new_documents` 是本来源的真实新增身份；另含 `scanned_references`（未适配行观察数）、`new_references`（实际新增引用）和 `remaining_unadapted_references`；详情待办只含已适配通知。引用重复观察会计入扫描行数，同一 source/完整目标 URI 仅登记一次，不抓外部正文。查看用 `signalnest references-list --config signalnest.toml --limit 20 --offset 0`，详见[引用登记](docs/list-references.md)。另含详情尝试/成功/失败、实际请求、覆盖、运行结果及待办。`remaining_due` 为当前可处理数，`remaining_unprocessed` 为 discovered/failed 数，含保留旧成功版本的复查失败。succeeded 退出 0，其他运行结果/存储错误退出 1，参数错误退出 2，用户中断退出 130；limited 覆盖与成功运行可以同时成立。详见 [协调器设计与恢复边界](docs/crawling.md)。
 
 ## 本地导入与重新解析
 
@@ -100,7 +100,7 @@ uv run --locked signalnest import-page --config "$trial_dir/signalnest.toml" \
 uv run --locked signalnest reparse --config "$trial_dir/signalnest.toml" --response-id 3
 ```
 
-结果为 50 个通知身份、2 个成功版本和 48 个待处理通知。离线命令输出 JSON，保留 `response_id`、`document_id`、`version_id`、`discovered_count` 和 `next_page_url`，增加 `pagination` 证据对象；本地导入不自动遍历。详情和仅登记证据的 304 输出 `pagination=null`，不能把它当末页。重复导入不增加通知或相同规则/内容的版本；每次导入仍独立登记响应证据，相同 bytes 复用一个原始文件。重新解析复用原响应，不增加响应行或伪造获取时间。
+结果为 50 个通知身份、2 个成功版本和 48 个待处理通知。离线命令输出 JSON，保留 `response_id`、`document_id`、`version_id`、`discovered_count` 和 `next_page_url`，增加 `pagination` 证据对象、`reference_count` 和 `registered_row_count`；discovered_count 继续仅计本站通知条目，registered_row_count 计全部有效行。本地导入不自动遍历。详情和仅登记证据的 304 输出 `pagination=null`，不能把它当末页。重复导入不增加通知或相同规则/内容的版本；每次导入仍独立登记响应证据，相同 bytes 复用一个原始文件。重新解析复用原响应，不增加响应行或伪造获取时间。
 
 元数据是简单 JSON：必须显式给出 `page_type`（list/notice）、`source_id`、`requested_url`、`final_url`、`fetched_at`（非负 UTC Unix 秒整数）和 `status_code`。notice 还必须给出 `source_document_id`，且该身份已由列表发现；不按文件名猜身份。可选头为 `content_type`、`etag`、`last_modified`、`vary`、`cache_control`、`content_encoding`；可明确给出 `body_state`（complete/unavailable）与 `request_profile`（user_agent/accept/accept_encoding=identity）。既有示例没有 profile，不自动取得缓存资格。source_id 必须与配置一致。CLI 的输入文件路径相对于调用工作目录，存储位置始终相对于配置文件。
 
@@ -143,7 +143,7 @@ uv run --locked python deploy/release_snapshot.py \
   --release-root "$PWD" --output /private/tmp/signalnest-release.tar.gz
 ```
 
-准备报告检查源码、数据库、积压、冷却和邮件状态；真实画像须显式传 `--profile`，核对后再声明 `--profile-confirmed`。它始终保留 `externally_verified=false`，不会发送邮件或开启定时器。`observe` 输出一行 JSON，可由操作者保存为每日记录；没有后台监视任务。当前指定远端经只读检查为 Windows，未见 WSL 发行版，现有 POSIX/Linux 部署不能直接运行；尚未安装环境、实采、发送真实邮件或开始一周观察。下一步与验收表见[上线说明](docs/rollout.md)。
+准备报告检查源码、数据库、积压、冷却和邮件状态；真实画像须显式传 `--profile`，核对后再声明 `--profile-confirmed`。它始终保留 `externally_verified=false`，不会发送邮件或开启定时器。`observe` 输出一行 JSON，可由操作者保存为每日记录；没有后台监视任务。早前只读检查只见 Windows；用户后续准备 WSL 后已完成受限部署、两封工程邮件实收与隔离恢复，见[实机记录](docs/validation/n2-wsl-20261009.md)。完整覆盖、生产通知和一周观察仍未验收，不能由准备报告宣称完成。下一步与验收表见[上线说明](docs/rollout.md)。
 
 ## 单次 HTTP 的离线衔接接口
 
@@ -157,7 +157,7 @@ uv run --locked python deploy/release_snapshot.py \
 
 支持的 Vary 仅 User-Agent/Accept/Accept-Encoding；未知 Vary、`*`、no-store、压缩编码或无效验证器要求完整获取。不兼容 304 会持久阻断后续条件请求，直到新的完整 200。private/no-cache 可以条件验证；不会用 304 改写原 200 头和获取时间。显式历史 reparse 可以切换旧版本，自动缓存恢复会拒绝旧原文回退。
 
-完整扫描状态接口只校验传入的分页和复核声明；`crawl_once` 在调用前实际提交全部页面、验证 URI 链/连续页码/总数/明确末页并完成首页复核。列表 complete 与运行 partial_failure 可以同时成立。旧记录的发现 origin 保持 unknown，不根据日期猜测。
+完整扫描状态接口校验传入分页/复核声明，新生产调用还校验响应绑定及通知/引用成员已登记，并与来源成功时间一起保存证据；`crawl_once` 在调用前实际提交全部页面、验证 URI 链/连续页码/总数/明确末页并完成首页复核。列表 complete 与运行 partial_failure 可以同时成立。旧记录的发现 origin 保持 unknown，不根据日期猜测。
 
 写入锁支持 macOS/Linux POSIX，本次实测 macOS；Windows 未支持。数据库路径别名解析到同一锁，硬链接数据库和符号链接锁文件拒绝。帮助/config-check 不获取锁；外部不遵守 advisory lock 的程序不受保护。文件/Parser 均在事务外，正常回滚与锁释放不证明断电耐久性。
 
@@ -215,13 +215,19 @@ stdout 为 JSON：事实、短原文证据、资格/时间三值判断、Action�
 
 `--event-kind {new,update,activation_recent,historical}` 与 `--mode {hybrid,digest_only}` 仅声明预览上下文。update 可给 `--previous-notice-json` 和 `--previous-route`，缺少旧内容则标明比较未知。首启预览默认汇总，可信截止不晚于下一次 Digest 时保留紧急路线；显式 digest_only 仍优先。命令不证明实际发生新内容或此前已登记邮件资格。校验/参数错误退出 2，Parser 无法支持输入页面退出 1，成功预览退出 0。
 
-政策 v4 关联唯一标题主题和正文明确报名行动，识别真正登录系统完成报名，并保留无法可靠关联的候选证据。新生选课中的“辅修专业单独缴费”仍不触发辅修提醒；保留跨主题优先级、申报角色与时间边界。生产函数的 [13 项真实情境与 2 项合成最小情境评估](docs/validation/notification-production.md)分别保存历史和当前结果，可离线重放：
+当前政策 v8 补完两个原始行动表达的漏报：固定“即日起接受报名”和“请登录学校系统报名辅修专业”及当天截止，修复前分别为 DIGEST、IGNORE，修复后均为 PUSH_NOW/deadline_soon。没有删除“接受”、添加“完成”或改画像让样本通过；完整本地输入、内容摘要和实际前后结果见[原句修复记录](docs/validation/notification-original-misses-20261010.md)。沿用 v6 的已绑定正文指令确认，不推造开始日期；菜单、历史、查询记录、缴费和退课仍被排除，新生选课的“辅修专业单独缴费”仍不触发辅修提醒。[生产评估](docs/validation/notification-production.md)分开记录 13 项真实情境、原 2 项合成情境、6 项助教情境、2 项有限指令边界、6 项 CS 情境及本次 2 项原句回归；工程期望不作为人工 gold。可离线重放：
 
 ```sh
 uv run --locked python deploy/evaluate_notifications.py --check
 uv run --locked python deploy/evaluate_notifications.py --check \
   --cases docs/validation/notification-production-synthetic-cases.json
+uv run --locked python deploy/evaluate_notifications.py --check \
+  --cases docs/validation/notification-current-instruction-cases.json
+uv run --locked python deploy/evaluate_notifications.py --check \
+  --cases docs/validation/notification-original-misses-cases.json
 ```
+
+v7 引入的计算机学院“招募本科课程助教”、跨分号申请分支及年份冲突判断保持；真实本科招募进入待核对 Digest，不把缺少年份的月日补成紧急截止。[计算机学院离线验收](docs/cs-undergrad.md)提供 `profile.cs-undergrad.example.toml`、`decision-preview --parser cs-undergrad-notices` 和独立六情境回放；未接新网络来源。此前五组情境输入及 Action 保持不变，实际 v7 快照另存，当前评估重新运行 v8。
 
 既有实例须显式更新政策；旧决策、已有 Digest 资格和冻结邮件不会自动撤回或重写。当前只支持有限词组与上下文、对象和时间；标题主题仍可表示普通相关信息，显式 `include_phrases` 仍是宽泛字面关注。不确定关联仅保留待核对，不凭当天截止补造关系。研究中原固定输入的 10 个 Action 已获人工确认，适配后的生产输入与工程期望另列，不能当成同一批人工准确率。未知资格和未支持表达式保留未知，图片/附件仅保留引用，不做 OCR 或下载解析。覆盖、限制、升级步骤及纯函数入口见 [原 N0 规则说明](docs/notifications.md)。[原 N1 设计](docs/notification-state.md)记录启用边界、独立 live 基线和原子成功事务。
 
@@ -342,9 +348,9 @@ uv run --locked signalnest decision-preview \
 
 命令结果写 stdout；结构化事件日志写 stderr，包含 UTC 时间、级别、事件名和可选 source_id/run_id/document_id/response_id/mail_id/attempt_no/stage/error_code。错误诊断也写 stderr，因此错误输出不是纯 JSON 流。日志不包含原始配置、URL、异常正文或网页正文；只在 CLI 显式配置 SignalNest 的 logger，不修改 root logger。
 
-已实现：安装/CLI/配置、数据库初始化与迁移、三张核心业务表和三张运行事实表及约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览、N1 启用/事件/决策/意图持久化，以及 N2 纯文本渲染、冻结、排他成员分配、分片和积压补计划，以及 N3 同步 SMTP 适配器、N4 发送尝试/有限重试/诊断/恢复与受限政策维护，以及政策 v5 的助教招聘/申请主体/时间判断、v4 的主题/行动关联与不确定证据、独立 EMS 离线详情 Parser、竞赛详情模板、后台自动邮件和含邮件状态的备份校验。
+已实现：安装/CLI/配置、数据库初始化与迁移、核心业务表、运行事实表及独立待适配引用表/约束、契约与稳定内容摘要、有界同步 HTTP Fetcher、WHU Parser、原文存储、整页幂等发现、版本/成功状态原子提交、失败登记、离线导入/重新解析、单次完整/受限扫描、独立详情补抓/复查、分组处理与到期政策、只读诊断、运行摘要、日志及外部定时模板、备份恢复校验程序，以及 N0 本地画像、事实提取和决策/路线预览、N1 启用/事件/决策/意图持久化，以及 N2 纯文本渲染、冻结、排他成员分配、分片和积压补计划，以及 N3 同步 SMTP 适配器、N4 发送尝试/有限重试/诊断/恢复与受限政策维护，以及政策 v8 的接受报名/直接登录报名修复、v7 的 CS 助教申请与年份冲突判断、v6 的绑定报名指令确认、v5 的助教招聘/申请主体/时间判断、v4 的主题/行动关联与不确定证据、独立 EMS 离线详情 Parser、竞赛详情模板、后台自动邮件和含邮件状态的备份校验。
 
-尚未开展：目标 Linux 定时器实际部署、长期运行观察、真实邮箱验证、历史搜索、LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher 或采集入口；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
+基础历史搜索、WSL 受限采集与工程邮件实收已另行验证。尚未验收目标实例真实完整覆盖、当期助教自动发现和至少一周持续观察；尚未实现 LLM/Embedding/RAG/Agent。HTTP 必须显式调用 Fetcher 或采集入口；获取或 Parser 成功也不代表已经持久化成功。不增加用户系统、微服务、Redis、Celery、向量数据库、Docker、CI 或跨语言接口。
 
 fixture 驱动的 Parser、离线闭环及三个采集交付均已完成：**有界 Fetcher → 单次采集协调器与 CLI → 整条恢复验证、真实终止实验及少量低频实采**。定时运行与诊断节点现提供政策和部署模板，后续在目标机观察；N1 已提供事件与投递资格，N2 已冻结本地邮件；N3 已提供 SMTP 适配器，N4 已实现发送登记、恢复与政策维护。既有实采验证限于记录中的边界和样本，不等于断电或全站扫描验证。普通运行处理增量/待补抓任务；首次历史导入建立基线；未来通知策略独立决定哪些事件发送邮件，不默认给所有历史通知发邮件。显式 mail-drain 或 SMTP 库调用可发送；`scheduled-mail` 与 `scheduled-run` 仅在明确启用后台邮件时发送。
 
@@ -377,7 +383,7 @@ print(notice.source_document_id, notice.content.content_sha256())
 
 两个函数都完整解析并验证输入，使用 UTF-8 / `html.parser`，不联网、不执行脚本、不下载引用、不写文件或数据库，没有原始摘要缓存。两种文章路由统一为 `1517:文章ID`；列表沿实际“下页”链接，不因日期或已知条目提前停止。任一必要条目无效则整页失败。
 
-`ListPage.entries` 和顶层 `next_page_url` 的访问方式不变；新增必需的 `pagination: PaginationEvidence`，手工构造 ListPage 时也须提供证据。字段为 `current_page`、`total_pages`、`is_last_page`、`terminal_evidence`、`last_page_url`。非末页的总页数由最大可见数字锚与活动“尾页”链接一致性支持；末页必须当前页等于最大可见页码，且“下页”与“尾页”均为唯一、无锚的禁用标记，证据为 `disabled_next_and_last`。末页的 next/last URL 都为 null，非末页保留 HTML 中的真实链接。
+`ListPage.entries` 继续只含本站通知，顶层 `next_page_url` 访问方式不变；v4 增加 `references`、`row_count` 与 `ordered_rows()`，保留有效未适配目标及混合行顺序，详见[引用登记](docs/list-references.md)。已有必需的 `pagination: PaginationEvidence`，手工构造 ListPage 时也须提供证据。字段为 `current_page`、`total_pages`、`is_last_page`、`terminal_evidence`、`last_page_url`。非末页的总页数由最大可见数字锚与活动“尾页”链接一致性支持；末页必须当前页等于最大可见页码，且“下页”与“尾页”均为唯一、无锚的禁用标记，证据为 `disabled_next_and_last`。末页的 next/last URL 都为 null，非末页保留 HTML 中的真实链接。
 
 既有首页、第二页及新增真实末页分别解析为 1/24、2/24、24/24，条目数为 25/25/13。文件名 `1.htm` 不代表第 1 页；不从文件名计算任何页码或下一页。缺失/重复 paginator、必要数字/控制缺失、状态冲突或活动链接损坏均抛 ParseError。当前没有可信的无分页单页模板，不能省略 paginator；少于 25 条、日期较旧或条目全已知也不证明末页。
 
@@ -385,11 +391,11 @@ print(notice.source_document_id, notice.content.content_sha256())
 
 详情保留段落/表格、正文文本及 HTTP(S) 链接/图片/附件引用。HTML 中的 `a[href]` 和 `img[src]` 改为相对于最终页面 URL 的绝对地址；锚点、mailto、javascript 等链接不进入网页引用，并移除 href、保留可见文本。图片与附件仅有元数据；附件 access 保持 `not_checked`。脚本、已知统计节点、正文外区域不参与内容摘要。保留的 HTML **不是安全清洗产物**，后续展示不能直接信任它。
 
-当前 Parser 为 `whu-student-notices-v3`，在 v2 分页规则上增加有真实竞赛样本支持的 `#vsb_content_501` 正文模板；仍要求唯一容器与直接 `.v_news_content`，不猜测正文。沿用一个全站版本，列表和既有详情也标为 v3；旧模板提取、规范化和 NoticeContent 摘要规则不变，同内容的新版本产物可共存。live 对同一原文的规则升级不制造内容更新事件，维护 reparse 不生成邮件。原始字节摘要仅标识采集证据，不证明解析成功；parser_version 不进入内容摘要。
+当前 Parser 为 `whu-student-notices-v4`，增加未适配列表引用登记，保留 v2 分页证据和 v3 有真实竞赛样本支持的 `#vsb_content_501` 正文模板；仍要求唯一容器与直接 `.v_news_content`，不猜测正文。沿用一个站点版本，列表和既有详情也标为 v4；旧模板提取、规范化和 NoticeContent 摘要规则不变，同内容的新版本产物可共存。live 对同一原文的规则升级不制造内容更新事件，维护 reparse 不生成邮件。原始字节摘要仅标识采集证据，不证明解析成功；parser_version 不进入内容摘要。
 
 失败抛出 `ParseError`，提供 `code`、可选 `field` 和从 0 开始的 `item_index`：编码/空白输入、必要结构缺失、无效字段、身份不支持/含糊、异常空列表、无意义正文分别分类。空字节仍由 PageInput 拒绝。具体代码与规范化保证范围见 [设计说明](docs/design.md)。PageInput 不携带状态码；业务层仅把完整 200 原文交给 Parser，Fetcher 与缓存接口处理 HTTP 状态和 304 基线策略。
 
-分页结构缺失/重复使用 `missing_structure`，非法整数或 URL 使用 `invalid_field`，相互矛盾的页码、数字链接或活动/禁用标记使用新增 `invalid_pagination`。离线入库仍按原规则保存证据和 `parse_` 错误代码，不登记部分条目，不改变原有事务与恢复语义；分页证据不新增数据库字段，重新解析时从归档原文重新取得。
+分页结构缺失/重复使用 `missing_structure`，非法整数或 URL 使用 `invalid_field`，相互矛盾的页码、数字链接或活动/禁用标记使用新增 `invalid_pagination`。离线入库仍按原规则保存证据和 `parse_` 错误代码，不登记部分条目，不改变原有事务与恢复语义；重新解析时从归档原文重新取得分页证据；单页导入不声明完整覆盖，完整扫描才在 coverage_evidence 保存实际响应/全部混合行/首页复核证据。
 
 ## 实际验证
 
@@ -498,3 +504,7 @@ N2 本批全部完成，仅有 pending 冻结邮件，不连接 SMTP，不发送
 **本轮 N1 离线交付已完成，当期助教自动发现仍未验收**：EMS 当前正文匿名请求的登录限制沿用既有研究证据，未在本轮重新请求。下一项来源适配需公开当期正文、可靠列表分页与单来源实例边界的独立验证；不能仅放宽主机白名单。N2 部署及一周观察、N3 搜索尚未开展。
 
 2026-10-09 新迭代 N2 准备 / N3 搜索：macOS 26.6.2 arm64、CPython 3.12.14、SQLite 3.53.1、uv 0.12.20，全部 **1950 项离线测试通过**（108.08 秒，新增 144 项）。Ruff/格式覆盖 src、tests、deploy 共 119 个 Python 文件，差异检查通过；锁定依赖离线同步通过。覆盖真实归档/Parser/SQLite 搜索、过滤、增量/A→B→A/重建、包含通知意图的事务回滚、旧库升级、只读 CLI、发布确定性/FIFO 子进程及备份索引结构校验。真实语料生产回放和另一临时目录 CLI 演示通过。research/fixture、原 Parser、政策 v5、0001–0006 与依赖文件未改；未提交 Git。N2 远端仅只读核验，未安装 Linux、启用 timer、校园实采、发送邮件或开始一周观察。详见[本轮验证](docs/validation/n2n3-20261009.md)。
+
+2026-10-10 未适配引用节点已完成：Parser v4、迁移 0008、整页引用登记与完整扫描证据已接通，新增只读 references-list 和独立待适配计数；外部正文不抓取。最终 **2038 项测试通过**（132.08 秒，新增 65 项），Ruff/格式检查覆盖 123 文件，差异检查通过。研究/fixture 和旧迁移保留；通知政策 v6 评估与搜索结果保持一致，旧快照保留。真实第 6/7 页离线导入为 48 个本站通知和 2 个引用，未进行远端升级或实采。详见[本轮验证](docs/validation/list-references-20261010.md)。
+
+2026-10-10 原始漏报补完：政策 v8，实际环境仍为 macOS 26.6.2 arm64、CPython 3.12.14、SQLite 3.53.1。完整 **2242 项离线测试通过**（116.20 秒，保留原 2201 项、增加 41 项），Ruff/格式覆盖 129 个 Python 文件。两条原样行动表达的实际 v7 DIGEST/IGNORE 失败已冻结，同一输入在 v8 均 PUSH_NOW；原 13 例、助教/CS 与 Q/R 回归保持。六组31情境重新评估，实际 v7 报告和全量政策 seal 保留，安装入口在仓库外预览通过且无存储副作用。未改研究/fixture、Parser、数据库迁移或依赖；未执行 WSL 升级、实采、实例政策更新或邮件，见[完整记录](docs/validation/notification-original-misses-20261010.md)。本轮第一项已完成，发布与目标升级为下一个交付。

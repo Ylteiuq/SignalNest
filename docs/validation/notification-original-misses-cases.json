@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "note": "Frozen reproducers for the two user-confirmed misses. The reported action expressions are retained verbatim, including 接受 and the direct login instruction without 完成. Complete NoticeContent, fictional Profiles, explicit event and historical clock are recorded; these are local decision inputs, not fetched HTML or a human-labelled production corpus.",
+  "adaptations": [
+    "O01/O02 are separate from Q01/Q02 and R01/R02; none of those previous fixed inputs or historical reports is replaced.",
+    "The user confirmed the original phrases and the DIGEST/IGNORE failure outcomes. Full regression expectations remain explicit engineering checks, not human gold or a site-wide recall claim.",
+    "The fixed wrapper declares Wuhan University undergraduates, the same-day 2026-10-08 23:59 deadline, ordinary topic interest, no high-value topic, hybrid new-event context, and the existing 09:00 +08:00 evaluation clock."
+  ],
+  "profiles": {
+    "ordinary_research": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "research"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": []
+    },
+    "ordinary_minor": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "minor"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": []
+    }
+  },
+  "cases": [
+    {
+      "case_id": "O01",
+      "input_kind": "synthetic_notice_content",
+      "synthetic_notice_content": {
+        "title": "科研训练项目通知",
+        "published_date": "2026-10-08",
+        "body_html": "<p>面向武汉大学本科生。即日起接受报名，截止2026年10月8日23:59。</p>",
+        "body_text": "面向武汉大学本科生。即日起接受报名，截止2026年10月8日23:59。",
+        "links": [],
+        "images": [],
+        "attachments": []
+      },
+      "content_sha256": "f557dd80370761fcba561ab5d8fa3cb0fe13695bfa5c22bb2e5bdb907df3944b",
+      "profile": "ordinary_research",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "即日起接受报名＋当天截止；保留用户报告的原始行动表达，不替换为已通过的旧句式。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "time_status": "open",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ],
+        "facts": {
+          "deadline_at": "2026-10-08T23:59:00+08:00"
+        }
+      }
+    },
+    {
+      "case_id": "O02",
+      "input_kind": "synthetic_notice_content",
+      "synthetic_notice_content": {
+        "title": "本科生报名通知",
+        "published_date": "2026-10-08",
+        "body_html": "<p>面向武汉大学本科生。请登录学校系统报名辅修专业，截止2026年10月8日23:59。</p>",
+        "body_text": "面向武汉大学本科生。请登录学校系统报名辅修专业，截止2026年10月8日23:59。",
+        "links": [],
+        "images": [],
+        "attachments": []
+      },
+      "content_sha256": "ffc69d7db2fac041fccfa361bf164897b195eb90e95d8e01c7b8755e191db171",
+      "profile": "ordinary_minor",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "请登录学校系统报名辅修专业＋当天截止；保留用户报告的原始行动表达，不替换为已通过的旧句式。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "time_status": "open",
+        "matched_rules_present": [
+          "interest.topic.minor",
+          "decision.deadline_soon"
+        ],
+        "facts": {
+          "deadline_at": "2026-10-08T23:59:00+08:00"
+        }
+      }
+    }
+  ]
+}

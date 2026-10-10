@@ -1,0 +1,35 @@
+{
+  "requested_url": "https://cs.whu.edu.cn/xwdt/tzgg/bkjx/1.htm",
+  "request_method": "GET",
+  "started_at": "2026-10-09T03:03:34.751956+00:00",
+  "request_headers": {
+    "User-Agent": "SignalNest research (finite anonymous entrypoint check)",
+    "Accept": "text/html",
+    "Accept-Encoding": "identity"
+  },
+  "tls_verified": true,
+  "trust_env": false,
+  "follow_redirects": false,
+  "retries": 0,
+  "body_limit_bytes": 524288,
+  "status_code": 200,
+  "final_url": "https://cs.whu.edu.cn/xwdt/tzgg/bkjx/1.htm",
+  "response_headers": {
+    "date": "Fri, 09 Oct 2026 03:03:35 GMT",
+    "content-type": "text/html",
+    "content-length": "21836",
+    "last-modified": "Wed, 30 Sep 2026 01:20:56 GMT",
+    "cache-control": "max-age=600",
+    "vary": "Accept-Encoding",
+    "etag": "\"57f2-65ca91c69d82e-gzip\"",
+    "server": "WHU-AppSrv 1.0.0"
+  },
+  "body_complete": true,
+  "body_bytes": 21836,
+  "sha256": "1b6f0bc53b32fe2a9308bd7a43a8a4b08dea4630fbde13989364b7f742ac751a",
+  "fixture": "cs-undergrad-list-last.html",
+  "finished_at": "2026-10-09T03:03:34.787515+00:00",
+  "finished_epoch": 1791515014.787522,
+  "fixture_redacted": true,
+  "redaction_note": "Selected offline copy. Personal contacts, QQ group identifiers, third-party document identifiers, and tracking comments were removed; hashes describe this sanitized copy."
+}

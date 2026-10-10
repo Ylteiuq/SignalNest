@@ -1,0 +1,379 @@
+{
+  "schema_version": 1,
+  "note": "Compact prior-v6 decision retained for serializer compatibility; per-case snapshots are omitted.",
+  "decision": {
+    "action": "DIGEST",
+    "needs_review": true,
+    "effective_route": "digest",
+    "routing_reason_codes": [
+      "digest_action"
+    ],
+    "reason_codes": [
+      "relevant_digest"
+    ],
+    "reasons": [
+      "通知命中关注规则，按普通汇总处理。",
+      "资格待核实：规则命中只证明相关性，不证明个人已符合官方报名资格。",
+      "图片和附件仅保留引用，本次未读取其内容。"
+    ],
+    "matched_rules": [
+      "interest.topic.teaching_assistant",
+      "qualification.study_level.unknown",
+      "decision.relevant_digest",
+      "route.digest_action"
+    ],
+    "relevance": "matched",
+    "eligibility": "unknown",
+    "time_status": "open",
+    "constraint_results": [
+      {
+        "constraint": {
+          "field": "study_level",
+          "values": [
+            "master",
+            "doctoral"
+          ],
+          "operator": "unsupported",
+          "evidence": {
+            "field": "body_text",
+            "start": 219,
+            "end": 234,
+            "excerpt": "原则上从本院全日制研究生中选聘",
+            "index": null,
+            "url": null
+          }
+        },
+        "actual": "master",
+        "result": "unknown"
+      }
+    ],
+    "unknowns": [
+      {
+        "code": "recruitment_condition_unknown",
+        "field": "eligibility",
+        "message": "聘任对象含院属、学籍或软限定；不把原则上当作硬排除，也不能确认全部资格。",
+        "evidence": [
+          {
+            "field": "body_text",
+            "start": 219,
+            "end": 234,
+            "excerpt": "原则上从本院全日制研究生中选聘",
+            "index": null,
+            "url": null
+          }
+        ]
+      },
+      {
+        "code": "teacher_approval_required",
+        "field": "eligibility",
+        "message": "主讲教师的推荐或聘用审核需人工核对。",
+        "evidence": [
+          {
+            "field": "body_text",
+            "start": 197,
+            "end": 297,
+            "excerpt": "主讲教师将从符合学院要求的候选人中挑选助教（原则上从本院全日制研究生中选聘），并指导其填写《武汉大学经济与管理学院本科教学课程助教岗位申请审核表》（以下简称《申请审核表》，见附件1），同时签署聘用意见",
+            "index": null,
+            "url": null
+          }
+        ]
+      },
+      {
+        "code": "media_required",
+        "field": "media",
+        "message": "关键条件或时间指向未解析的媒体。",
+        "evidence": [
+          {
+            "field": "body_text",
+            "start": 264,
+            "end": 286,
+            "excerpt": "申请审核表》（以下简称《申请审核表》，见附件",
+            "index": null,
+            "url": null
+          }
+        ]
+      },
+      {
+        "code": "qualification_unknown",
+        "field": "study_level",
+        "message": "画像缺少所需事实，或当前规则不支持此条件；不能默认符合。",
+        "evidence": [
+          {
+            "field": "body_text",
+            "start": 219,
+            "end": 234,
+            "excerpt": "原则上从本院全日制研究生中选聘",
+            "index": null,
+            "url": null
+          }
+        ]
+      },
+      {
+        "code": "eligibility_incomplete",
+        "field": "eligibility",
+        "message": "可识别条件不足以确认全部报名资格。",
+        "evidence": []
+      }
+    ],
+    "evidence": [
+      {
+        "field": "title",
+        "start": 28,
+        "end": 32,
+        "excerpt": "助教选聘",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 29,
+        "end": 31,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 62,
+        "end": 64,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 103,
+        "end": 105,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 132,
+        "end": 136,
+        "excerpt": "助教选聘",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 158,
+        "end": 160,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 181,
+        "end": 183,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 216,
+        "end": 218,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 260,
+        "end": 262,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 302,
+        "end": 304,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 413,
+        "end": 415,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 426,
+        "end": 428,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 487,
+        "end": 489,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 525,
+        "end": 527,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 586,
+        "end": 588,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 624,
+        "end": 626,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 644,
+        "end": 646,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 685,
+        "end": 687,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 748,
+        "end": 750,
+        "excerpt": "助教",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 775,
+        "end": 780,
+        "excerpt": "助教的选聘",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 298,
+        "end": 340,
+        "excerpt": "请各课程助教于2024年9月20日（周五）下午16点前将填写完毕的《申请审核表》提交",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 219,
+        "end": 234,
+        "excerpt": "原则上从本院全日制研究生中选聘",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 188,
+        "end": 190,
+        "excerpt": "申请",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 264,
+        "end": 266,
+        "excerpt": "申请",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 276,
+        "end": 278,
+        "excerpt": "申请",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 332,
+        "end": 334,
+        "excerpt": "申请",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 298,
+        "end": 372,
+        "excerpt": "请各课程助教于2024年9月20日（周五）下午16点前将填写完毕的《申请审核表》提交至本科教学管理办公室101室张老师处，联系电话：68754565",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "attachments",
+        "start": null,
+        "end": null,
+        "excerpt": "",
+        "index": 0,
+        "url": "https://ems.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1583652257&wbfileid=8264A536C9AF4EC033B932F57981E805"
+      },
+      {
+        "field": "attachments",
+        "start": null,
+        "end": null,
+        "excerpt": "",
+        "index": 1,
+        "url": "https://ems.whu.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1583652257&wbfileid=5001118ED1C164A685DD205F19158BA5"
+      },
+      {
+        "field": "body_text",
+        "start": 197,
+        "end": 297,
+        "excerpt": "主讲教师将从符合学院要求的候选人中挑选助教（原则上从本院全日制研究生中选聘），并指导其填写《武汉大学经济与管理学院本科教学课程助教岗位申请审核表》（以下简称《申请审核表》，见附件1），同时签署聘用意见",
+        "index": null,
+        "url": null
+      },
+      {
+        "field": "body_text",
+        "start": 264,
+        "end": 286,
+        "excerpt": "申请审核表》（以下简称《申请审核表》，见附件",
+        "index": null,
+        "url": null
+      }
+    ],
+    "evaluated_at": "2024-09-10T01:00:00Z",
+    "profile_sha256": "0616b94b721317d6fa816771b26663cff258ffd6fec9c85437b90693e263accd",
+    "content_sha256": "5ca13f35b6948815b7f60bf4f1ea1c9035398645cac9412fb64f5c0fdc728495",
+    "facts_sha256": "fce698f6b02e6ffbf685388a78d446c330a2cf2ee970b061f88e469594d705bd",
+    "policy_sha256": "991c6f69d5a0943a6cd3b700e16f6a51f5e319798e436690431a3c2766788236",
+    "input_sha256": "538f8eada44220a3b7f237726a5808202a76e57598a693c1a11bd3b75d26f159",
+    "facts_extractor_version": "whu-notice-facts-v6",
+    "decision_engine_version": "notification-decision-v6",
+    "rules_version": "notification-rules-v6",
+    "routing_version": "notification-routing-v1"
+  }
+}

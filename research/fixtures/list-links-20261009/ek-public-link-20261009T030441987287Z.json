@@ -1,0 +1,27 @@
+{
+  "requested_url": "https://ek.whu.edu.cn/dekt/single?men=sys.index.m&uri=yxxsgs%3Fdata%3DVk1naW5iNWQzTEJiR080ZFV4ZHJXZz09&_FD=1",
+  "request_method": "GET",
+  "started_at_utc": "2026-10-09T03:04:41.987287+00:00",
+  "client": {
+    "verify": true,
+    "trust_env": false,
+    "follow_redirects": false,
+    "max_body_bytes": 2097152,
+    "retries": 0
+  },
+  "status_code": 200,
+  "final_url": "https://ek.whu.edu.cn/dekt/single?men=sys.index.m&uri=yxxsgs%3Fdata%3DVk1naW5iNWQzTEJiR080ZFV4ZHJXZz09&_FD=1",
+  "response_headers": {
+    "date": "Fri, 09 Oct 2026 03:04:43 GMT",
+    "content-type": "text/html;charset=UTF-8",
+    "cache-control": "private"
+  },
+  "body_bytes": 1050,
+  "fixture_bytes": 1050,
+  "sha256": "59a411f0f73a10066e87e03540830accc0a616e6beff9d5d627c345fba3d7bac",
+  "fixture": "ek-public-link-20261009T030441987287Z-redacted.html",
+  "fixture_redacted": true,
+  "redaction_note": "Selected offline copy. Personal contacts, QQ group identifiers, third-party document identifiers, and tracking comments were removed; hashes describe this sanitized copy.",
+  "completed_at_utc": "2026-10-09T03:04:42.587820+00:00",
+  "header_policy": "allowlist only; cookies omitted; Location query omitted"
+}

@@ -4,6 +4,8 @@ No resume cursor: every scan starts at home, while detail work is rebuilt from S
 HTTP, archive reads/writes and parsing stay outside business/state transactions.
 """
 
+import hashlib
+import json
 import logging
 import time
 from dataclasses import dataclass
@@ -17,12 +19,13 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from signalnest.config import Settings
-from signalnest.contracts import Contract, ListPage, PageInput
+from signalnest.contracts import Contract, ListEntry, ListPage, PageInput
 from signalnest.errors import IngestError, validate_time
 from signalnest.eventlog import Event, log_event
 from signalnest.fetching import Clock, FetchCode, FetchLimits, FetchResult, FetchTarget, HttpFetcher
 from signalnest.ingestion import process_cached_response, record_failure, record_response
 from signalnest.ingestion_state import (
+    RegisteredListPage,
     ScanCompletion,
     finish_run_in_transaction,
     pending_documents,
@@ -43,7 +46,7 @@ from signalnest.runtime_policy import (
     select_details,
     success_due,
 )
-from signalnest.schema import documents
+from signalnest.schema import discovered_references, documents
 from signalnest.storage import StorageError, open_initialized_engine
 
 
@@ -83,6 +86,9 @@ class CrawlSummary(Contract):
     foreground_pages: int = 0
     future_dates: int = 0
     remaining_first_processing: int = 0
+    scanned_references: int = 0
+    new_references: int = 0
+    remaining_unadapted_references: int = 0
 
 
 @dataclass(frozen=True)
@@ -90,6 +96,34 @@ class _Page:
     listing: ListPage
     final_uri: str
     uris: frozenset[str]
+    body_response_id: int
+    observed_response_id: int
+    requested_uri: str
+    response_requested_uri: str
+
+    def registration(self) -> RegisteredListPage:
+        serialized = json.dumps(
+            self.listing.model_dump(mode="json"),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        return RegisteredListPage(
+            body_response_id=self.body_response_id,
+            observed_response_id=self.observed_response_id,
+            requested_url=self.requested_uri,
+            response_requested_url=self.response_requested_uri,
+            final_url=self.final_uri,
+            next_page_url=self.listing.next_page_url,
+            pagination=self.listing.pagination,
+            listing_sha256=hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+            rows=tuple(
+                ("notice", row.source_document_id)
+                if isinstance(row, ListEntry)
+                else ("reference", row.candidate_key())
+                for row in self.listing.ordered_rows()
+            ),
+        )
 
 
 @dataclass(frozen=True)
@@ -117,6 +151,7 @@ class _Run:
         self.source = settings.source.id
         self.started = False
         self.future_dates = 0
+        self.home_recheck = None
 
     def now(self) -> int:
         at = int(self.clock.time())
@@ -253,7 +288,18 @@ class _Run:
                 if target.page_type == "list":
                     if listing is None or final_uri is None:
                         raise IngestError("fetch_handoff_invalid", "coordinator")
-                    return _Outcome(_Page(listing, final_uri, frozenset(uris)), sent=sent)
+                    return _Outcome(
+                        _Page(
+                            listing,
+                            final_uri,
+                            frozenset(uris),
+                            processed.body_response_id,
+                            response_id,
+                            target.uri,
+                            str(result.response.metadata.requested_url),
+                        ),
+                        sent=sent,
+                    )
                 self.future_dates += int(future_date)
                 return _Outcome(sent=sent)
             if (
@@ -287,7 +333,7 @@ class _Run:
             page = outcome.page
             proof = page.listing.pagination
             # Entries are committed even on a subsequently detected cross-page drift.
-            scanned += len(page.listing.entries)
+            scanned += page.listing.row_count
             pages.append(page)
             if self.time_exhausted():
                 return pages, scanned, False, "limited", "run_time_limit", "run_time_limit"
@@ -312,6 +358,7 @@ class _Run:
                 if check.error_code:
                     coverage = "limited" if check.error_code in _BUDGET_CODES else "interrupted"
                     return pages, scanned, False, coverage, check.error_code, check.stop_code
+                self.home_recheck = check.page
                 if self.time_exhausted():
                     return pages, scanned, True, "limited", "run_time_limit", "run_time_limit"
                 if (
@@ -337,6 +384,12 @@ def _execute(run: _Run) -> CrawlSummary:
     state = read_source_state(engine, source)
     origin = "regular" if state and state["bootstrap_completed_at"] is not None else "bootstrap"
     initial_count = _document_count(engine, source)
+    with engine.connect() as connection:
+        initial_references = connection.scalar(
+            sa.select(sa.func.count())
+            .select_from(discovered_references)
+            .where(discovered_references.c.source_id == source)
+        )
     with engine.begin() as connection:
         start_run_in_transaction(connection, source, run.run_id, started, origin=origin)
         # Explicit first-online enrollment, irrespective of publication date or discovery origin.
@@ -360,7 +413,10 @@ def _execute(run: _Run) -> CrawlSummary:
     pages, scanned, rechecked, coverage, coverage_error, stop = run.scan()
     completion = (
         ScanCompletion(
-            pages=tuple(page.listing.pagination for page in pages), home_recheck_unchanged=True
+            pages=tuple(page.listing.pagination for page in pages),
+            home_recheck_unchanged=True,
+            registrations=tuple(page.registration() for page in pages),
+            home_recheck=run.home_recheck.registration(),
         )
         if coverage == "complete"
         else None
@@ -448,6 +504,11 @@ def _execute(run: _Run) -> CrawlSummary:
             .select_from(documents)
             .where(documents.c.source_id == source, documents.c.last_success_at.is_(None))
         )
+        references = connection.scalar(
+            sa.select(sa.func.count())
+            .select_from(discovered_references)
+            .where(discovered_references.c.source_id == source)
+        )
     new = _document_count(engine, source) - initial_count
     with engine.begin() as connection:
         finish_run_in_transaction(connection, run.run_id, result, finished, error_code=error)
@@ -477,6 +538,9 @@ def _execute(run: _Run) -> CrawlSummary:
         foreground_pages=len({page.listing.pagination.current_page for page in foreground_pages}),
         future_dates=run.future_dates,
         remaining_first_processing=first_processing,
+        scanned_references=sum(len(page.listing.references) for page in pages),
+        new_references=references - initial_references,
+        remaining_unadapted_references=references,
     )
     log_event(
         logging.getLogger("signalnest"),
@@ -485,6 +549,7 @@ def _execute(run: _Run) -> CrawlSummary:
         run_id=run.run_id,
         stage=result,
         error_code=error,
+        remaining_unadapted_references=references,
     )
     for name, group in groups.items():
         log_event(

@@ -1,0 +1,11 @@
+# Fictional offline profile used only to demonstrate parser and decision previews.
+# It contains no real institution, college, major, or entry-year details.
+schema_version = 1
+profile_id = "self"
+study_level = "undergraduate"
+role = "student"
+interest_topics = ["teaching_assistant", "research", "competition"]
+include_phrases = []
+exclude_topics = []
+high_value_topics = []
+store_only_topics = ["course_enrollment"]

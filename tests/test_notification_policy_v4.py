@@ -343,21 +343,24 @@ def test_current_versions_are_explicit_without_changing_content_or_routing_contr
     content = notice("面向武汉大学本科生。即日起报名，" + DEADLINE)
     facts, decision = evaluate(content)
     assert facts.content_sha256 == content.content_sha256()
-    assert facts.extractor_version == "whu-notice-facts-v5"
-    assert decision.rules_version == "notification-rules-v5"
-    assert decision.decision_engine_version == "notification-decision-v5"
+    assert facts.extractor_version == "whu-notice-facts-v8"
+    assert decision.rules_version == "notification-rules-v8"
+    assert decision.decision_engine_version == "notification-decision-v8"
     assert decision.routing_version == "notification-routing-v1"
     assert policy_manifest(Profile(interest_topics=("research",)))["versions"] == {
-        "facts_extractor": "whu-notice-facts-v5",
-        "rules": "notification-rules-v5",
-        "decision_engine": "notification-decision-v5",
+        "facts_extractor": "whu-notice-facts-v8",
+        "rules": "notification-rules-v8",
+        "decision_engine": "notification-decision-v8",
         "routing": "notification-routing-v1",
     }
 
 
-def test_saved_v3_facts_and_decisions_remain_readable_without_current_re_evaluation():
-    snapshot = json.loads((ROOT / "docs/validation/notification-production-v3.json").read_text())
-    assert snapshot["versions"]["rules"] == "notification-rules-v3"
+@pytest.mark.parametrize("version", ["v3", "v4", "v5", "v7"])
+def test_saved_facts_and_decisions_remain_readable_without_current_re_evaluation(version):
+    snapshot = json.loads(
+        (ROOT / f"docs/validation/notification-production-{version}.json").read_text()
+    )
+    assert snapshot["versions"]["rules"] == f"notification-rules-{version}"
     for saved in snapshot["results"]:
         body = parse_notice(
             PageInput(
@@ -381,7 +384,7 @@ def test_saved_v3_facts_and_decisions_remain_readable_without_current_re_evaluat
             )
 
 
-@pytest.mark.parametrize("version", ["v3", "v4"])
+@pytest.mark.parametrize("version", ["v3", "v4", "v5", "v7"])
 def test_full_sealed_snapshot_retains_exact_original_hashes_and_versions(version):
     snapshot = json.loads((ROOT / f"tests/fixtures/notification-policy-{version}.json").read_text())
     profile = Profile.model_validate(snapshot["profile"])

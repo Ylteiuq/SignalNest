@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "offline_cs_validation_summary",
+  "note": "Aggregate regression summary only; detailed per-case results and duplicated page text are omitted.",
+  "source_sha256": {
+    "deploy/evaluate_notifications.py": "52795bdf288234d2f572b3f9299245991d87842934d1286254829363672ac064",
+    "src/signalnest/contracts.py": "6c22d5791bc4018a7cfb0e13e42eb9a1e9a0e1034888057b8734a4d4beba842a",
+    "src/signalnest/parsing.py": "0793816827d4fb1c834a7bddbe46449b034113ca8814fb906369a12164c31a2c",
+    "src/signalnest/ems_parsing.py": "7dd063655a6b277aebaca09d975f0e61905acbdd92cc92aea959f3f17c14d83e",
+    "src/signalnest/cs_parsing.py": "0a16127ee1972fdb7615589cd0ef5564558a8aad606b60828de321a14bdd837a",
+    "src/signalnest/notifications/contracts.py": "94cc179e03e0a65c0495596909977ba82f7007a6a9cd3ce4af1e0b21c38aca33",
+    "src/signalnest/notifications/facts.py": "abfc463d4da5f9b81f7f3d0e52b7bbcfd045e3d5936300d3a0bd74a10c35638b",
+    "src/signalnest/notifications/decision.py": "c8838bb52dc1d8a6eb848a3dd17999678af940aa61974773fa93f1048ae5ad35",
+    "src/signalnest/notifications/profile.py": "827110f60510ccb4333bbb557fdcac337be0bdafad1ed09e49fddc4f33699267"
+  },
+  "manifest_sha256": "2cbaae80876eaf25ac98c58602b1a75e67b23d362badd5708d7c17b0473e9bdd",
+  "versions": {
+    "parser": "whu-student-notices-v4",
+    "ems_parser": "ems-notices-v1",
+    "cs_parser": "cs-undergrad-notices-v1",
+    "facts_extractor": "whu-notice-facts-v8",
+    "rules": "notification-rules-v8",
+    "decision_engine": "notification-decision-v8",
+    "routing": "notification-routing-v1"
+  },
+  "summary": {
+    "cases": 6,
+    "fixture_cases": 6,
+    "synthetic_cases": 0,
+    "unique_pages": 2,
+    "parse_success": 6,
+    "decision_success": 6,
+    "actions": {
+      "DIGEST": 3,
+      "IGNORE": 1,
+      "PUSH_NOW": 1,
+      "STORE_ONLY": 1
+    },
+    "routes": {
+      "digest": 3,
+      "immediate": 1,
+      "none": 2
+    },
+    "needs_review": 6,
+    "engineering_mismatch_cases": [],
+    "human_gold": false
+  }
+}

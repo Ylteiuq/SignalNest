@@ -27,9 +27,9 @@ def main(argv: list[str] | None = None) -> int:
     preview.add_argument("--url", help="HTML 对应的最终详情 URL，不猜文件名")
     preview.add_argument(
         "--parser",
-        choices=("whu-student-notices", "ems-notices"),
+        choices=("whu-student-notices", "ems-notices", "cs-undergrad-notices"),
         default="whu-student-notices",
-        help="仅用于本地 HTML；EMS 详情预览不启用该来源的网络采集",
+        help="仅用于本地 HTML；EMS/计算机学院详情预览不启用该来源的网络采集",
     )
     preview.add_argument("--at", required=True, help="显式决策时间 ISO-8601，必须含 UTC offset")
     preview.add_argument(
@@ -136,6 +136,10 @@ def main(argv: list[str] | None = None) -> int:
     replay.add_argument("--processed-at", type=int, help="本次处理 UTC Unix 秒，默认当前处理时间")
     status = commands.add_parser("status", help="只读诊断积压、冷却、覆盖与最近运行；不联网")
     status.add_argument("--config", type=Path, required=True)
+    references = commands.add_parser("references-list", help="只读查看待适配列表引用；不抓外部正文")
+    references.add_argument("--config", type=Path, required=True)
+    references.add_argument("--limit", type=int, default=20, help="返回 1–100 条，默认 20")
+    references.add_argument("--offset", type=int, default=0, help="结果偏移 0–10000，默认 0")
     search = commands.add_parser("search", help="只读查询当前成功通知；不联网、不修复索引")
     search.add_argument("--config", type=Path, required=True)
     search.add_argument("--query", required=True, help="字面关键词，空格分隔；固定别名见查询结果")
@@ -228,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
         return _crawl_command(args, settings, logger, run_id)
     if args.command in {"status", "apply-recheck-policy"}:
         return _maintenance_command(args, settings, logger, run_id)
+    if args.command == "references-list":
+        return _reference_command(args, settings, logger, run_id)
     if args.command in {"search", "notice-show", "search-rebuild"}:
         return _search_command(args, settings, logger, run_id)
     if args.command in {"rollout-check", "observe"}:
@@ -832,13 +838,17 @@ def _notification_preview(args):
                 from signalnest.ems_parsing import parse_ems_notice
 
                 notice_parser = parse_ems_notice
+            elif args.parser == "cs-undergrad-notices":
+                from signalnest.cs_parsing import parse_cs_notice
+
+                notice_parser = parse_cs_notice
             notice = notice_parser(PageInput(content=read(args.file), page_url=args.url)).content
         else:
             if args.url:
                 raise ValueError("--url is used only with --file")
             if args.parser != "whu-student-notices":
                 raise ValueError(
-                    "--parser ems-notices requires --file; --notice-json is already normalized"
+                    f"--parser {args.parser} requires --file; --notice-json is already normalized"
                 )
             notice = content(args.notice_json)
         previous = content(args.previous_notice_json) if args.previous_notice_json else None
@@ -881,6 +891,35 @@ def _notification_preview(args):
             indent=2,
         )
     )
+    return 0
+
+
+def _reference_command(args, settings, logger, run_id):
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from signalnest.errors import IngestError
+    from signalnest.ingestion import list_references
+    from signalnest.storage import StorageError, open_initialized_engine
+
+    if not 1 <= args.limit <= 100 or not 0 <= args.offset <= 10000:
+        print("引用查询参数错误：limit 为 1–100，offset 为 0–10000", file=sys.stderr)
+        return 2
+    try:
+        engine = open_initialized_engine(settings.storage.database, read_only=True)
+        try:
+            result = list_references(
+                engine, settings.source.id, limit=args.limit, offset=args.offset
+            )
+        finally:
+            engine.dispose()
+    except (StorageError, IngestError, SQLAlchemyError) as exc:
+        code = exc.code if isinstance(exc, IngestError) else "database_unavailable"
+        print(f"引用查询失败：{code}；请检查存储并先执行 storage-init", file=sys.stderr)
+        return 1
+    log_event(
+        logger, Event.STATUS_READ, source_id=settings.source.id, run_id=run_id, stage="references"
+    )
+    print(json.dumps(result, ensure_ascii=False))
     return 0
 
 

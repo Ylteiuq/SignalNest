@@ -1,0 +1,30 @@
+{
+  "requested_url": "https://uc.whu.edu.cn/tzgg/xstz/19.htm",
+  "request_method": "GET",
+  "started_at_utc": "2026-10-09T03:02:32.474173+00:00",
+  "client": {
+    "verify": true,
+    "trust_env": false,
+    "follow_redirects": false,
+    "max_body_bytes": 2097152,
+    "retries": 0
+  },
+  "status_code": 200,
+  "final_url": "https://uc.whu.edu.cn/tzgg/xstz/19.htm",
+  "response_headers": {
+    "date": "Fri, 09 Oct 2026 03:02:32 GMT",
+    "content-type": "text/html",
+    "content-length": "21981",
+    "last-modified": "Thu, 08 Oct 2026 11:06:53 GMT",
+    "vary": "User-Agent,Accept-Encoding",
+    "cache-control": "private, max-age=600",
+    "etag": "\"57be-65d523aae0ec8-gzip\""
+  },
+  "body_bytes": 21981,
+  "sha256": "f57f503701e959b2ac742f164200dca115bd4255d3dcecfd059521a8dd7382e8",
+  "fixture": "uc19-20261009T030232474173Z.html",
+  "completed_at_utc": "2026-10-09T03:02:32.493849+00:00",
+  "header_policy": "allowlist only; cookies omitted; Location query omitted",
+  "fixture_redacted": true,
+  "redaction_note": "Selected offline copy. Personal contacts, QQ group identifiers, third-party document identifiers, and tracking comments were removed; hashes describe this sanitized copy."
+}

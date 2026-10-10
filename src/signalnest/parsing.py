@@ -18,10 +18,11 @@ from signalnest.contracts import (
     PageInput,
     PaginationEvidence,
     ParsedNotice,
+    PendingReference,
     WebUrl,
 )
 
-PARSER_VERSION = "whu-student-notices-v3"
+PARSER_VERSION = "whu-student-notices-v4"
 _WEB_URL = TypeAdapter(WebUrl)
 _BLOCKS = frozenset(
     {
@@ -177,6 +178,39 @@ def _identity(url: WebUrl) -> str:
     return f"{category}:{article}"
 
 
+def _unsupported_list_target(url: WebUrl) -> str | None:
+    """Classify valid targets without downgrading damaged known article identities."""
+    if url.host != "uc.whu.edu.cn" or url.port not in {80, 443}:
+        return "external"
+    parts = urlsplit(str(url))
+    query = parse_qs(parts.query, keep_blank_values=True)
+    if parts.path.startswith("/info/"):
+        match = re.fullmatch(r"/info/([1-9][0-9]*)/([1-9][0-9]*)\.htm", parts.path)
+        if match is None:
+            raise ParseError(ParseErrorCode.INVALID_FIELD, field="identity")
+        category, article = match.groups()
+        for key, expected in (("wbtreeid", category), ("wbnewsid", article)):
+            if key in query and _query_value(query, key, "identity") != expected:
+                raise ParseError(ParseErrorCode.AMBIGUOUS_IDENTITY, field="identity")
+    elif parts.path == "/2022/show.jsp":
+        category = _query_value(query, "wbtreeid", "identity")
+        article = _query_value(query, "wbnewsid", "identity")
+        if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (category, article)):
+            raise ParseError(ParseErrorCode.INVALID_FIELD, field="identity")
+        if (
+            "urltype" in query
+            and _query_value(query, "urltype", "identity") != "news.NewsContentUrl"
+        ):
+            raise ParseError(ParseErrorCode.UNSUPPORTED_IDENTITY, field="identity")
+    else:
+        return "unsupported_route"
+    if category != "1517":
+        return "unsupported_column"
+    if url.fragment is not None:
+        return "unsupported_route"
+    return None
+
+
 def _list_url(value: str | None, base: str, field: str) -> WebUrl:
     # urljoin can erase an empty query/fragment; reject unsupported syntax first.
     if value is not None and any(character in value for character in "\\?#"):
@@ -314,28 +348,59 @@ def parse_list(page: PageInput) -> ListPage:
     rows = listing.find_all(recursive=False)
     if not rows:
         raise ParseError(ParseErrorCode.EMPTY_LIST, field="entries")
-    entries = []
+    entries, references = [], []
     base = str(page.page_url)
     for index, row in enumerate(rows):
         try:
             if row.name != "li":
                 raise ParseError(ParseErrorCode.MISSING_STRUCTURE, field="entry")
             anchor = _one(row, ":scope > a", "entry")
-            url = _required_url(anchor.get("href"), base, "detail_url")
-            entries.append(
-                ListEntry(
-                    source_document_id=_identity(url),
-                    detail_url=url,
-                    title=_required_text(_one(anchor, ":scope > span", "title"), "title"),
-                    published_date=_date(
-                        _text(_one(anchor, ":scope > i", "published_date")), "published_date"
-                    ),
+            raw_href = anchor.get("href")
+            if (
+                not isinstance(raw_href, str)
+                or len(raw_href) > 8192
+                or any(
+                    ord(character) <= 32 or ord(character) == 127 or character == "\\"
+                    for character in raw_href
                 )
+                or re.search(r"%(?![0-9A-Fa-f]{2})", raw_href)
+            ):
+                raise ParseError(ParseErrorCode.INVALID_FIELD, field="detail_url")
+            url = _required_url(raw_href, base, "detail_url")
+            title = _required_text(_one(anchor, ":scope > span", "title"), "title")
+            published_date = _date(
+                _text(_one(anchor, ":scope > i", "published_date")), "published_date"
             )
+            kind = _unsupported_list_target(url)
+            if kind is None:
+                entries.append(
+                    ListEntry(
+                        source_document_id=_identity(url),
+                        detail_url=url,
+                        title=title,
+                        published_date=published_date,
+                    )
+                )
+            else:
+                references.append(
+                    PendingReference(
+                        raw_href=raw_href,
+                        resolved_url=url,
+                        title=title,
+                        published_date=published_date,
+                        row_index=index,
+                        reference_kind=kind,
+                    )
+                )
         except ParseError as exc:
             raise ParseError(exc.code, field=exc.field, item_index=index) from None
     pagination, next_url = _pagination(container, base)
-    return ListPage(entries=tuple(entries), next_page_url=next_url, pagination=pagination)
+    return ListPage(
+        entries=tuple(entries),
+        references=tuple(references),
+        next_page_url=next_url,
+        pagination=pagination,
+    )
 
 
 def _attachments(region: Tag, base: str) -> tuple[AttachmentReference, ...]:

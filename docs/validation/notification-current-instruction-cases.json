@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "note": "Earlier explicit engineering boundary cases adapted from Q01/Q02. They have no 即日起 or fabricated opening date. These are distinct from the subsequently frozen O01/O02 original-phrase misses, fetched HTML, and human-confirmed labels. All R01/R02 decision inputs and expectations stay unchanged.",
+  "adaptations": [
+    "R01 replaces the Q01 body with an explicit present application instruction; R02 removes 即日起 from the Q02 body. Titles, publication date, Profile, explicit clock and EventContext are retained.",
+    "Only extract_facts and decide run; Parser, database, HTTP and mail are not invoked. The original-phrase misses are now frozen separately in notification-original-misses-cases.json."
+  ],
+  "profiles": {
+    "ordinary_research": {
+      "institution": "whu",
+      "role": "student",
+      "study_level": "undergraduate",
+      "interest_topics": [
+        "research"
+      ],
+      "high_value_topics": [],
+      "store_only_topics": []
+    }
+  },
+  "cases": [
+    {
+      "case_id": "R01",
+      "input_kind": "synthetic_notice_content",
+      "synthetic_notice_content": {
+        "title": "科研训练项目通知",
+        "published_date": "2026-10-08",
+        "body_html": "<p>面向武汉大学本科生。请完成报名，截止2026年10月8日23:59。</p>",
+        "body_text": "面向武汉大学本科生。请完成报名，截止2026年10月8日23:59。",
+        "links": [],
+        "images": [],
+        "attachments": []
+      },
+      "content_sha256": "71d2ff0d20e012816e55510169e657e1e92b2b63b462ca35b7a2517ef5e3f52b",
+      "profile": "ordinary_research",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "工程构造边界：唯一科研标题关联当前报名指令；不加即日起。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ]
+      }
+    },
+    {
+      "case_id": "R02",
+      "input_kind": "synthetic_notice_content",
+      "synthetic_notice_content": {
+        "title": "本科生报名通知",
+        "published_date": "2026-10-08",
+        "body_html": "<p>面向武汉大学本科生。请登录系统完成科研训练报名，截止2026年10月8日23:59。</p>",
+        "body_text": "面向武汉大学本科生。请登录系统完成科研训练报名，截止2026年10月8日23:59。",
+        "links": [],
+        "images": [],
+        "attachments": []
+      },
+      "content_sha256": "d908fea36a0dace3978a9ec9f19d8fdd3cee23dcd58930331a0c3ab3041193ab",
+      "profile": "ordinary_research",
+      "evaluated_at": "2026-10-08T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-09T08:00:00+08:00"
+      },
+      "description": "工程构造边界：登录系统完成当前科研报名；不加即日起。",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ]
+      }
+    }
+  ]
+}

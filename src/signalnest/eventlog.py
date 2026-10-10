@@ -82,6 +82,8 @@ class JsonFormatter(logging.Formatter):
             "remaining_due",
             "unserved",
             "oldest_overdue_seconds",
+            "reference_count",
+            "remaining_unadapted_references",
         ):
             value = getattr(record, key, None)
             if type(value) is int and value >= 0:
@@ -122,6 +124,8 @@ def log_event(
     remaining_due: int | None = None,
     unserved: int | None = None,
     oldest_overdue_seconds: int | None = None,
+    reference_count: int | None = None,
+    remaining_unadapted_references: int | None = None,
 ) -> None:
     """Context is identifiers only; never pass configuration values or page contents."""
     if not isinstance(event, Event):
@@ -144,5 +148,7 @@ def log_event(
             "remaining_due": remaining_due,
             "unserved": unserved,
             "oldest_overdue_seconds": oldest_overdue_seconds,
+            "reference_count": reference_count,
+            "remaining_unadapted_references": remaining_unadapted_references,
         },
     )

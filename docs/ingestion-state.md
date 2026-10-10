@@ -36,7 +36,7 @@ RequestProfile 固定 User-Agent、Accept、Accept-Encoding=identity；UA/Accept
 
 304 的观察 response_id 与 body_response_id 分开：业务使用 200 的 final_url/原获取时间，版本指向真实 200；本次处理时间与 304 证据保留，不创建假正文或新获取时间。
 
-来源/运行状态的 `*_in_transaction` 接口可组合进同一短事务。完整扫描提交必须由协调器先证明：从首页按实际 next 连续覆盖全部页，URI 链无循环/跳页、总页数一致、明确末页、每页事务已提交、首页复核一致。接口验证提供的分页序列/复核声明，但不替协调器证明网络链或数据库每页登记；不是遍历器。limited/interrupted 不推进完整扫描或 bootstrap 完成；扫描 complete 与运行 partial_failure 可以同时成立。
+来源/运行状态的 `*_in_transaction` 接口可组合进同一短事务。完整扫描提交必须由协调器先证明：从首页按实际 next 连续覆盖全部页，URI 链无循环/跳页、总页数一致、明确末页、每页事务已提交、首页复核一致。接口验证提供的分页序列/复核声明，新生产调用还提供 RegisteredListPage 响应/成员记录，接口核验绑定及行键登记，并与完整扫描时间同事务保存 coverage_evidence；旧声明调用仍兼容，但不具备响应链证明。接口不替协调器证明网络遍历；不是遍历器。limited/interrupted 不推进完整扫描或 bootstrap 完成；扫描 complete 与运行 partial_failure 可以同时成立。
 
 | 状态入口 | 运行事实 |
 | --- | --- |
@@ -54,3 +54,7 @@ RequestProfile 固定 User-Agent、Accept、Accept-Encoding=identity；UA/Accept
 `writer_lock(database)` 用解析后数据库旁的固定 `.lock` 文件及 POSIX flock 非阻塞锁。锁文件不删除；存在不代表占用。数据库符号链接别名解析到同一锁，数据库硬链接和锁文件符号链接拒绝，避免路径别名绕过保护。初始化/升级、CLI import-page/reparse 及 `crawl_once` 统一遵守，库调用者覆盖整个写入运行使用此锁。帮助/config-check 不获取锁。支持 macOS/Linux POSIX，Windows 未支持；外部不遵守 advisory lock 的程序不受此锁保护。
 
 0003 只用 ADD COLUMN 与新表，不重建被 notice_versions 引用且启用外键的 raw_responses/documents；0001/0002 冻结。旧数据/引用不变，未知字段保持 unknown/NULL，不自动填充缓存或历史来源。原文与 SQLite 仍不是跨介质事务；正常异常回滚和进程退出释放锁，不等于断电耐久性保证。
+
+## 未适配引用与覆盖证据（0008）
+
+新增 discovered_references 保存有效而未适配的列表目标及首末实际列表证据，source/完整 URI 候选键去重，不与 documents 的稳定身份混用。它和本站条目/日期证据/资源标记整页提交，不加入 details due。ingestion_runs.coverage_evidence 保存新生产完整扫描的响应链、有序混合行和独立首页复核；旧记录 NULL，不回填猜测。实际抓取许可、分页规则及请求预算不扩展，说明和接口见[引用登记](list-references.md)。

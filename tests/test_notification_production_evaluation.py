@@ -17,6 +17,8 @@ EvaluationError = EVALUATION["EvaluationError"]
 MANIFEST = ROOT / "docs/validation/notification-production-cases.json"
 SYNTHETIC_MANIFEST = ROOT / "docs/validation/notification-production-synthetic-cases.json"
 TEACHING_ASSISTANT_MANIFEST = ROOT / "docs/validation/teaching-assistant-cases.json"
+CURRENT_INSTRUCTION_MANIFEST = ROOT / "docs/validation/notification-current-instruction-cases.json"
+ORIGINAL_MISSES_MANIFEST = ROOT / "docs/validation/notification-original-misses-cases.json"
 
 
 def test_production_replay_is_deterministic_and_keeps_real_fixture_evidence():
@@ -305,10 +307,78 @@ def test_recruitment_fact_expectations_are_checked_in_report(tmp_path, expected,
         (MANIFEST, "notification-production-current.json"),
         (SYNTHETIC_MANIFEST, "notification-production-synthetic-current.json"),
         (TEACHING_ASSISTANT_MANIFEST, "teaching-assistant-current.json"),
+        (CURRENT_INSTRUCTION_MANIFEST, "notification-current-instruction-current.json"),
+        (ORIGINAL_MISSES_MANIFEST, "notification-original-misses-current.json"),
     ],
 )
 def test_current_snapshots_describe_actual_production_code_and_fixed_inputs(manifest, snapshot):
     current = evaluate_cases(manifest)
     saved = json.loads((ROOT / "docs/validation" / snapshot).read_text())
-    for field in ("source_sha256", "manifest_sha256", "versions", "summary", "results"):
-        assert saved[field] == current[field]
+    if snapshot == "notification-production-current.json":
+        for field in ("source_sha256", "manifest_sha256", "versions", "summary"):
+            assert saved[field] == current[field]
+        assert "results" not in saved
+    else:
+        for field in ("source_sha256", "manifest_sha256", "versions", "summary", "results"):
+            assert saved[field] == current[field]
+
+
+def test_current_instruction_regressions_keep_actual_v5_failure_and_explicit_engineering_inputs():
+    previous = json.loads(
+        (ROOT / "docs/validation/notification-current-instruction-v5.json").read_text()
+    )
+    current = evaluate_cases(CURRENT_INSTRUCTION_MANIFEST)
+    assert previous["versions"]["rules"] == "notification-rules-v5"
+    historic_bytes = (
+        ROOT / "docs/validation/notification-current-instruction-cases-before-v8.json"
+    ).read_bytes()
+    assert previous["manifest_sha256"] == hashlib.sha256(historic_bytes).hexdigest()
+    historic_input = json.loads(historic_bytes)
+    current_input = json.loads(CURRENT_INSTRUCTION_MANIFEST.read_text())
+    # Only the obsolete provenance note changes; actual regression inputs and
+    # expectations remain exact, and the old manifest stays byte-for-byte auditable.
+    for field in ("schema_version", "profiles", "cases"):
+        assert historic_input[field] == current_input[field]
+    assert previous["summary"]["engineering_mismatch_cases"] == ["R01", "R02"]
+    assert current["summary"]["engineering_mismatch_cases"] == []
+    assert current["summary"]["human_gold"] is False
+    assert current["summary"]["synthetic_cases"] == 2
+    assert current["summary"]["parse_success"] == 0
+    for old, new in zip(previous["results"], current["results"], strict=True):
+        for field in ("synthetic_notice_content", "profile", "context", "evaluated_at"):
+            assert old[field] == new[field]
+        assert old["decision"]["content_sha256"] == new["decision"]["content_sha256"]
+        assert old["decision"]["action"] == "DIGEST"
+        assert new["decision"]["action"] == "PUSH_NOW"
+        assert old["facts"]["opens_at"] is new["facts"]["opens_at"] is None
+        assert not old["facts"]["opening_confirmed"] and new["facts"]["opening_confirmed"]
+
+
+def test_original_misses_keep_actual_v7_failures_and_the_same_complete_inputs():
+    previous = json.loads(
+        (ROOT / "docs/validation/notification-original-misses-v7.json").read_text()
+    )
+    current = evaluate_cases(ORIGINAL_MISSES_MANIFEST)
+    assert previous["versions"]["rules"] == "notification-rules-v7"
+    assert current["versions"]["rules"] == "notification-rules-v8"
+    assert previous["manifest_sha256"] == current["manifest_sha256"]
+    assert previous["summary"]["engineering_mismatch_cases"] == ["O01", "O02"]
+    assert current["summary"]["engineering_mismatch_cases"] == []
+    assert current["summary"]["human_gold"] is False
+    assert current["summary"]["synthetic_cases"] == 2
+    assert current["summary"]["parse_success"] == 0
+    assert [row["decision"]["action"] for row in previous["results"]] == ["DIGEST", "IGNORE"]
+    for old, new in zip(previous["results"], current["results"], strict=True):
+        for field in (
+            "synthetic_notice_content",
+            "profile",
+            "context",
+            "evaluated_at",
+            "content_sha256",
+            "engineering_expectation",
+        ):
+            assert old[field] == new[field]
+        assert new["decision"]["action"] == "PUSH_NOW"
+        assert new["decision"]["effective_route"] == "immediate"
+        assert new["decision"]["reason_codes"] == ["deadline_soon"]
+        assert old["decision"]["content_sha256"] == new["decision"]["content_sha256"]

@@ -1,21 +1,22 @@
 {
   "schema_version": 1,
   "kind": "offline_production_lexical_search_evaluation",
-  "recorded_at": "2026-10-08T16:07:03.248941+00:00",
+  "recorded_at": "2026-10-10T02:09:52.885188+00:00",
   "human_gold": false,
   "note": "真实HTML上的小型离线词法检索评估。所有相关性标签均为工程判断，尚未经用户逐条确认，不是人工gold；原查询、显式日期和失败均保留。",
   "query_origin": "依据用户提出的实际查询类别具体化；不是用户搜索日志。",
   "source_sha256": {
-    "deploy/evaluate_search.py": "e1d4890727e2855499c7bd0bd110ab0426f494bdf626a371c5d2a1213478f0c9",
+    "deploy/evaluate_search.py": "0bf255700d4f2bcff209c5a779271ce3afee648d97af431513b06a06fe3c57ed",
     "src/signalnest/search.py": "12f4b361e4eb0799a96d67542db9a70212b0a7b8a8de9254de4da23043f5aa0b",
-    "src/signalnest/contracts.py": "358f49be516bb1f271858911e682032d130b05b21faf8212f2131ed9f68bbce1",
-    "src/signalnest/schema.py": "c5c4bc7689ff4e397c94777b4f9d8b2c761eecb6fbcd960af1930bc487d5f971",
-    "src/signalnest/ingestion.py": "8379ccd768e76b5a45f15983384c08c4f01b9e7086ae37778ed0388989d41887",
+    "src/signalnest/contracts.py": "6c22d5791bc4018a7cfb0e13e42eb9a1e9a0e1034888057b8734a4d4beba842a",
+    "src/signalnest/schema.py": "9948fef2387de0ad9421f45c535d7a732150a8961c6dd0b5a7c120b4ecb0bfe9",
+    "src/signalnest/ingestion.py": "9d2c9ad6eb51ab12cda1f8503f53a4e93d572e1632ac1ffdcaad1a359b1e0091",
     "src/signalnest/rawstore.py": "1d12e6fcac45ef08b41a9880443bdf8693d6bb3dbbf4a607998692badfd3eadf",
     "src/signalnest/storage.py": "4905451201b6d5987561ee92dc9bd08d62fdcd88b31d15e7e0e3e79c02fc22ca",
-    "src/signalnest/parsing.py": "b11e291a5d0f0beded00d9b8495bd6e3f00615fca19cbfa986f79c1aa9d21fe8",
+    "src/signalnest/parsing.py": "0793816827d4fb1c834a7bddbe46449b034113ca8814fb906369a12164c31a2c",
     "src/signalnest/ems_parsing.py": "7dd063655a6b277aebaca09d975f0e61905acbdd92cc92aea959f3f17c14d83e",
-    "src/signalnest/migrations/versions/0007_history_search.py": "ec9eba7784b799f3edab29509577fbf86bbfed622e0fc63a492842a6e20a558b"
+    "src/signalnest/migrations/versions/0007_history_search.py": "ec9eba7784b799f3edab29509577fbf86bbfed622e0fc63a492842a6e20a558b",
+    "src/signalnest/migrations/versions/0008_list_references.py": "14b2cb765feccdf6d78f3facc59b4ed65517cef508b36042a7c977030b477f5f"
   },
   "manifest_sha256": "8e686ba4fd8bd7cccba68b4c8c3b1b16ea3529ede7436a2721e35ec41b416c38",
   "environment": {
@@ -23,7 +24,7 @@
     "sqlite": "3.53.1",
     "platform": "macOS-26.6.2-arm64-arm-64bit"
   },
-  "storage_revision": "0007_history_search",
+  "storage_revision": "0008_list_references",
   "corpus": [
     {
       "corpus_id": "117011",
@@ -40,7 +41,7 @@
       "title": "关于2023级本科生修读辅修专业报名的通知",
       "published_date": "2024-11-27",
       "content_sha256": "035f2a7772100940c0e15aaa995b30b507ace43eb0e867f08f2e3ac9cdf3f5ec",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "127511",
@@ -57,7 +58,7 @@
       "title": "关于公布2025年武汉大学珞珈本科生创新研究基金项目结题验收结果的通知",
       "published_date": "2026-06-26",
       "content_sha256": "28f18ef515fc28b7875662c7ca3b74e4e57edb00ff50f049694f0094857e942b",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "128291",
@@ -74,7 +75,7 @@
       "title": "武汉大学2026年秋季学期《国际化拔尖创新人才科研训练》课程选课通知",
       "published_date": "2026-09-07",
       "content_sha256": "348d4b53e66a23cb9d82af3e18bcc145e2e9ea810c786e8b8dc0334852f6bccc",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "14147",
@@ -91,7 +92,7 @@
       "title": "关于征集2023年大学生创新创业训练计划项目选题的通知",
       "published_date": "2022-05-14",
       "content_sha256": "ece75b60e133c025f4c607bffe5f753509aeaac871c55a46931666322262086e",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "17361",
@@ -108,7 +109,7 @@
       "title": "关于开展2024年大学生创新创业训练计划项目中期检查暨立项工作的通知",
       "published_date": "2024-01-22",
       "content_sha256": "d848ec9216a1865cb43bfd743b3aad5b9c1e427009802e1286ebf9c3cc0cbcad",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "18135",
@@ -125,7 +126,7 @@
       "title": "首届全球数智教育创新大赛报名开启！等你来挑战！",
       "published_date": "2024-06-28",
       "content_sha256": "58bef0e0e996fb6428ad5cd007fad982739244aded384c585c216abe9dc7a1fc",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "128231",
@@ -142,7 +143,7 @@
       "title": "关于2026-2027学年第一学期2026级新生选课的通知",
       "published_date": "2026-09-04",
       "content_sha256": "641d653509d3ee8ee0e967cc0253dbb89e8a0c572b32e0ebecadc057a4d06f3a",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "127581",
@@ -159,7 +160,7 @@
       "title": "关于2026-2027学年第一学期选课的通知",
       "published_date": "2026-07-08",
       "content_sha256": "7816f0d0bd9bf5ea5aee3b893e5ad73fda51a9d5955cc9db2b7ef1e70295d82e",
-      "parser_version": "whu-student-notices-v3"
+      "parser_version": "whu-student-notices-v4"
     },
     {
       "corpus_id": "ems-250571",

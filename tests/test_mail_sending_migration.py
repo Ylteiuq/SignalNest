@@ -22,7 +22,7 @@ from signalnest.schema import mail_attempts, mail_delivery, notification_operati
 from signalnest.storage import initialize_storage, make_engine, migration_config
 
 NEW_TABLES = {"mail_delivery", "mail_attempts", "notification_operations"}
-NEW_COLUMNS = {"pause_reason", "paused_at"}
+NEW_COLUMNS = {"pause_reason", "paused_at", "coverage_evidence"}
 
 
 def historical_snapshot(database):
@@ -36,6 +36,7 @@ def historical_snapshot(database):
             if name != "alembic_version"
             and name not in NEW_TABLES
             and name != "search_documents"
+            and name != "discovered_references"
             and not name.startswith("search_fts")
         )
         result = {}
@@ -136,7 +137,7 @@ def test_populated_0005_upgrade_and_failures_preserve_all_evidence(
                 assert not NEW_COLUMNS.intersection(columns)
                 assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
 
-        assert initialize_storage(settings) == "0007_history_search"
+        assert initialize_storage(settings) == "0008_list_references"
         assert historical_snapshot(settings.database) == original
         with engine.connect() as connection:
             deliveries = connection.execute(sa.select(mail_delivery)).mappings().all()
@@ -151,7 +152,7 @@ def test_populated_0005_upgrade_and_failures_preserve_all_evidence(
             assert connection.execute(sa.select(notification_operations)).all() == []
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
         before = settings.database.read_bytes()
-        assert initialize_storage(settings) == "0007_history_search"
+        assert initialize_storage(settings) == "0008_list_references"
         assert settings.database.read_bytes() == before
         assert {
             path.name: path.read_bytes() for path in (settings.data_dir / "raw").iterdir()

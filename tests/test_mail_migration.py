@@ -45,7 +45,11 @@ def snapshot(engine):
     with engine.connect() as connection:
         return {
             name: [
-                {k: v for k, v in dict(row).items() if k not in {"pause_reason", "paused_at"}}
+                {
+                    k: v
+                    for k, v in dict(row).items()
+                    if k not in {"pause_reason", "paused_at", "coverage_evidence"}
+                }
                 for row in connection.execute(
                     sa.select(sa.Table(name, sa.MetaData(), autoload_with=connection))
                 ).mappings()
@@ -54,6 +58,7 @@ def snapshot(engine):
             if name != "alembic_version"
             and name not in NEW_TABLES | N4_TABLES
             and name != "search_documents"
+            and name != "discovered_references"
             and not name.startswith("search_fts")
         }
 
@@ -144,8 +149,8 @@ def test_0004_upgrade_preserves_pending_events_and_intents(tmp_path, failure_tab
                 )
                 assert not NEW_TABLES.intersection(sa.inspect(connection).get_table_names())
 
-        assert initialize_storage(settings) == "0007_history_search"
-        assert initialize_storage(settings) == "0007_history_search"
+        assert initialize_storage(settings) == "0008_list_references"
+        assert initialize_storage(settings) == "0008_list_references"
         assert snapshot(engine) == original
         with engine.connect() as connection:
             for table in (mail_messages, mail_message_members, mail_plan_errors):

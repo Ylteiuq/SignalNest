@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "note": "Sanitized offline parser and decision regression cases. Profiles are synthetic and contain no real institution, college, major, or entry-year attributes. Engineering expectations are not human gold, current eligibility, or proof of open vacancies.",
+  "adaptations": [
+    "CS01–CS04 use the selected sanitized 64481 structure; contact fields were removed from the fixture.",
+    "All evaluation Profiles are synthetic and omit institution, college, major, and entry year.",
+    "CS02–CS04 are explicit engineering profile/clock variations; the retrospective clock does not prove an application was open.",
+    "CS05–CS06 reuse the existing UC 128291 fixture as positive/negative regression cases; no additional article body is included.",
+    "Supported JSP identity is replayed only in tests with explicitly supplied static bytes; anonymous JSP access is not claimed.",
+    "Synthetic menus, payment, past application, strict-only graduate audiences and corrected-signature cases remain engineering tests.",
+    "No human Action labels or current eligibility claims are assigned."
+  ],
+  "profiles": {
+    "undergraduate_cs_hypothesis": {
+      "schema_version": 1,
+      "profile_id": "self",
+      "institution": null,
+      "study_level": "undergraduate",
+      "role": "student",
+      "college": null,
+      "major": null,
+      "entry_year": null,
+      "interest_topics": [
+        "competition",
+        "research",
+        "teaching_assistant"
+      ],
+      "include_phrases": [],
+      "exclude_topics": [],
+      "high_value_topics": [],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "master_cs_example": {
+      "schema_version": 1,
+      "profile_id": "self",
+      "institution": null,
+      "study_level": "master",
+      "role": "student",
+      "college": null,
+      "major": null,
+      "entry_year": null,
+      "interest_topics": [
+        "teaching_assistant"
+      ],
+      "include_phrases": [],
+      "exclude_topics": [],
+      "high_value_topics": [],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "minor_only_example": {
+      "schema_version": 1,
+      "profile_id": "self",
+      "institution": null,
+      "study_level": "undergraduate",
+      "role": "student",
+      "college": null,
+      "major": null,
+      "entry_year": null,
+      "interest_topics": [
+        "minor"
+      ],
+      "include_phrases": [],
+      "exclude_topics": [],
+      "high_value_topics": [],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "high_value_ta_example": {
+      "schema_version": 1,
+      "profile_id": "self",
+      "institution": null,
+      "study_level": "undergraduate",
+      "role": "student",
+      "college": null,
+      "major": null,
+      "entry_year": null,
+      "interest_topics": [
+        "teaching_assistant"
+      ],
+      "include_phrases": [],
+      "exclude_topics": [],
+      "high_value_topics": [
+        "teaching_assistant"
+      ],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    },
+    "ta_only_example": {
+      "schema_version": 1,
+      "profile_id": "self",
+      "institution": null,
+      "study_level": "undergraduate",
+      "role": "student",
+      "college": null,
+      "major": null,
+      "entry_year": null,
+      "interest_topics": [
+        "teaching_assistant"
+      ],
+      "include_phrases": [],
+      "exclude_topics": [],
+      "high_value_topics": [],
+      "store_only_topics": [
+        "course_enrollment"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "input_kind": "fixture_html",
+      "parser": "cs-undergrad-notices",
+      "fixture": "research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.html",
+      "sha256": "2efaf4ec0ebaea2541fd914cbcf066fd3fdee1fed46d63fd4de649f8f1fe8217",
+      "source_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+      "case_id": "CS01",
+      "profile": "undergraduate_cs_hypothesis",
+      "evaluated_at": "2026-10-10T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-11T09:00:00+08:00"
+      },
+      "description": "Synthetic undergraduate interest profile; qualification, year, and external-channel facts remain unverified.",
+      "engineering_expectation": {
+        "action": "DIGEST",
+        "effective_route": "digest",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "unknown",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant"
+        ],
+        "matched_rules_absent": [
+          "decision.deadline_soon",
+          "interest.topic.minor"
+        ],
+        "facts": {
+          "deadline_at": null,
+          "unknown_evidence_contains": [
+            "高年级本科生",
+            "85分",
+            "考查同意",
+            "9月20日前",
+            "2025年7月10日",
+            "2026-2027学年",
+            "docs.qq.com",
+            "QQ群文件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level",
+            "entry_year"
+          ]
+        }
+      }
+    },
+    {
+      "input_kind": "fixture_html",
+      "parser": "cs-undergrad-notices",
+      "fixture": "research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.html",
+      "sha256": "2efaf4ec0ebaea2541fd914cbcf066fd3fdee1fed46d63fd4de649f8f1fe8217",
+      "source_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+      "case_id": "CS02",
+      "profile": "master_cs_example",
+      "evaluated_at": "2026-10-10T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-11T09:00:00+08:00"
+      },
+      "description": "Synthetic graduate profile; audience keywords do not establish eligibility.",
+      "engineering_expectation": {
+        "action": "DIGEST",
+        "effective_route": "digest",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "unknown",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant"
+        ],
+        "matched_rules_absent": [
+          "decision.deadline_soon",
+          "interest.topic.minor"
+        ],
+        "facts": {
+          "deadline_at": null,
+          "unknown_evidence_contains": [
+            "高年级本科生",
+            "85分",
+            "考查同意",
+            "9月20日前",
+            "2025年7月10日",
+            "2026-2027学年",
+            "docs.qq.com",
+            "QQ群文件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level",
+            "entry_year"
+          ]
+        }
+      }
+    },
+    {
+      "input_kind": "fixture_html",
+      "parser": "cs-undergrad-notices",
+      "fixture": "research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.html",
+      "sha256": "2efaf4ec0ebaea2541fd914cbcf066fd3fdee1fed46d63fd4de649f8f1fe8217",
+      "source_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+      "case_id": "CS03",
+      "profile": "minor_only_example",
+      "evaluated_at": "2026-10-10T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-10-11T09:00:00+08:00"
+      },
+      "description": "Synthetic minor-only profile; a notice unrelated to minors should not be treated as a minor opportunity.",
+      "engineering_expectation": {
+        "action": "IGNORE",
+        "effective_route": "none",
+        "matched_rules_absent": [
+          "interest.topic.minor",
+          "interest.topic.teaching_assistant"
+        ]
+      }
+    },
+    {
+      "input_kind": "fixture_html",
+      "parser": "cs-undergrad-notices",
+      "fixture": "research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.html",
+      "sha256": "2efaf4ec0ebaea2541fd914cbcf066fd3fdee1fed46d63fd4de649f8f1fe8217",
+      "source_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+      "case_id": "CS04",
+      "profile": "high_value_ta_example",
+      "evaluated_at": "2026-09-19T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-20T09:00:00+08:00"
+      },
+      "description": "Synthetic high-value teaching-assistant profile with a retrospective clock; interest must not invent a deadline.",
+      "engineering_expectation": {
+        "action": "DIGEST",
+        "effective_route": "digest",
+        "eligibility": "unknown",
+        "needs_review": true,
+        "time_status": "unknown",
+        "matched_rules_present": [
+          "interest.topic.teaching_assistant"
+        ],
+        "matched_rules_absent": [
+          "decision.deadline_soon",
+          "interest.topic.minor"
+        ],
+        "facts": {
+          "deadline_at": null,
+          "unknown_evidence_contains": [
+            "高年级本科生",
+            "85分",
+            "考查同意",
+            "9月20日前",
+            "2025年7月10日",
+            "2026-2027学年",
+            "docs.qq.com",
+            "QQ群文件"
+          ],
+          "no_hard_constraint_fields": [
+            "study_level",
+            "entry_year"
+          ]
+        }
+      }
+    },
+    {
+      "input_kind": "fixture_html",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "case_id": "CS05",
+      "profile": "undergraduate_cs_hypothesis",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T09:00:00+08:00"
+      },
+      "description": "Existing UC notice is a research-topic positive case, not a teaching-assistant recruitment.",
+      "engineering_expectation": {
+        "action": "PUSH_NOW",
+        "effective_route": "immediate",
+        "matched_rules_present": [
+          "interest.topic.research",
+          "decision.deadline_soon"
+        ],
+        "matched_rules_absent": [
+          "interest.topic.teaching_assistant"
+        ]
+      }
+    },
+    {
+      "input_kind": "fixture_html",
+      "parser": "whu-student-notices",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "case_id": "CS06",
+      "profile": "ta_only_example",
+      "evaluated_at": "2026-09-28T09:00:00+08:00",
+      "context": {
+        "kind": "new",
+        "notification_mode": "hybrid",
+        "next_digest_at": "2026-09-29T09:00:00+08:00"
+      },
+      "description": "Existing UC course notice is a negative case for a teaching-assistant-only profile.",
+      "engineering_expectation": {
+        "action": "STORE_ONLY",
+        "effective_route": "none",
+        "matched_rules_absent": [
+          "interest.topic.teaching_assistant"
+        ]
+      }
+    }
+  ]
+}

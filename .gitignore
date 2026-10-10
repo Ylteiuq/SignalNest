@@ -8,3 +8,39 @@ data/
 campus.toml
 signalnest.toml
 profile.toml
+# Local raw capture contains named student and academic records; commit only its redacted structure.
+research/fixtures/list-links-20261009/ek-public-link-20261009T030441987287Z.html
+
+# Keep bulk captures and generated evaluation snapshots local by default.
+# The tracked samples below are the explicitly selected sanitized exceptions.
+research/fixtures/list-links-20261009/*
+!research/fixtures/list-links-20261009/
+!research/fixtures/list-links-20261009/uc19-20261009T030232474173Z.html
+!research/fixtures/list-links-20261009/uc19-20261009T030232474173Z.json
+!research/fixtures/list-links-20261009/ek-public-link-20261009T030441987287Z-redacted.html
+!research/fixtures/list-links-20261009/ek-public-link-20261009T030441987287Z.json
+research/fixtures/ta-entrypoints-20261009/*
+!research/fixtures/ta-entrypoints-20261009/
+!research/fixtures/ta-entrypoints-20261009/cs-undergrad-list-home.html
+!research/fixtures/ta-entrypoints-20261009/cs-undergrad-list-home.json
+!research/fixtures/ta-entrypoints-20261009/cs-undergrad-list-page2.html
+!research/fixtures/ta-entrypoints-20261009/cs-undergrad-list-page2.json
+!research/fixtures/ta-entrypoints-20261009/cs-undergrad-list-last.html
+!research/fixtures/ta-entrypoints-20261009/cs-undergrad-list-last.json
+!research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.html
+!research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.json
+research/evaluation/20261009/
+research/experiments/evaluation_20261009/
+research/experiments/list_links_20261009/
+research/experiments/ta-entrypoints-20261009/
+research/evaluation-data-20261009.md
+research/search-review-20261009.md
+research/teaching-assistant-entrypoints-20261009.md
+research/whu-list-link-contract-20261009.md
+docs/validation/cs-offline-v*.json
+docs/validation/*-cli-20261010.json
+docs/validation/notification-production-v*.json
+docs/validation/notification-production-synthetic-v*.json
+docs/validation/teaching-assistant-v*.json
+docs/validation/notification-current-instruction-v*.json
+docs/validation/search-before-reference-registration.json

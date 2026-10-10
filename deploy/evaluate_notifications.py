@@ -22,6 +22,7 @@ SOURCE_FILES = (
     "src/signalnest/contracts.py",
     "src/signalnest/parsing.py",
     "src/signalnest/ems_parsing.py",
+    "src/signalnest/cs_parsing.py",
     "src/signalnest/notifications/contracts.py",
     "src/signalnest/notifications/facts.py",
     "src/signalnest/notifications/decision.py",
@@ -83,6 +84,8 @@ def evaluate_cases(case_file=DEFAULT_CASES):
     from pydantic import ValidationError
 
     from signalnest.contracts import NoticeContent, PageInput
+    from signalnest.cs_parsing import PARSER_VERSION as CS_PARSER_VERSION
+    from signalnest.cs_parsing import parse_cs_notice
     from signalnest.ems_parsing import PARSER_VERSION as EMS_PARSER_VERSION
     from signalnest.ems_parsing import parse_ems_notice
     from signalnest.notifications.contracts import (
@@ -127,7 +130,11 @@ def evaluate_cases(case_file=DEFAULT_CASES):
                     raise EvaluationError("evaluation_fixture_digest_mismatch")
                 page = PageInput(content=body, page_url=case["source_url"])
                 selected_parser = case.get("parser", "whu-student-notices")
-                if selected_parser not in {"whu-student-notices", "ems-notices"}:
+                if selected_parser not in {
+                    "whu-student-notices",
+                    "ems-notices",
+                    "cs-undergrad-notices",
+                }:
                     raise EvaluationError("evaluation_parser_invalid")
                 content = None
             elif input_kind == "synthetic_notice_content":
@@ -179,11 +186,12 @@ def evaluate_cases(case_file=DEFAULT_CASES):
             )
         if page is not None:
             try:
-                notice = (
-                    parse_ems_notice(page)
-                    if selected_parser == "ems-notices"
-                    else parse_notice(page)
-                )
+                if selected_parser == "cs-undergrad-notices":
+                    notice = parse_cs_notice(page)
+                elif selected_parser == "ems-notices":
+                    notice = parse_ems_notice(page)
+                else:
+                    notice = parse_notice(page)
             except ParseError as exc:
                 row.update(
                     parse_error={"code": exc.code.value, "field": exc.field},
@@ -224,6 +232,7 @@ def evaluate_cases(case_file=DEFAULT_CASES):
         "versions": {
             "parser": PARSER_VERSION,
             "ems_parser": EMS_PARSER_VERSION,
+            "cs_parser": CS_PARSER_VERSION,
             "facts_extractor": FACTS_EXTRACTOR_VERSION,
             "rules": RULES_VERSION,
             "decision_engine": DECISION_ENGINE_VERSION,

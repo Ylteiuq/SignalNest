@@ -156,7 +156,21 @@ def test_identity_is_shared_by_list_and_notice(url):
 )
 def test_bad_identity_fails_without_silent_row_loss(url, code):
     assert_error(parse_notice, html_page(notice_html(), url), code, "identity")
-    assert_error(parse_list, html_page(list_html(url), LIST_URL), code, "identity", 0)
+    valid_unadapted = {
+        "https://other.example.org/info/1517/128231.htm": "external",
+        "https://uc.whu.edu.cn/info/1518/128231.htm": "unsupported_column",
+        "https://uc.whu.edu.cn/other.htm": "unsupported_route",
+        "https://uc.whu.edu.cn/2022/show.jsp?wbtreeid=1518&wbnewsid=1": "unsupported_column",
+    }
+    if url in valid_unadapted:
+        page = parse_list(html_page(list_html(url), LIST_URL))
+        assert not page.entries and page.row_count == 1
+        assert len(page.references) == 1
+        assert str(page.references[0].resolved_url) == url
+        assert page.references[0].reference_kind == valid_unadapted[url]
+    else:
+        list_code = "invalid_field" if "not-an-id.htm" in url else code
+        assert_error(parse_list, html_page(list_html(url), LIST_URL), list_code, "identity", 0)
 
 
 def test_list_scope_relative_urls_variable_count_and_terminal_page():

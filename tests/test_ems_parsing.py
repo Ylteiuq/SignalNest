@@ -274,4 +274,4 @@ def test_failed_calls_do_not_poison_later_success_or_enable_ems_in_whu_parser():
     with pytest.raises(ParseError) as caught:
         parse_notice(real_page())
     assert caught.value.code == ParseErrorCode.UNSUPPORTED_IDENTITY
-    assert WHU_PARSER_VERSION == "whu-student-notices-v3"
+    assert WHU_PARSER_VERSION == "whu-student-notices-v4"

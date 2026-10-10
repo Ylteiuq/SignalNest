@@ -8,12 +8,32 @@ from pydantic import Field, field_validator, model_validator
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Connection, Engine
 
-from signalnest.contracts import Contract, PaginationEvidence
+from signalnest.contracts import Contract, Digest, NonemptyText, PaginationEvidence, WebUrl
 from signalnest.errors import IngestError, validate_time
 from signalnest.parsing import PARSER_VERSION
-from signalnest.schema import documents, ingestion_runs, source_ingestion_state
+from signalnest.schema import (
+    discovered_references,
+    documents,
+    ingestion_runs,
+    raw_responses,
+    source_ingestion_state,
+)
 
 Origin = Literal["unknown", "bootstrap", "regular", "historical"]
+
+
+class RegisteredListPage(Contract):
+    """Committed list evidence; row keys are ordered and include repeated observations."""
+
+    body_response_id: int = Field(ge=1, strict=True)
+    observed_response_id: int = Field(ge=1, strict=True)
+    requested_url: WebUrl
+    response_requested_url: WebUrl
+    final_url: WebUrl
+    next_page_url: WebUrl | None
+    pagination: PaginationEvidence
+    listing_sha256: Digest
+    rows: tuple[tuple[Literal["notice", "reference"], NonemptyText], ...] = Field(min_length=1)
 
 
 class ScanCompletion(Contract):
@@ -25,6 +45,9 @@ class ScanCompletion(Contract):
 
     pages: tuple[PaginationEvidence, ...] = Field(min_length=1)
     home_recheck_unchanged: Literal[True]
+    # Old attestations remain readable, explicitly without response/member evidence.
+    registrations: tuple[RegisteredListPage, ...] | None = None
+    home_recheck: RegisteredListPage | None = None
 
     @field_validator("home_recheck_unchanged", mode="before")
     @classmethod
@@ -45,6 +68,36 @@ class ScanCompletion(Contract):
             raise ValueError("complete scan requires an explicit terminal page")
         if any(page.last_page_url != self.pages[0].last_page_url for page in self.pages[:-1]):
             raise ValueError("tail declarations drifted")
+        if (self.registrations is None) != (self.home_recheck is None):
+            raise ValueError("registered coverage requires both chain and home evidence")
+        if self.registrations is not None:
+            if len(self.registrations) != len(self.pages) or any(
+                registered.pagination != page
+                or registered.pagination.is_last_page != (registered.next_page_url is None)
+                for registered, page in zip(self.registrations, self.pages, strict=True)
+            ):
+                raise ValueError("registered pages must agree with pagination declarations")
+            if any(
+                following.requested_url != prior.next_page_url
+                for prior, following in zip(
+                    self.registrations[:-1], self.registrations[1:], strict=True
+                )
+            ):
+                raise ValueError("registered requests must follow actual next targets")
+            first, home = self.registrations[0], self.home_recheck
+            if any(
+                getattr(first, field) != getattr(home, field)
+                for field in (
+                    "requested_url",
+                    "response_requested_url",
+                    "final_url",
+                    "next_page_url",
+                    "pagination",
+                    "listing_sha256",
+                    "rows",
+                )
+            ):
+                raise ValueError("home recheck must preserve all notice and reference rows")
         return self
 
 
@@ -186,6 +239,9 @@ def record_coverage_in_transaction(
         raise IngestError("complete_scan_evidence_required", "state")
     if completion is not None and not isinstance(completion, ScanCompletion):
         raise IngestError("complete_scan_evidence_required", "state")
+    if completion is not None and completion.registrations is not None:
+        for page in (*completion.registrations, completion.home_recheck):
+            _check_registered_page(connection, run, page)
     connection.execute(
         ingestion_runs.update()
         .where(ingestion_runs.c.id == run_id)
@@ -193,6 +249,7 @@ def record_coverage_in_transaction(
             coverage=coverage,
             coverage_at=at,
             coverage_error_code=error_code,
+            coverage_evidence=completion.model_dump(mode="json") if completion else None,
         )
     )
     if coverage == "complete":
@@ -215,6 +272,73 @@ def record_coverage_in_transaction(
             .where(source_ingestion_state.c.source_id == run["source_id"])
             .values(**values)
         )
+
+
+def _check_registered_page(connection: Connection, run, page: RegisteredListPage) -> None:
+    """Check response binding and every row's registration; no file/Parser work here."""
+    evidence = {
+        row["id"]: row
+        for row in connection.execute(
+            sa.select(raw_responses).where(
+                raw_responses.c.id.in_({page.body_response_id, page.observed_response_id}),
+            )
+        ).mappings()
+    }
+    body = evidence.get(page.body_response_id)
+    observed = evidence.get(page.observed_response_id)
+    if (
+        body is None
+        or observed is None
+        or any(
+            row["source_id"] != run["source_id"]
+            or row["page_type"] != "list"
+            or row["last_error_code"] is not None
+            or row["last_attempt_at"] is None
+            or row["last_attempt_at"] < run["started_at"]
+            for row in (body, observed)
+        )
+        or body["status_code"] != 200
+        or body["body_path"] is None
+        or body["body_state"] != "complete"
+    ):
+        raise IngestError("scan_registration_invalid", "coverage")
+    if body["requested_url"] != str(page.response_requested_url) or body["final_url"] != str(
+        page.final_url
+    ):
+        raise IngestError("scan_registration_invalid", "coverage")
+    if observed["id"] != body["id"] and (
+        observed["status_code"] != 304
+        or observed["validated_response_id"] != body["id"]
+        or any(
+            observed[field] != body[field]
+            for field in (
+                "source_id",
+                "page_type",
+                "resource_id",
+                "requested_url",
+                "final_url",
+            )
+        )
+    ):
+        raise IngestError("scan_registration_invalid", "coverage")
+    for kind, table, column in (
+        ("notice", documents, documents.c.source_document_id),
+        ("reference", discovered_references, discovered_references.c.candidate_key),
+    ):
+        keys = {key for row_kind, key in page.rows if row_kind == kind}
+        if (
+            keys
+            and set(
+                connection.scalars(
+                    sa.select(column).where(
+                        table.c.source_id == run["source_id"],
+                        column.in_(keys),
+                    )
+                )
+            )
+            != keys
+        ):
+            raise IngestError("scan_registration_invalid", "coverage")
 
 
 def finish_run_in_transaction(

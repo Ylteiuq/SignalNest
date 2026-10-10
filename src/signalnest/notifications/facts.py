@@ -146,11 +146,12 @@ _MINOR_AFTER = re.compile(
 )
 _MINOR_BEFORE = re.compile(r"(?:报名(?:修读|参加)?|申请(?:修读|攻读)?)\s*$")
 _DIRECTIVE_ENTRY = re.compile(
-    r"(?:请|须|需|应)[^。；;\n，,→>]{0,40}(?:完成|进行|提交)"
-    r"[^。；;\n，,→>]{0,12}(?P<action>报名|申请|申报|选课)"
+    r"(?:请|须|需|应)(?:[^。；;\n，,→>]{0,40}(?:完成|进行|提交)"
+    r"[^。；;\n，,→>]{0,12}|登录(?:学校)?系统\s*)"
+    r"(?P<action>报名|申请|申报|选课)"
 )
 _PRESENT_ENTRY = re.compile(
-    r"(?:即日起|现(?:已)?(?:启动|开放|接受|开始|开展)|正在接受)\s*"
+    r"(?:即日起(?:\s*接受)?|现(?:已)?(?:启动|开放|接受|开始|开展)|正在接受)\s*"
     r"(?P<action>报名|申请|申报|征集|招募|招生|招收|选拔|选派|选课)"
 )
 _ENTRY_RECORD = re.compile(r"查看|查询|已有|历史记录|报名记录|(?:报名|申请)情况")
@@ -161,7 +162,7 @@ _UNBOUND_SUBJECT = re.compile(r"(?:相关|有关)(?:安排|事宜|事项)|(?:安
 # Recruitment is a separate action, not a synonym for every mention of 助教.
 _TA_PAIR = re.compile(
     r"(?P<after>助教|教学助理)(?:岗位|人员|的)?(?P<after_action>招聘|招募|选聘)"
-    r"|(?P<before_action>招聘|招募|选聘)(?:本科教学课程|课程|学生|若干名)?"
+    r"|(?P<before_action>招聘|招募|选聘)(?:本科教学课程|本科课程|课程|学生|若干名)?"
     r"(?P<before>助教|教学助理)"
 )
 _TA_REFERENCE_TITLE = re.compile(
@@ -170,6 +171,7 @@ _TA_REFERENCE_TITLE = re.compile(
 )
 _TA_PRESENT = re.compile(
     r"即日起|现(?:已)?(?:面向|招聘|招募|选聘)|本(?:次|学期|轮)[^。；;\n]{0,24}(?:招聘|招募|选聘)"
+    r"|现在[^。；;\n]{0,24}(?:招聘|招募|选聘)"
 )
 _TA_FORM_SUBMISSION = re.compile(
     r"请[^。；;\n]{0,16}(?:助教|申请人|应聘者)[^。；;\n]{0,100}"
@@ -182,7 +184,24 @@ _TA_UNAVAILABLE = re.compile(
 )
 _TA_ADMIN_BODY = re.compile(r"津贴|薪酬|工资|退出申请|退聘|考核表")
 _TA_AUDIENCE = re.compile(r"(?P<soft>原则上)?从(?P<value>[^。；;\n，,（）()]{1,40})中选聘")
-_TA_APPROVAL = re.compile(r"(?:主讲|任课)教师[^。；;\n]{0,90}(?:签署聘用意见|推荐)")
+_TA_APPLICANT_OBJECT = re.compile(r"助教岗位申请对象\s*(?:包括|[:：])(?P<value>[^。\n]+)")
+_TA_APPROVAL = re.compile(r"(?:主讲|任课)教师[^。；;\n]{0,90}(?:签署聘用意见|推荐|考查同意)")
+_TA_CONDITIONS = (
+    ("grade", re.compile(r"高年级本科生|高年级任低年级")),
+    ("course_performance", re.compile(r"系统学习过申请课程并获得[0-9]{1,3}分以上成绩")),
+    ("student_status", re.compile(r"全日制脱产学习|全日制在校在籍")),
+    ("other", re.compile(r"不得同时承担两门课程及以上的助教岗位")),
+    (
+        "application_channel",
+        re.compile(r"https://docs\.qq\.com/[^\s，,。；;]+|两个表都在QQ群文件里"),
+    ),
+)
+_TA_MONTH_DAY_SUBMISSION = re.compile(
+    r"(?<![0-9年])(?P<date>[0-9]{1,2}月[0-9]{1,2}日)前"
+    r"(?:填写在线文档报名|交老师签字的《助教申请表》)"
+)
+_TA_ACADEMIC_YEAR = re.compile(r"(?P<first>20[0-9]{2})[—–-](?P<last>20[0-9]{2})学年")
+_TA_SIGNATURE_DATE = re.compile(r"(?m)^[ \t]*(?P<date>20[0-9]{2}年[0-9]{1,2}月[0-9]{1,2}日)[ \t]*$")
 _TA_CLOCK = re.compile(
     r"(?<!\d)(?P<year>20\d{2})年(?P<month>\d{1,2})月(?P<day>\d{1,2})日"
     r"(?:[（(](?:周|星期)(?P<weekday>[一二三四五六日天])[）)])?"
@@ -274,6 +293,10 @@ def rule_manifest() -> dict:
             "closed_entry_pattern": _CLOSED_ENTRY.pattern,
             "unavailable_entry_pattern": _UNAVAILABLE_ENTRY.pattern,
             "login_completion_directive": _DIRECTIVE_ENTRY.pattern,
+            "direct_login_scope": (
+                "imperative 登录(学校)系统 immediately followed by the exact entry action; "
+                "same topic binding and menu/record/history/administration exclusions"
+            ),
             "present_entry_pattern": _PRESENT_ENTRY.pattern,
             "record_pattern": _ENTRY_RECORD.pattern,
             "menu_path_pattern": _MENU_PATH.pattern,
@@ -339,6 +362,14 @@ def rule_manifest() -> dict:
             "team_submission_pattern": _TEAM_SUBMISSION.pattern,
             "administrative_deadline_pattern": _ADMIN_TIME.pattern,
             "current_application_pattern": _CURRENT_APPLICATION.pattern,
+            "linked_application_directive": {
+                "pattern": _DIRECTIVE_ENTRY.pattern,
+                "scope": (
+                    "body only; exact action passes entry exclusions and is covered by a "
+                    "linked opportunity's body evidence or title supporting evidence"
+                ),
+                "effect": "confirms opening without inventing an opens_at timestamp",
+            },
             "separate_later_round_pattern": _LATER_ROUND_TIME.pattern,
             "deferred_deadline_pattern": _DEFERRED_DEADLINE.pattern,
             "unsupported": (
@@ -355,7 +386,20 @@ def rule_manifest() -> dict:
             "unavailable": _TA_UNAVAILABLE.pattern,
             "administrative_body": _TA_ADMIN_BODY.pattern,
             "applicant_selection": _TA_AUDIENCE.pattern,
+            "applicant_object": _TA_APPLICANT_OBJECT.pattern,
+            "applicant_branches": (
+                "explicit applicant-object clause can cross semicolons; differing level sets "
+                "make level constraints unsupported, never discard the undergraduate branch"
+            ),
             "teacher_approval": _TA_APPROVAL.pattern,
+            "unverified_conditions": {field: pattern.pattern for field, pattern in _TA_CONDITIONS},
+            "month_day_submission": _TA_MONTH_DAY_SUBMISSION.pattern,
+            "academic_year": _TA_ACADEMIC_YEAR.pattern,
+            "standalone_signature_date": _TA_SIGNATURE_DATE.pattern,
+            "year_conflict": (
+                "signature year outside title academic-year range invalidates time claims; "
+                "retain exact evidence, never correct or infer a deadline year"
+            ),
             "application_clock": _TA_CLOCK.pattern,
             "clock_scope": (
                 "initial application form only; explicit year, optional consistent weekday, "
@@ -533,7 +577,7 @@ def _entry_blocked(text, start, end, *, subject_start=None, subject_end=None):
     if _ENTRY_RECORD.search(local):
         return True
     if _NAVIGATION.search(local):
-        # A witnessed imperative to complete an application is different from
+        # A witnessed imperative to submit an application is different from
         # a menu path. It must name this exact action, not another nearby word.
         if (
             _instruction(text, start, end, _DIRECTIVE_ENTRY) is None
@@ -594,6 +638,31 @@ def _opportunities(content):
         for match in _ENTRY_ACTION.finditer(text)
         if not _entry_blocked(text, match.start(), match.end())
     )
+
+
+def _linked_application_directive(content, topics):
+    """A present application instruction must belong to a validated opportunity.
+
+    A title alone, an uncertain relation, or an instruction about another action
+    cannot establish that the opportunity is open. Existing entry exclusions
+    still reject administration, menu paths and historical instructions.
+    """
+    proofs = tuple(
+        proof
+        for item in topics
+        if item.context == "opportunity"
+        for proof in (item.evidence, *item.supporting_evidence)
+        if proof.field == "body_text"
+    )
+    for action in _ENTRY_ACTION.finditer(content.body_text):
+        if not any(proof.start <= action.start() and action.end() <= proof.end for proof in proofs):
+            continue
+        if _entry_blocked(content.body_text, *action.span()):
+            continue
+        instruction = _instruction(content.body_text, *action.span(), _DIRECTIVE_ENTRY)
+        if instruction is not None:
+            return instruction
+    return None
 
 
 def _link_document_actions(content, topics):
@@ -931,6 +1000,85 @@ def _qualifications(content):
                 )
     assistant = any(item.context == "opportunity" for item in _teaching_assistant_topics(content))
     if assistant:
+        for match in _TA_APPLICANT_OBJECT.finditer(content.body_text):
+            audience_declared, incomplete = True, True
+            clause = match["value"]
+            proof = _evidence("body_text", content.body_text, *match.span())
+            levels = tuple(
+                level
+                for level, word in (
+                    ("undergraduate", "本科生"),
+                    ("master", "硕士研究生"),
+                    ("doctoral", "博士研究生"),
+                    ("faculty", "教师"),
+                )
+                if word in clause
+            )
+            conflicting = [
+                item
+                for item in constraints
+                if item.field == "study_level"
+                and item.operator != "unsupported"
+                and levels
+                and set(item.values) != set(levels)
+            ]
+            if conflicting:
+                unknowns.append(
+                    _unknown(
+                        "conflicting_evidence",
+                        "eligibility",
+                        "招聘对象与后文申请分支不一致；不能只选研究生声明而排除本科分支。",
+                        *(item.evidence for item in conflicting),
+                        proof,
+                    )
+                )
+                constraints = [
+                    item.model_copy(update={"operator": "unsupported"})
+                    if item in conflicting
+                    else item
+                    for item in constraints
+                ]
+            constraints.append(
+                QualificationConstraint(
+                    field="study_level" if levels else "other",
+                    values=levels,
+                    operator="unsupported",
+                    evidence=proof,
+                )
+            )
+            unknowns.append(
+                _unknown(
+                    "recruitment_condition_unknown",
+                    "eligibility",
+                    "申请对象包含不同层次分支及附加条件，当前无法可靠逐分支核验。",
+                    proof,
+                )
+            )
+        for constraint_field, pattern in _TA_CONDITIONS:
+            for match in pattern.finditer(content.body_text):
+                incomplete = True
+                proof = _evidence("body_text", content.body_text, *match.span())
+                constraints.append(
+                    QualificationConstraint(
+                        field=constraint_field
+                        if constraint_field in {"grade", "student_status"}
+                        else "other",
+                        operator="unsupported",
+                        evidence=proof,
+                    )
+                )
+                unknowns.append(
+                    _unknown(
+                        "application_channel_unverified"
+                        if constraint_field == "application_channel"
+                        else "unsupported_condition",
+                        constraint_field,
+                        "外部申请载体及群文件未访问，需核对申请表和实际岗位。"
+                        if constraint_field == "application_channel"
+                        else "助教申请的附加条件无法从当前 Profile 核验，不能默认符合。",
+                        proof,
+                    )
+                )
         for match in _TA_AUDIENCE.finditer(content.body_text):
             audience_declared, incomplete = True, True
             proof = _evidence("body_text", content.body_text, *match.span())
@@ -1002,6 +1150,33 @@ def _qualifications(content):
 def _times(content, category):
     openings, deadlines, evidence, unknowns, lower_bounds = [], [], [], [], []
     assistant = any(item.context == "opportunity" for item in _teaching_assistant_topics(content))
+    if assistant:
+        for match in _TA_MONTH_DAY_SUBMISSION.finditer(content.body_text):
+            proof = _evidence("body_text", content.body_text, *match.span())
+            evidence.append(proof)
+            unknowns.append(
+                _unknown(
+                    "year_missing", "time", "申请月日缺少年份，不从学年或发布日期补全。", proof
+                )
+            )
+        academic = _TA_ACADEMIC_YEAR.search(content.title)
+        if academic is not None:
+            for signature in _TA_SIGNATURE_DATE.finditer(content.body_text):
+                year = int(signature["date"][:4])
+                if not int(academic["first"]) <= year <= int(academic["last"]):
+                    proofs = (
+                        _evidence("title", content.title, *academic.span()),
+                        _evidence("body_text", content.body_text, *signature.span("date")),
+                    )
+                    evidence.extend(proofs)
+                    unknowns.append(
+                        _unknown(
+                            "recruitment_year_conflict",
+                            "time",
+                            "标题学年与独立落款年份冲突，不能确认当前开放或补成绝对截止。",
+                            *proofs,
+                        )
+                    )
     for field, text in _source_fields(content):
         for clause, start, end in _sentences(text):
             if assistant and _TA_FORM_SUBMISSION.search(clause):
@@ -1189,6 +1364,7 @@ def _times(content, category):
             "invalid_time",
             "ambiguous_time",
             "time_unrecognized",
+            "recruitment_year_conflict",
         }
         for item in unknowns
     ):
@@ -1259,6 +1435,8 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
         content, category
     )
     current_application = _CURRENT_APPLICATION.search(content.body_text)
+    if current_application is None:
+        current_application = _linked_application_directive(content, topics)
     if current_application is None and any(
         item.topic == "teaching_assistant" and item.context == "opportunity" for item in topics
     ):
@@ -1288,6 +1466,8 @@ def extract_facts(content: NoticeContent) -> NoticeFacts:
                     current_application = _TA_PRESENT.search(content.body_text, left, right)
                     if current_application is not None:
                         break
+    if any(item.code == "recruitment_year_conflict" for item in time_unknowns):
+        current_application = None
     if current_application is not None and category == "opportunity":
         # This explicit present-tense permission confirms the witnessed team's
         # application is open; it does not supply an invented start timestamp.

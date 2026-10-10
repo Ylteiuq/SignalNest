@@ -38,7 +38,7 @@ def test_real_competition_template_preserves_body_images_and_external_references
     assert hashlib.sha256(original).hexdigest() == METADATA["sha256"]
     parsed = parse_notice(page())
     assert parsed.source_document_id == "1517:18135"
-    assert parsed.parser_version == PARSER_VERSION == "whu-student-notices-v3"
+    assert parsed.parser_version == PARSER_VERSION == "whu-student-notices-v4"
     content = parsed.content
     assert content.title == "首届全球数智教育创新大赛报名开启！等你来挑战！"
     assert content.published_date == date(2024, 6, 28)
@@ -179,7 +179,7 @@ def test_real_v2_to_v3_same_raw_does_not_create_live_update(activated, maintenan
     versions = rows(env, notice_versions)
     assert [version["parser_version"] for version in versions] == [
         "whu-student-notices-v2",
-        "whu-student-notices-v3",
+        "whu-student-notices-v4",
     ]
     assert versions[0]["content_sha256"] == versions[1]["content_sha256"]
     assert len(rows(env, raw_responses)) == 4

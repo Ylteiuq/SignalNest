@@ -23,6 +23,7 @@ from signalnest.cache import (
     validation_reason,
 )
 from signalnest.contracts import (
+    REFERENCE_NORMALIZATION_VERSION,
     Contract,
     ListPage,
     NonemptyText,
@@ -53,7 +54,13 @@ from signalnest.notifications.state import (
 )
 from signalnest.parsing import PARSER_VERSION, ParseError, parse_list, parse_notice
 from signalnest.rawstore import RawStore, RawStoreError
-from signalnest.schema import documents, http_resources, notice_versions, raw_responses
+from signalnest.schema import (
+    discovered_references,
+    documents,
+    http_resources,
+    notice_versions,
+    raw_responses,
+)
 
 
 class ResponseInput(Contract):
@@ -96,6 +103,8 @@ class ProcessingResult:
     document_id: int | None = None
     version_id: int | None = None
     discovered_count: int = 0
+    reference_count: int = 0
+    registered_row_count: int = 0
     next_page_url: str | None = None
     pagination: PaginationEvidence | None = None
     body_response_id: int | None = None
@@ -228,6 +237,8 @@ def discover_page_in_transaction(
         raise IngestError("body_response_required", "validation")
     if processing_origin == "live" and (response is None or response["body_state"] != "complete"):
         raise IngestError("notification_list_evidence_required", "notification")
+    if page.references and response is None:
+        raise IngestError("list_reference_evidence_required", "discovery")
     new_document_ids = set()
     for entry in page.entries:
         statement = insert(documents).values(
@@ -255,6 +266,62 @@ def discover_page_in_transaction(
                 detail_url=str(entry.detail_url),
                 discovered_title=entry.title,
             )
+        )
+    for reference in page.references:
+        key = reference.candidate_key()
+        mutable = dict(
+            raw_href=reference.raw_href,
+            title=reference.title,
+            published_date=reference.published_date,
+            reference_kind=reference.reference_kind,
+            last_seen_at=discovered_at,
+            last_run_id=ingestion_run_id,
+            last_body_response_id=response["id"],
+            last_observed_response_id=observed["id"],
+            last_row_index=reference.row_index,
+            last_parser_version=parser_version,
+        )
+        connection.execute(
+            insert(discovered_references)
+            .values(
+                source_id=source_id,
+                candidate_key=key,
+                normalization_version=REFERENCE_NORMALIZATION_VERSION,
+                resolved_url=str(reference.resolved_url),
+                first_seen_at=discovered_at,
+                discovery_origin=origin,
+                first_discovery_run_id=ingestion_run_id,
+                first_body_response_id=response["id"],
+                first_observed_response_id=observed["id"],
+                first_row_index=reference.row_index,
+                first_parser_version=parser_version,
+                **mutable,
+            )
+            .on_conflict_do_nothing()
+        )
+        existing = (
+            connection.execute(
+                sa.select(discovered_references).where(
+                    discovered_references.c.source_id == source_id,
+                    discovered_references.c.candidate_key == key,
+                )
+            )
+            .mappings()
+            .one()
+        )
+        if (
+            existing["resolved_url"] != str(reference.resolved_url)
+            or existing["normalization_version"] != REFERENCE_NORMALIZATION_VERSION
+        ):
+            raise IngestError("reference_identity_mismatch", "discovery")
+        # Older historical replay cannot overwrite a newer observed listing.
+        connection.execute(
+            discovered_references.update()
+            .where(
+                discovered_references.c.id == existing["id"],
+                discovered_references.c.last_seen_at <= discovered_at,
+            )
+            .values(**mutable)
         )
     register_listing_evidence_in_transaction(
         connection,
@@ -285,6 +352,37 @@ def discover_page(
             )
     except SQLAlchemyError as exc:
         raise IngestError("database_write_failed", "discovery") from exc
+
+
+def list_references(engine: Engine, source_id: str, *, limit: int = 20, offset: int = 0) -> dict:
+    """Read the separate unadapted backlog; no lock, file access, repair or HTTP."""
+    if (
+        type(limit) is not int
+        or not 1 <= limit <= 100
+        or type(offset) is not int
+        or not 0 <= offset <= 10000
+    ):
+        raise IngestError("invalid_reference_limit", "validation")
+    with engine.connect() as connection:
+        condition = discovered_references.c.source_id == source_id
+        total = connection.scalar(
+            sa.select(sa.func.count()).select_from(discovered_references).where(condition)
+        )
+        rows = connection.execute(
+            sa.select(discovered_references)
+            .where(condition)
+            .order_by(discovered_references.c.id)
+            .limit(limit)
+            .offset(offset)
+        ).mappings()
+        values = [dict(row) | {"published_date": row["published_date"].isoformat()} for row in rows]
+    return {
+        "source_id": source_id,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "references": values,
+    }
 
 
 def _resource(connection: Connection, evidence: ResponseInput) -> int | None:
@@ -776,6 +874,8 @@ def process_response(
             result = ProcessingResult(
                 response_id,
                 discovered_count=count,
+                reference_count=len(listing.references),
+                registered_row_count=listing.row_count,
                 next_page_url=str(listing.next_page_url) if listing.next_page_url else None,
                 pagination=listing.pagination,
                 body_response_id=body["id"],
@@ -888,6 +988,7 @@ def process_response(
         document_id=document_id,
         stage="success_commit",
         run_id=run_id,
+        reference_count=result.reference_count if result.registered_row_count else None,
     )
     return result
 

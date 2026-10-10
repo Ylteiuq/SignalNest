@@ -1,2 +1,4 @@
 # Keep captured source HTML byte-for-byte; source whitespace and CRLF are fixture data.
 research/fixtures/teaching-assistant/*.html -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab,cr-at-eol
+research/fixtures/list-links-20261009/*.html -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab,cr-at-eol
+research/fixtures/ta-entrypoints-20261009/*.html -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab,cr-at-eol
