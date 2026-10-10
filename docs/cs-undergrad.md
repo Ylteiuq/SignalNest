@@ -1,8 +1,8 @@
 # 计算机学院本科教学：离线适配节点
 
 已完成离线列表/详情解析、决策回放、归档入库和重新解析验收。仓库只保留少量脱敏结构样本；选样方式见[说明](../research/selected-samples-20261010.md)。
-**本节点尚未接入自动采集，也没有更新已部署实例的政策或发送邮件。**
-生产联网来源仍是本科生院；不能用改 list_url、覆盖 source_id 或放宽主机替代第二来源接入。
+本页记录离线适配节点。后续已另行接入[显式 CS 来源采集](cs-collection.md)，使用独立实例，不覆盖 UC。本离线节点没有更新已部署实例的政策或发送邮件；自动采集验收与离线样本结论分别记录。
+现有生产联网来源仍为本科生院；不能通过改 list_url、覆盖 source_id 或放宽主机来替代第二来源接入。
 
 ## 样本与解析接口
 
@@ -118,10 +118,10 @@ print(listing.row_count, listing.pagination, listing.next_page_url)
 使用独立 source_id、已初始化的隔离库，持 writer_lock，明确 processing_origin=offline；重解析用 maintenance。
 ResponseInput 的 fetched_at 保留样本 JSON 已知获取完成时间的整数秒，另传本次 processed_at，不能伪造新抓取。
 本轮离线验收不推定这些研究记录有生产缓存资格，未传 RequestProfile；每次导入登记独立响应，相同字节/版本幂等，重解析复用原证据。
-CLI import-page/reparse 仍只用默认 UC Parser，没有增加不完整的第二来源写入模式。
+离线节点当时的 CLI import-page/reparse 仅使用 UC；后续通过 `[source].parser` 完成显式绑定，CS 配置下两个入口均使用 CS Parser，获取时间和 offline/maintenance 语义保持。
 纯 render_mail 可产生待核对 Digest 预览；未知项显示有数量上限，完整证据以 decision-preview/决策 JSON 和原文为准，不生成真实发送任务。
 
-## 下一节点：自动采集的接入顺序
+## 自动采集接入的验收顺序
 
 1. 明确单来源配置、run、通知通道与启用边界如何管理 CS；保留 UC 数据归属，不覆盖既有来源或承诺已支持多来源。
 2. 显式绑定 CS 列表/详情 Parser 和版本；为本来源实现有限目标/重定向校验，不只放宽 UC 主机白名单。

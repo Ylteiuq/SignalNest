@@ -23,7 +23,8 @@
 - `search.py`：当前成功正文的派生词法索引、同事务增量同步、显式重建与只读搜索/详情；不重解析原文，不判断提醒资格。
 - `rollout.py`：只读部署准备与单次观察、明确允许文件的发布指纹/源码快照；本地通过不证明目标机运行、收件或连续在线。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
-- `cs_parsing.py`：计算机学院本科教学的显式纯列表/详情 Parser，独立 cs-undergrad-notices-v1；复用数据/错误契约与保守正文清洗，不启用联网来源。`ems_parsing.py` 继续提供 EMS 离线详情。
+- `cs_parsing.py`：计算机学院本科教学的显式纯列表/详情 Parser，独立 cs-undergrad-notices-v1；复用数据/错误契约与保守正文清洗。`ems_parsing.py` 继续提供 EMS 离线详情。
+- `sources.py`：两个固定来源的绑定，配置明确选择列表/详情 Parser、版本及有限 HTTP 路由。惰性加载纯 Parser，不动态注册、猜来源或回退至另一 Parser。
 - `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
 - `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
 - `notifications/state.py` / `service.py`：显式启用和真实日期证据，事务外比较/决策准备，同成功 Connection 提交独立 live 基线、事件、选中决策和必要 planned 意图；不渲染或发送邮件。
@@ -39,6 +40,8 @@ HTTPX Client 保留 TLS 校验，显式设置 connect/read/write/pool 超时，�
 已实现的站点函数签名为 `parse_list(page: PageInput) -> ListPage` 和 `parse_notice(page: PageInput) -> ParsedNotice`。页面输入包含内容字节与最终页面 URL，以最终 URL 解析相对地址；函数只返回结构化数据，不访问网络或数据库。
 
 Fetcher 执行单次有界获取的请求间隔和重试；`crawl_once` 负责列表遍历、详情补抓与复查，复用已有归档/业务入口。没有插件工厂、任务平台或第二套业务成功状态。不在数据库事务内执行文件 I/O、Parser 或等待 HTTP。
+
+UC/CS 使用各自 HTTPS 首页、栏目与旧式详情路由，所有请求和重定向均按本次绑定校验；源内身份不替代实际 URI，JSP 查询顺序/无关参数保留在缓存键。配置、运行、资源处理标记、正文版本、维护重解析和通知比较原文使用相同绑定。旧 UC 配置默认不变，CS 必须显式选择；不同来源建议独立数据库/目录/定时服务。现有通知表只支持每库一个启用通道，采集前发现另一来源已启用即明确拒绝，不先联网或登记半个运行。详情 due、事务、完整扫描证据及邮件启用规则复用，不增加 schema 或多来源调度平台。具体边界及部署见[CS 采集](cs-collection.md)。
 
 有界获取的交接结构、默认预算、HTTP 错误分类与保守缓存策略见 [Fetcher 设计](fetching.md)，单次覆盖/待办/收尾见 [协调器设计](crawling.md)。Fetcher 的 complete 只表示完整非空 200 且 HTML 类型符合要求；Parser 与持久化仍须分别成功。Fetcher 阶段没有改变数据库 schema；N1 的新增表见下文，当前 Parser v4 与内容摘要规则见下文。RequestProfile 为可直接发送的 printable ASCII，保证实际请求头与缓存 profile 完全一致。
 

@@ -2,7 +2,7 @@
 
 单用户、自托管、长期运行的个人校园信息助手，采用 Python 模块化单体。首个信息源为武汉大学本科生院“学生通知”。**采集、离线恢复、政策 v8、邮件计划/冻结、SMTP 发送恢复、后台邮件入口及基础历史搜索已实现**。使用外部定时模板触发有界单次运行，没有 Python 常驻调度器；邮件默认关闭，显式启用后可自动计划并发送。WSL/Linux 已完成 0008 升级、真实完整列表扫描、首页复核、持久成功时间和隔离恢复，见[升级验收](docs/validation/n2-wsl-upgrade-20261010.md)。此前受限实采、两封工程测试邮件的实际收件及外链阻断记录保持在[历史实机记录](docs/validation/n2-wsl-20261009.md)。生产通知及一周运行仍未验收；完整列表覆盖不表示正文积压已处理。
 
-2026-10-08 开始的新迭代 **N0 规则对齐 → N1 助教招聘 → N2 部署运行验收 → N3 基础搜索** 单列于[迭代记录](docs/iteration-20261008.md)。下文原邮件模块 N0–N4 编号继续保留。新 N1 已提供[助教招聘的离线判断与预览](docs/teaching-assistant.md)，含真实历史招聘正例和独立 EMS 详情 Parser；已补[计算机学院本科教学的脱敏样本离线解析与决策验收](docs/cs-undergrad.md)，含列表、正文和待核对申请分支；自动发现当期助教机会仍未验收，现有联网来源保持本科生院。
+2026-10-08 开始的新迭代 **N0 规则对齐 → N1 助教招聘 → N2 部署运行验收 → N3 基础搜索** 单列于[迭代记录](docs/iteration-20261008.md)。下文原邮件模块 N0–N4 编号继续保留。新 N1 已提供[助教招聘的离线判断与预览](docs/teaching-assistant.md)，含真实历史招聘正例和独立 EMS 详情 Parser；计算机学院本科教学的脱敏样本离线验收见[离线适配记录](docs/cs-undergrad.md)，后续已接入显式 CS 来源的有界采集、缓存、入库及独立定时模板，见[CS 采集说明](docs/cs-collection.md)。抓到历史助教正文不表示当期仍可申请，生产通知及连续运行验收仍独立进行。
 
 ## 安装与检查
 
@@ -33,7 +33,9 @@ uv run --locked signalnest config-check --config signalnest.toml
 
 **data_dir 和 database 都相对于配置文件所在目录解析**，database 不相对于 data_dir。配置文件路径本身由调用者定位；绝对路径保持绝对路径，`~` 展开为主目录，符号链接配置以目标文件所在目录为准。
 
-`config-check` 校验 TOML、未知字段、HTTP(S) URL、正数且有限的超时/请求间隔；不测试网络可达性或目录可写性，不创建目录/数据库。导入模块及查看帮助同样不联网、不打开数据库、不启动任务。
+`config-check` 校验 TOML、未知字段、所选来源的 HTTPS 首页、正数且有限的超时/请求间隔；不测试网络可达性或目录可写性，不创建目录/数据库。导入模块及查看帮助同样不联网、不打开数据库、不启动任务。
+
+`[source].parser` 明确选择 `whu-student-notices`（旧 UC 配置省略时的默认值）或 `cs-undergrad-notices`。它同时绑定列表/详情 Parser、解析版本及请求/重定向许可，不从主机、身份或解析失败猜选来源。CS 示例为 `config.cs.example.toml`；使用独立配置、数据目录、数据库、启用基线和实例锁，勿覆盖既有 UC 配置。`crawl-once`、`scheduled-run`、`import-page`、`reparse` 均使用这一绑定。EMS 仍仅离线预览。
 
 `[runtime]` 配置详情配额、复查日期档与有限错误延期；`[runtime.regular]` / `[runtime.full]` 为外部触发的单次任务预算。旧配置可以省略 runtime，使用新默认政策。定时频率由外部 timer 决定，不能用 HTTP 请求间隔设置。示例字段与行为见 [处理政策](docs/runtime-policy.md)。
 
@@ -227,7 +229,7 @@ uv run --locked python deploy/evaluate_notifications.py --check \
   --cases docs/validation/notification-original-misses-cases.json
 ```
 
-v7 引入的计算机学院“招募本科课程助教”、跨分号申请分支及年份冲突判断保持；真实本科招募进入待核对 Digest，不把缺少年份的月日补成紧急截止。[计算机学院离线验收](docs/cs-undergrad.md)提供 `profile.cs-undergrad.example.toml`、`decision-preview --parser cs-undergrad-notices` 和独立六情境回放；未接新网络来源。此前五组情境输入及 Action 保持不变，实际 v7 快照另存，当前评估重新运行 v8。
+v7 引入的计算机学院“招募本科课程助教”、跨分号申请分支及年份冲突判断保持；真实本科招募进入待核对 Digest，不把缺少年份的月日补成紧急截止。[计算机学院离线验收](docs/cs-undergrad.md)提供 `profile.cs-undergrad.example.toml`、`decision-preview --parser cs-undergrad-notices` 和独立六情境回放；现已另行接通[显式来源采集](docs/cs-collection.md)。此前五组情境输入及 Action 保持不变，实际 v7 快照另存，当前评估重新运行 v8。
 
 既有实例须显式更新政策；旧决策、已有 Digest 资格和冻结邮件不会自动撤回或重写。当前只支持有限词组与上下文、对象和时间；标题主题仍可表示普通相关信息，显式 `include_phrases` 仍是宽泛字面关注。不确定关联仅保留待核对，不凭当天截止补造关系。研究中原固定输入的 10 个 Action 已获人工确认，适配后的生产输入与工程期望另列，不能当成同一批人工准确率。未知资格和未支持表达式保留未知，图片/附件仅保留引用，不做 OCR 或下载解析。覆盖、限制、升级步骤及纯函数入口见 [原 N0 规则说明](docs/notifications.md)。[原 N1 设计](docs/notification-state.md)记录启用边界、独立 live 基线和原子成功事务。
 

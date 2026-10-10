@@ -17,7 +17,7 @@ from datetime import UTC
 from email.utils import parsedate_to_datetime
 from enum import StrEnum
 from typing import Literal, Protocol
-from urllib.parse import parse_qs, urljoin, urlsplit
+from urllib.parse import urljoin
 
 import httpx
 from pydantic import Field, model_validator
@@ -27,7 +27,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from signalnest.cache import (
     CacheCandidate,
     check_not_modified,
-    request_uri,
     select_cache_candidate,
 )
 from signalnest.config import HttpSettings
@@ -37,6 +36,7 @@ from signalnest.eventlog import Event, log_event
 from signalnest.ingestion import ResponseInput
 from signalnest.ingestion_state import read_source_state, set_cooldown_in_transaction
 from signalnest.rawstore import RawStore
+from signalnest.sources import SourceName, source_binding
 
 _SQLITE_MAX = 2**63 - 1
 _HEADER_LIMIT = 2048
@@ -207,51 +207,8 @@ def make_client(
     )
 
 
-def _target_uri(value: str, target: FetchTarget) -> str:
-    if any(ord(c) <= 32 or ord(c) == 127 for c in value) or any(c in value for c in "\\#"):
-        raise ValueError("invalid_target")
-    try:
-        uri = request_uri(value)
-        parts = urlsplit(uri)
-        if (
-            parts.scheme != "https"
-            or parts.hostname != "uc.whu.edu.cn"
-            or parts.port not in {None, 443}
-        ):
-            raise ValueError("invalid_target")
-        if target.page_type == "list":
-            if "?" in value or not re.fullmatch(
-                r"/tzgg/xstz(?:\.htm|/[1-9][0-9]*\.htm)", parts.path
-            ):
-                raise ValueError("invalid_target")
-        else:
-            query = parse_qs(parts.query, keep_blank_values=True)
-            match = re.fullmatch(r"/info/(1517)/([1-9][0-9]*)\.htm", parts.path)
-            if match:
-                category, article = match.groups()
-                if any(
-                    key in query and query[key] != [expected]
-                    for key, expected in (("wbtreeid", category), ("wbnewsid", article))
-                ):
-                    raise ValueError("invalid_target")
-            elif parts.path == "/2022/show.jsp":
-                if len(query.get("wbtreeid", [])) != 1 or len(query.get("wbnewsid", [])) != 1:
-                    raise ValueError("invalid_target")
-                category, article = query["wbtreeid"][0], query["wbnewsid"][0]
-                if (
-                    category != "1517"
-                    or not re.fullmatch(r"[1-9][0-9]*", article)
-                    or ("urltype" in query and query["urltype"] != ["news.NewsContentUrl"])
-                ):
-                    raise ValueError("invalid_target")
-            else:
-                raise ValueError("invalid_target")
-            if f"{category}:{article}" != target.source_document_id:
-                raise ValueError("invalid_target")
-        # Key the actual HTTPX URI, retaining query order and irrelevant parameters.
-        return str(httpx.URL(uri))
-    except (IngestError, httpx.InvalidURL) as exc:
-        raise ValueError("invalid_target") from exc
+def _target_uri(value: str, target: FetchTarget, parser: SourceName = "whu-student-notices") -> str:
+    return source_binding(parser).target_uri(value, target.page_type, target.source_document_id)
 
 
 def retry_after_deadline(values: list[str], received_at: float) -> tuple[int | None, bool]:
@@ -332,6 +289,7 @@ class HttpFetcher:
         settings: HttpSettings,
         *,
         source_id: str,
+        source_parser: SourceName = "whu-student-notices",
         profile: RequestProfile | None = None,
         limits: FetchLimits | None = None,
         transport: httpx.BaseTransport | None = None,
@@ -343,6 +301,7 @@ class HttpFetcher:
         if not source_id.strip():
             raise ValueError("source_id must not be empty")
         self.engine, self.raw_store, self.source_id = engine, raw_store, source_id
+        self.source_parser = source_binding(source_parser).name
         self.settings = settings.model_copy(deep=True)
         self.profile = profile or default_profile(self.settings)
         self.limits = limits or FetchLimits()
@@ -644,7 +603,7 @@ class HttpFetcher:
         self._repair_result = self._repair_continuation = None
         resource_deadline = self.clock.monotonic() + self.limits.resource_seconds
         try:
-            uri = _target_uri(target.uri, target)
+            uri = _target_uri(target.uri, target, self.source_parser)
         except ValueError:
             return FetchResult("bodyless", error_code=FetchCode.INVALID_TARGET)
         return self._run_fetch(
@@ -822,7 +781,7 @@ class HttpFetcher:
                         or any(ord(c) <= 32 or ord(c) == 127 for c in location)
                     ):
                         raise ValueError("invalid_target")
-                    next_uri = _target_uri(urljoin(uri, location), target)
+                    next_uri = _target_uri(urljoin(uri, location), target, self.source_parser)
                 except ValueError:
                     attempts[-1] = replace(attempt, error_code=FetchCode.REDIRECT_INVALID)
                     return finish("bodyless", FetchCode.REDIRECT_INVALID)

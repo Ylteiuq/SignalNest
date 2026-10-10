@@ -738,10 +738,10 @@ def test_detail_database_failure_preserves_complete_coverage_and_previous_versio
 
 
 def test_home_recheck_parsing_time_counts_toward_run_budget(state_env, monkeypatch):
-    import signalnest.crawling as crawling
+    import signalnest.parsing as parsing
 
     clock, parses = Clock(), 0
-    real_parse = crawling.parse_list
+    real_parse = parsing.parse_list
 
     def parse(page):
         nonlocal parses
@@ -751,7 +751,7 @@ def test_home_recheck_parsing_time_counts_toward_run_budget(state_env, monkeypat
             clock.sleep(5)
         return result
 
-    monkeypatch.setattr(crawling, "parse_list", parse)
+    monkeypatch.setattr(parsing, "parse_list", parse)
     result = run(
         state_env,
         lambda request: html(listing() if str(request.url) == HOME else listing(2, 2)),

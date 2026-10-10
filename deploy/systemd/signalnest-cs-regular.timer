@@ -1,0 +1,12 @@
+[Unit]
+Description=SignalNest CS small ordinary collection every hour
+
+[Timer]
+OnCalendar=*-*-* *:15:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=0
+Persistent=false
+Unit=signalnest-cs@regular.service
+
+[Install]
+WantedBy=timers.target

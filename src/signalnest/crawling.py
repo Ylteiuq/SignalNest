@@ -35,7 +35,6 @@ from signalnest.ingestion_state import (
     start_run_in_transaction,
 )
 from signalnest.instance_lock import writer_lock
-from signalnest.parsing import PARSER_VERSION, parse_list
 from signalnest.rawstore import RawStore
 from signalnest.runtime_policy import (
     GROUPS,
@@ -46,7 +45,8 @@ from signalnest.runtime_policy import (
     select_details,
     success_due,
 )
-from signalnest.schema import discovered_references, documents
+from signalnest.schema import discovered_references, documents, notification_channel_state
+from signalnest.sources import source_binding
 from signalnest.storage import StorageError, open_initialized_engine
 
 
@@ -149,6 +149,9 @@ class _Run:
         self.engine, self.store, self.settings = engine, store, settings
         self.options, self.fetcher, self.run_id, self.clock = options, fetcher, run_id, clock
         self.source = settings.source.id
+        self.list_parser, self.notice_parser, self.parser_version = source_binding(
+            settings.source.parser
+        ).parsers()
         self.started = False
         self.future_dates = 0
         self.home_recheck = None
@@ -242,7 +245,7 @@ class _Run:
 
             def capture(page: PageInput) -> ListPage:
                 nonlocal listing, final_uri
-                listing, final_uri = parse_list(page), str(page.page_url)
+                listing, final_uri = self.list_parser(page), str(page.page_url)
                 return listing
 
             at = self.now()
@@ -271,7 +274,8 @@ class _Run:
                     response_id,
                     at,
                     list_parser=capture,
-                    list_parser_version=PARSER_VERSION,
+                    list_parser_version=self.parser_version,
+                    notice_parser=self.notice_parser,
                     notice_due=notice_due,
                     error_due=error_due,
                     expected_source_id=self.source,
@@ -391,7 +395,14 @@ def _execute(run: _Run) -> CrawlSummary:
             .where(discovered_references.c.source_id == source)
         )
     with engine.begin() as connection:
-        start_run_in_transaction(connection, source, run.run_id, started, origin=origin)
+        start_run_in_transaction(
+            connection,
+            source,
+            run.run_id,
+            started,
+            origin=origin,
+            parser_version=run.parser_version,
+        )
         # Explicit first-online enrollment, irrespective of publication date or discovery origin.
         scheduled = connection.execute(
             documents.update()
@@ -589,6 +600,14 @@ def crawl_once(
     with writer_lock(settings.storage.database):
         engine = open_initialized_engine(settings.storage.database)
         try:
+            # One active notification channel belongs to one source/instance. Fail
+            # before any run, scheduling write or HTTP if another source owns it.
+            with engine.connect() as connection:
+                channel_source = connection.scalar(
+                    sa.select(notification_channel_state.c.source_id)
+                )
+            if channel_source is not None and channel_source != settings.source.id:
+                raise IngestError("notification_source_mismatch", "validation")
             store = RawStore(settings.storage.data_dir)
 
             def before_request(target: FetchTarget, at: int) -> None:
@@ -604,6 +623,7 @@ def crawl_once(
                 store,
                 settings.http,
                 source_id=settings.source.id,
+                source_parser=settings.source.parser,
                 limits=options.fetch_limits,
                 transport=transport,
                 clock=clock,

@@ -4,6 +4,8 @@
 
 ## 交接与职责
 
+来源许可由显式 `source_parser` 绑定，省略时兼容 UC；CS 使用 `cs-undergrad-notices`，有限 HTTPS/443 主机、列表路由、1074 栏目和同身份 JSP/静态详情跳转。协调器从 `[source].parser` 同时绑定 Fetcher 与 Parser，不根据 URL 猜来源。具体配置和独立实例边界见[CS 采集](cs-collection.md)。
+
 `HttpFetcher` 在一次运行内复用一个 Client、物理请求计数、monotonic 预算和请求间隔。调用者提供已初始化的 Engine、RawStore、source_id 和 HttpSettings，并持有该实例的 writer_lock。可显式提供固定 RequestProfile；默认 User-Agent 来自配置、Accept 为 text/html、Accept-Encoding 为 identity。实际发送的这三个字段与 profile 完全一致。每个请求重新构造，清空 Cookie，不继承 Auth、环境代理或自动重定向。
 
 `fetch(FetchTarget(...)) -> FetchResult` 区分 complete（完整、非空 200 HTML）、bodyless（304 或只有元数据的状态/拒绝）、transport_failure（连接/读取失败）、deferred（冷却或预算阻止继续）。这些均不是业务成功。结果保留按发送顺序排列的 FetchAttempt：实际开始/结束 UTC 时间，收到响应时的 ResponseInput，完整 bytes 或 None，本次选中的具体 304 candidate，有限错误代码及 not-before。没有收到响应就没有 ResponseInput，不伪造状态或 fetched_at。收到头的客户端 UTC 时间作为 fetched_at，与服务器 Date 无关。

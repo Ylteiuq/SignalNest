@@ -1,0 +1,41 @@
+# Explicit CS instance. Paths are relative to this file, never the working directory.
+# Keep it separate from the UC instance and its notification activation/database.
+[storage]
+data_dir = "data-cs"
+database = "data-cs/signalnest.sqlite3"
+
+[source]
+parser = "cs-undergrad-notices"
+id = "whu-cs-undergrad-teaching"
+list_url = "https://cs.whu.edu.cn/xwdt/tzgg/bkjx.htm"
+
+[http]
+connect_timeout_seconds = 10.0
+read_timeout_seconds = 20.0
+request_interval_seconds = 5.0
+user_agent = "SignalNest/0.1"
+
+[runtime]
+foreground_slots = 2
+history_slots = 1
+recheck_slots = 1
+
+[runtime.regular]
+max_pages = 2
+max_details = 2
+max_requests = 12
+run_seconds = 180.0
+resource_seconds = 45.0
+max_body_bytes = 2097152
+
+[runtime.full]
+max_pages = 16
+max_details = 0
+max_requests = 24
+run_seconds = 300.0
+resource_seconds = 45.0
+max_body_bytes = 2097152
+
+# No SMTP credentials or automatic notification activation.
+[mail_runtime]
+enabled = false

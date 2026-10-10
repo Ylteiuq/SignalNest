@@ -16,6 +16,8 @@ from pydantic import (
     model_validator,
 )
 
+from signalnest.sources import CS, UC, SourceName, source_binding
+
 
 class ConfigurationError(ValueError):
     """A user-actionable configuration error, without echoing input values."""
@@ -38,6 +40,7 @@ class StorageSettings(SettingsModel):
 
 
 class SourceSettings(SettingsModel):
+    parser: SourceName = "whu-student-notices"
     id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]*$", max_length=80)
     list_url: HttpUrl
 
@@ -47,6 +50,19 @@ class SourceSettings(SettingsModel):
         if value.username is not None or value.password is not None or value.fragment is not None:
             raise ValueError("URL must not contain credentials or a fragment")
         return value
+
+    @model_validator(mode="after")
+    def bound_home(self):
+        binding = source_binding(self.parser)
+        try:
+            uri = binding.target_uri(str(self.list_url), "list")
+        except ValueError:
+            raise ValueError("list_url must be the selected Parser's HTTPS list home") from None
+        if uri != f"https://{binding.host}{binding.list_path}.htm":
+            raise ValueError("list_url must be the selected Parser's HTTPS list home")
+        if self.id in {UC.source_id, CS.source_id} and self.id != binding.source_id:
+            raise ValueError("id and parser refer to different sources")
+        return self
 
 
 class HttpSettings(SettingsModel):

@@ -6,6 +6,8 @@
 
 ## 入口与预算
 
+`[source].parser` 现可显式选择 UC 或 CS；旧 UC 配置默认不变。列表/详情 Parser、运行版本、缓存处理版本及通知比较旧原文使用同一绑定，实际请求/重定向按该来源有限路由校验。CS 使用独立实例配置，不复用 UC 通知启用边界，见[CS 采集](cs-collection.md)。
+
 ```sh
 signalnest crawl-once --config signalnest.toml --scan limited --max-pages 1 --max-details 2
 signalnest crawl-once --config signalnest.toml --scan full --max-pages 64 --max-details 20

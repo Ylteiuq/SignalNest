@@ -1082,6 +1082,11 @@ def _offline_command(args, settings, logger, run_id) -> int:
                 return 1
     engine = None
     try:
+        from signalnest.sources import source_binding
+
+        list_parser, notice_parser, parser_version = source_binding(
+            settings.source.parser
+        ).parsers()
         if not settings.storage.database.is_file():
             raise StorageError("数据库不可用或未初始化，请先执行 storage-init")
         with writer_lock(settings.storage.database):
@@ -1090,7 +1095,15 @@ def _offline_command(args, settings, logger, run_id) -> int:
             processed_at = args.processed_at if args.processed_at is not None else int(time.time())
             if evidence is not None:
                 result = import_page(
-                    engine, raw_store, evidence, content, processed_at, run_id=run_id
+                    engine,
+                    raw_store,
+                    evidence,
+                    content,
+                    processed_at,
+                    run_id=run_id,
+                    list_parser=list_parser,
+                    notice_parser=notice_parser,
+                    list_parser_version=parser_version,
                 )
             else:
                 result = process_response(
@@ -1101,6 +1114,9 @@ def _offline_command(args, settings, logger, run_id) -> int:
                     expected_source_id=settings.source.id,
                     run_id=run_id,
                     processing_origin="maintenance",
+                    list_parser=list_parser,
+                    notice_parser=notice_parser,
+                    list_parser_version=parser_version,
                 )
     except (StorageError, IngestError, RawStoreError, WriterLockError, SQLAlchemyError) as exc:
         code = (
