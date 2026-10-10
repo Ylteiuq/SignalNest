@@ -237,9 +237,7 @@ def test_deterministic_decisions_and_compact_v6_compatibility_sample():
     original = parse_cs_notice(capture(NOTICE)).content
     first = evaluate(original)
     assert evaluate(original) == first
-    compact = json.loads(
-        (ROOT / "tests/fixtures/notification-policy-v6-sample.json").read_bytes()
-    )
+    compact = json.loads((ROOT / "tests/fixtures/notification-policy-v6-sample.json").read_bytes())
     decision = Decision.model_validate(compact["decision"])
     assert decision.rules_version == "notification-rules-v6"
     assert decision.model_dump(mode="json") == compact["decision"]

@@ -10,14 +10,14 @@
     "No research human Action label is assigned, copied or changed. The official personal-news negative remains covered by an explicit transformed-content unit test, not claimed here as a supported production news Parser.",
     "The original thirteen production cases and the two iteration N0 synthetic cases retain their original input manifests."
   ],
-  "recorded_at": "2026-10-10T10:27:23.303512+00:00",
-  "git_head": "a044550551d39a903b7603e21f0bbc8047eb48a0",
+  "recorded_at": "2026-10-10T12:35:02.400767+00:00",
+  "git_head": "f58ea79bd93fe5bdcfb04054177ec0cdb8e0a0ee",
   "source_sha256": {
     "deploy/evaluate_notifications.py": "52795bdf288234d2f572b3f9299245991d87842934d1286254829363672ac064",
     "src/signalnest/contracts.py": "6c22d5791bc4018a7cfb0e13e42eb9a1e9a0e1034888057b8734a4d4beba842a",
     "src/signalnest/parsing.py": "0793816827d4fb1c834a7bddbe46449b034113ca8814fb906369a12164c31a2c",
     "src/signalnest/ems_parsing.py": "7dd063655a6b277aebaca09d975f0e61905acbdd92cc92aea959f3f17c14d83e",
-    "src/signalnest/cs_parsing.py": "0a16127ee1972fdb7615589cd0ef5564558a8aad606b60828de321a14bdd837a",
+    "src/signalnest/cs_parsing.py": "2e52363f31f4fd3c7abac069777ec6b286d6416d5d376c1924062835904da7fd",
     "src/signalnest/notifications/contracts.py": "94cc179e03e0a65c0495596909977ba82f7007a6a9cd3ce4af1e0b21c38aca33",
     "src/signalnest/notifications/facts.py": "abfc463d4da5f9b81f7f3d0e52b7bbcfd045e3d5936300d3a0bd74a10c35638b",
     "src/signalnest/notifications/decision.py": "c8838bb52dc1d8a6eb848a3dd17999678af940aa61974773fa93f1048ae5ad35",
@@ -27,7 +27,7 @@
   "versions": {
     "parser": "whu-student-notices-v4",
     "ems_parser": "ems-notices-v1",
-    "cs_parser": "cs-undergrad-notices-v1",
+    "cs_parser": "cs-undergrad-notices-v2",
     "facts_extractor": "whu-notice-facts-v8",
     "rules": "notification-rules-v8",
     "decision_engine": "notification-decision-v8",

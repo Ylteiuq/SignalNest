@@ -2,7 +2,7 @@
 
 已完成离线列表/详情解析、决策回放、归档入库和重新解析验收。仓库只保留少量脱敏结构样本；选样方式见[说明](../research/selected-samples-20261010.md)。
 本页记录离线适配节点。后续已另行接入[显式 CS 来源采集](cs-collection.md)，使用独立实例，不覆盖 UC。本离线节点没有更新已部署实例的政策或发送邮件；自动采集验收与离线样本结论分别记录。
-现有生产联网来源仍为本科生院；不能通过改 list_url、覆盖 source_id 或放宽主机来替代第二来源接入。
+离线节点当时的生产联网来源为本科生院；后续通过独立来源绑定接入 CS，不能通过改 list_url、覆盖 source_id 或放宽主机来替代这些边界。
 
 ## 样本与解析接口
 
@@ -23,6 +23,8 @@
 - `parse_cs_list(PageInput) -> ListPage`，沿用 entries、references、ordered_rows、next_page_url、PaginationEvidence。
 - `parse_cs_notice(PageInput) -> ParsedNotice`，沿用 NoticeContent 与内容摘要。
 - Parser 版本 `cs-undergrad-notices-v1`，独立来源标识 `whu-cs-undergrad-teaching`。
+
+以上为离线节点版本；后续实采确认同结构的 `vsb_content_501` 包装，当前有限接受它并升至 v2。唯一性、必要字段、内层正文、规范化与分页规则保持，详见[CS 采集](cs-collection.md)。
 
 列表最终 URL 和所有分页链接只接受 HTTPS/443、cs.whu.edu.cn、`/xwdt/tzgg/bkjx.htm` 或其正整数 `.htm` 子页，不接受 query/fragment。
 以实际最终 URL 解析相对链接；从数字声明、first/prev/next/last 控制相互印证页码和总数。

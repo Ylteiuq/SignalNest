@@ -37,6 +37,8 @@ uv run --locked signalnest config-check --config signalnest.toml
 
 `[source].parser` 明确选择 `whu-student-notices`（旧 UC 配置省略时的默认值）或 `cs-undergrad-notices`。它同时绑定列表/详情 Parser、解析版本及请求/重定向许可，不从主机、身份或解析失败猜选来源。CS 示例为 `config.cs.example.toml`；使用独立配置、数据目录、数据库、启用基线和实例锁，勿覆盖既有 UC 配置。`crawl-once`、`scheduled-run`、`import-page`、`reparse` 均使用这一绑定。EMS 仍仅离线预览。
 
+CS 当前为 Parser v2，有限补充实采确认的 `vsb_content_501` 正文包装；UC v4、政策 v8、正文摘要、身份与分页规则保持。旧 CS v1 产物保留，已归档失败正文可离线 `reparse`，不伪造新获取或更新邮件。专用 `signalnest-cs@.service` / `signalnest-cs-regular.timer` 每小时 :15 做小额度受限采集，默认不注入 SMTP 凭据；邮件及通知启用边界独立，见[CS 采集说明](docs/cs-collection.md)。
+
 `[runtime]` 配置详情配额、复查日期档与有限错误延期；`[runtime.regular]` / `[runtime.full]` 为外部触发的单次任务预算。旧配置可以省略 runtime，使用新默认政策。定时频率由外部 timer 决定，不能用 HTTP 请求间隔设置。示例字段与行为见 [处理政策](docs/runtime-policy.md)。
 
 ## 显式初始化与升级

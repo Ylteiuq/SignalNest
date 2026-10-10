@@ -23,7 +23,7 @@
 - `search.py`：当前成功正文的派生词法索引、同事务增量同步、显式重建与只读搜索/详情；不重解析原文，不判断提醒资格。
 - `rollout.py`：只读部署准备与单次观察、明确允许文件的发布指纹/源码快照；本地通过不证明目标机运行、收件或连续在线。
 - `parsing.py`：`html_tree`、`parse_list`、`parse_notice` 纯函数，按 UTF-8 解码并显式使用 `html.parser`；不联网、不访问存储，不配置 logger 或运行任务。
-- `cs_parsing.py`：计算机学院本科教学的显式纯列表/详情 Parser，独立 cs-undergrad-notices-v1；复用数据/错误契约与保守正文清洗。`ems_parsing.py` 继续提供 EMS 离线详情。
+- `cs_parsing.py`：计算机学院本科教学的显式纯列表/详情 Parser，独立 cs-undergrad-notices-v2；有限支持实采确认的 vsb_content / vsb_content_501 正文包装，复用数据/错误契约与保守正文清洗。`ems_parsing.py` 继续提供 EMS 离线详情。
 - `sources.py`：两个固定来源的绑定，配置明确选择列表/详情 Parser、版本及有限 HTTP 路由。惰性加载纯 Parser，不动态注册、猜来源或回退至另一 Parser。
 - `notifications/contracts.py` / `profile.py`：严格不可变的个人画像、事实/证据/事件上下文和决策契约；画像读取只访问显式本地 TOML，不读取采集配置、环境密钥或数据库。
 - `notifications/facts.py` / `decision.py`：从现有 NoticeContent 提取有限字面事实，使用明确的 Profile、EventContext 与 now 计算 Action、核对标记、路线及可重放摘要。没有时钟默认值、网络、持久化或邮件能力；不改变 Parser 或内容摘要规则。
