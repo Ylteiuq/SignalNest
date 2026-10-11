@@ -105,6 +105,7 @@ systemctl status signalnest@regular.service signalnest@full.service signalnest-m
 journalctl --namespace=signalnest -u signalnest@regular.service --since '24 hours ago'
 journalctl --namespace=signalnest -u signalnest@full.service --since '7 days ago'
 journalctl --namespace=signalnest -u signalnest-mail.service --since '24 hours ago'
+journalctl --namespace=signalnest -u signalnest-observe@signalnest.service --since today --output=json --all
 /opt/signalnest/.venv/bin/signalnest mail-status --config /etc/signalnest/signalnest.toml
 ```
 

@@ -4,6 +4,8 @@ UC 与 CS 复用有界 Fetcher、RawStore、缓存、短事务、扫描覆盖和
 
 WSL 已安装冻结发布 `9366fcb`，完成原文恢复、两页小额度实采和专用每小时 timer 启用；邮件保持关闭。实际结果与验收范围见[CS 实机记录](validation/cs-collection-wsl-20261010.md)，不把受限扫描和已排期 timer 称为完整覆盖或连续运行。
 
+后续 2026-10-11 已部署 `bc2567d`，完成真实四页 full、独立启用与后台邮件，见[生产起点](validation/n2-production-wsl-20261011.md)。没有近期首启候选，不补发历史；七天验收仍待完成。上面的关闭状态是前一节点记录。
+
 | 配置/许可 | UC | CS |
 | --- | --- | --- |
 | source.parser | whu-student-notices（兼容默认） | cs-undergrad-notices（必须显式） |
@@ -50,7 +52,7 @@ uv run --locked signalnest status --config cs.toml
 
 Linux/systemd 模板：`signalnest-cs@.service` 使用 `/etc/signalnest/cs.toml`、`/var/lib/signalnest-cs`；`signalnest-cs-regular.timer` 每小时 Asia/Shanghai :15 触发一次，`signalnest-cs-full.timer` 每日 01:45 完整扫描。采集和新增独立 `signalnest-cs-mail.service` 都读取可选 SMTP EnvironmentFile；后台邮件仍必须由本配置显式开启，不会因环境文件存在而发送。CS 配置将 storage 两路径设为该绝对数据目录；初始化/迁移及写入仍统一服务账号。安装后先校验模板、手动执行一次服务及其有限摘要，再启用专用 timer。升级共享程序时同时停 UC/CS 所有采集、邮件 timer 和服务，分别备份实例；邮件关闭验收期间已有 UC 无 SMTP drop-in 保留。
 
-CS mail_runtime.enabled=false，且无启用通道；不会因接入来源自动复用 UC 政策、个人画像或邮件资格。2026-10-11 已完成四页真实完整扫描与首页复核，58 个通知身份均已登记；其中此前未遍历的 28 个身份仍按详情待办继续处理。画像核对、首启候选预览、显式 activation 和小额度生产邮件是后续独立边界，新增模板不自动启用它。
+CS 示例仍为 mail_runtime.enabled=false，不会因接入来源自动复用 UC 政策、个人画像或邮件资格。2026-10-11 已完成四页真实完整扫描与首页复核，58 个通知身份均已登记；其中此前未遍历的 28 个身份仍按详情待办继续处理。目标实例在用户确认画像、候选预览和显式 activation 后独立开启小额度邮件；新增模板本身不自动启用它。
 
 独立 CS 邮件 timer 在上海时间每小时 04、09…59 分钟推进冻结积压，UC 保持 02、07…57；各库按自己的锁和暂停状态运行。CS 采集服务 8 分钟上限适合当前 full 300 秒加小额度发送 120 秒，调整预算须同步核对上限。只读观察模板的实例名为 `cs`，默认仍记录测试画像未确认，详见[连续观察](rollout.md)。
 

@@ -2,13 +2,13 @@
 
 这里的 N2 是 2026-10-08 新迭代的真实部署阶段，与此前邮件规划 N2 编号独立。新增本地检查和观察入口，沿用既有采集、邮件、锁、systemd 模板及备份校验，不增加后台常驻进程。
 
-**当前已在 WSL 实际部署，N2 尚未整体验收。** Ubuntu 24.04 / WSL2、systemd 255、Python 3.12.3、SQLite 3.45.1（FTS5 trigram）及 ext4 已核验；受限实采、两封工程邮件的 SMTP 接受及用户收件确认、Linux 锁/超时和隔离恢复通过。此前 full 在第 6 页遇到栏目外链而正确中断；2026-10-10 已冻结发布、备份并升级 0008，重处理原失败列表后完成真实 24 页 full、首页复核和持久成功时间，见[升级验收](validation/n2-wsl-upgrade-20261010.md)。生产通知未启用，一周观察仍待完成；历史证据保持在[原实机记录](validation/n2-wsl-20261009.md)。当前使用用户授权的假设画像，不宣称真实个人条件已核对；文档不保存私人主机、邮箱或凭据。
+**当前已在 WSL 实际部署并启用生产通知，N2 尚未整体验收。** Ubuntu 24.04 / WSL2、systemd 255、Python 3.12.3、SQLite 3.45.1（FTS5 trigram）及 ext4 已核验；两封工程邮件的 SMTP 接受及用户收件确认、Linux 锁/超时和隔离恢复通过。2026-10-10 的 0008 升级与完整扫描见[升级验收](validation/n2-wsl-upgrade-20261010.md)。2026-10-11 又完成 UC/CS 真实 full、用户明确确认提醒画像及独立通知启用，后台邮件和每小时观察已开启，见[上线起点](validation/n2-production-wsl-20261011.md)。首份自然摘要仍待实际到期与收件，一周观察尚未完成；原[历史实机记录](validation/n2-wsl-20261009.md)保持不变。画像确认不证明任何官方报名资格，未知项继续保留；文档不保存私人主机、邮箱或凭据。
 
 WSL 的生命周期、交互登录任务和验证顺序见 [WSL 部署指南](wsl-deployment.md)。现有写入锁、原文发布和 systemd 服务在 Linux 环境运行；原生 Windows 仍不是受支持的写入部署目标。当前 Mac 不作为部署实例。
 
 本地测试通过、`prepared=true` 或七行观察 JSON 都不能替代 N2 的实际验收。已有本科生院来源可以在受支持环境部署；EMS 当期助教来源仍未验收。
 
-2026-10-11 的邮件关闭验收已分别完成 UC 24 页（589 行，其中两条未适配引用）和 CS 4 页（58 个通知身份），均含实际首页复核、归档逐页重新解析与持久 complete 指针核对。详情成功不作为完整列表覆盖的前置条件；失败和积压如实保留。生产画像确认、真实通知启用和七天记录仍是独立步骤。
+2026-10-11 的邮件关闭验收已分别完成 UC 24 页（589 行，其中两条未适配引用）和 CS 4 页（58 个通知身份），均含实际首页复核、归档逐页重新解析与持久 complete 指针核对。详情成功不作为完整列表覆盖的前置条件；失败和积压如实保留。画像确认和真实通知启用另行完成，七天记录仍是独立验收。
 
 ## 本地入口
 
@@ -41,6 +41,8 @@ sudo systemctl daemon-reload
 sudo systemctl start signalnest-observe@signalnest.service signalnest-observe@cs.service
 sudo systemctl enable --now signalnest-observe@signalnest.timer signalnest-observe@cs.timer
 journalctl --namespace=signalnest -u signalnest-observe@signalnest.service --since today
+# 导出完整观察 JSON；默认 JSON 模式可能将较大的 MESSAGE 表示为 null。
+journalctl --namespace=signalnest -u signalnest-observe@signalnest.service --since today --output=json --all
 ```
 
 这个 timer 不评估七天是否通过、不告警、不修复。退出 0 仅表示产生了观察，健康判断须查看 `prepared`、checks、覆盖时间及积压。新模板与脚本均进入发布指纹允许集合；部署后必须核对运行源码与冻结清单。邮件仍由独立 mail timer 推进。

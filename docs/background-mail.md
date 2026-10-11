@@ -1,6 +1,6 @@
 # 后台邮件执行
 
-外部 timer 触发有界单次命令，不在 Python 内增加常驻调度器。默认 `[mail_runtime].enabled = false`，旧配置和仅采集实例继续原有行为；本次没有安装服务或发送真实邮件。
+外部 timer 触发有界单次命令，不在 Python 内增加常驻调度器。默认 `[mail_runtime].enabled = false`，旧配置和仅采集实例继续原有行为。以下离线工具验证与目标实机验收分开记录；2026-10-11 的 UC/CS 独立正式启用见[上线起点](validation/n2-production-wsl-20261011.md)，首份自然投递及一周观察仍待验收。
 
 ## 显式启用
 
@@ -64,7 +64,7 @@ EnvironmentFile 由服务管理器读取后注入进程，适配器只在真正�
 
 SMTP 已接受但本地结果尚未提交时终止，仍可能重复发送；后续持锁运行把遗留 sending 一次登记为 uncertain 并保存冷却。已提交 accepted 不重发，Message-ID 不证明外部去重。恢复副本先暂停且不注入凭据，见 [邮件备份恢复](mail-backup.md)。
 
-## 实际验证范围
+## 首次工具交付的验证范围（历史）
 
 离线集成测试连接真实通知/冻结/发送/SQLite，验证自动计划、分批积压、普通采集失败、持久单项阻断、系统错误停止和暂停。真实子进程验证统一争锁及释放、环境凭据被实际 SMTP 适配器读取、接受后 supervisor SIGTERM/宽限/SIGKILL 与下一进程暂停恢复；SMTP 服务为本地 socketpair，相关进程测试用透明 TLS wrapper，真实本地 TLS 握手另由 N3 测试覆盖。
 
