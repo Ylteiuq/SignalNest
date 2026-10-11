@@ -1,0 +1,412 @@
+{
+  "format": "signalnest-n2-observation-checkpoint-v1",
+  "input_diagnostics": {
+    "ignored_journal_messages": 0,
+    "unreadable_journal_messages": 0
+  },
+  "limitations": [
+    "Snapshots do not prove continuous uptime or mailbox receipt.",
+    "Net backlog changes are not throughput or failure rates.",
+    "Unobserved intervals and unavailable snapshots remain unknown."
+  ],
+  "private_evidence": "retained_outside_repository",
+  "release_content_sha256": "c5edd728645813305705002dd3b8c25b5f3d8d62db93c4d36ffd24ea7384136d",
+  "release_git": "7cdecf6d9a147318015f157a3ec7fffcacf837cd",
+  "reviewed_at": 1791729538,
+  "rollout_acceptance": "requires_human_evidence_review",
+  "selected_evidence_sha256": "33b9ef965db9b1bfc155de2d16bb9a6544d0be21a64e7f41ad74486796ebadce",
+  "seven_days_elapsed": false,
+  "sources": {
+    "whu-cs-undergrad-teaching": {
+      "automatic_mail_pass_summary": {
+        "accepted": 0,
+        "attempted": 0,
+        "attention": 0,
+        "passes": 118,
+        "paused": 0
+      },
+      "backlog_trend": [
+        {
+          "at": 1791694220,
+          "coverage": "fresh",
+          "failed": 0,
+          "first_backlog": 28,
+          "processed": 30
+        },
+        {
+          "at": 1791694912,
+          "coverage": "fresh",
+          "failed": 0,
+          "first_backlog": 28,
+          "processed": 30
+        },
+        {
+          "at": 1791696321,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 27,
+          "processed": 31
+        },
+        {
+          "at": 1791699914,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 25,
+          "processed": 33
+        },
+        {
+          "at": 1791703502,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 23,
+          "processed": 35
+        },
+        {
+          "at": 1791707106,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 21,
+          "processed": 37
+        },
+        {
+          "at": 1791710721,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 19,
+          "processed": 39
+        },
+        {
+          "at": 1791714321,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 17,
+          "processed": 41
+        },
+        {
+          "at": 1791717909,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 15,
+          "processed": 43
+        },
+        {
+          "at": 1791721502,
+          "coverage": "fresh",
+          "failed": 2,
+          "first_backlog": 14,
+          "processed": 44
+        },
+        {
+          "at": 1791723658,
+          "coverage": "fresh",
+          "failed": 0,
+          "first_backlog": 12,
+          "processed": 46
+        },
+        {
+          "at": 1791725111,
+          "coverage": "fresh",
+          "failed": 0,
+          "first_backlog": 10,
+          "processed": 48
+        },
+        {
+          "at": 1791728705,
+          "coverage": "fresh",
+          "failed": 0,
+          "first_backlog": 8,
+          "processed": 50
+        }
+      ],
+      "collection_unavailable_at": [],
+      "complete_age_seconds": 37379,
+      "cooldown_active": false,
+      "coverage_evidence": {
+        "at": 1791692158,
+        "body_reference_digests_verified": 4,
+        "coverage": "complete",
+        "home_recheck_unchanged": true,
+        "page_count": 4,
+        "registered_rows": 58,
+        "registration_count": 4,
+        "run_id": "b88d9a8d3c3f4c2aa82785b6d371d231"
+      },
+      "coverage_missing_at": [],
+      "coverage_stale_at": [],
+      "current_documents": {
+        "discovered": 8,
+        "failed": 0,
+        "failed_with_success": 0,
+        "failed_without_success": 0,
+        "processed": 50,
+        "total": 58
+      },
+      "current_failures": [],
+      "current_first_processing": {
+        "deferred": 0,
+        "due": 8,
+        "failed": 0,
+        "total": 8
+      },
+      "current_rechecks": {
+        "deferred": 50,
+        "due": 0,
+        "failed_due": 0,
+        "unscheduled_successful": 0
+      },
+      "gaps": [],
+      "last_service_mail_locally_ready": true,
+      "last_service_observation_at": 1791728705,
+      "last_service_prepared": true,
+      "latest_run": {
+        "coverage": "limited",
+        "coverage_error_code": "page_limit",
+        "error_code": null,
+        "finished_at": 1791728133,
+        "id": "6eb5b1d27890425d915f2970244ad8a2",
+        "result": "succeeded",
+        "started_at": 1791728118
+      },
+      "mail": {
+        "counts": {
+          "accepted": 0,
+          "blocked": 0,
+          "pending": 0,
+          "retry": 0,
+          "sending": 0,
+          "uncertain": 0
+        },
+        "paused": false,
+        "plan_error_records": 0,
+        "unallocated_digest": 0,
+        "unplanned_immediate": 0
+      },
+      "mail_attempt_records": [],
+      "mail_delivery_records": [],
+      "mail_error_codes": [],
+      "mail_events": [],
+      "mail_paused_at": [],
+      "mail_unavailable_at": [],
+      "net_changes": {
+        "documents": 0,
+        "failed": 0,
+        "first_backlog": -20,
+        "processed": 20
+      },
+      "new_problem_runs_since_previous_checkpoint": [],
+      "sample_count": 13,
+      "schema_head": "0008_list_references",
+      "unfinished_runs": 0
+    },
+    "whu-undergrad-student": {
+      "automatic_mail_pass_summary": {
+        "accepted": 0,
+        "attempted": 0,
+        "attention": 0,
+        "passes": 118,
+        "paused": 0
+      },
+      "backlog_trend": [
+        {
+          "at": 1791694220,
+          "coverage": "fresh",
+          "failed": 9,
+          "first_backlog": 148,
+          "processed": 439
+        },
+        {
+          "at": 1791694912,
+          "coverage": "fresh",
+          "failed": 9,
+          "first_backlog": 138,
+          "processed": 449
+        },
+        {
+          "at": 1791696321,
+          "coverage": "fresh",
+          "failed": 9,
+          "first_backlog": 138,
+          "processed": 449
+        },
+        {
+          "at": 1791699914,
+          "coverage": "fresh",
+          "failed": 10,
+          "first_backlog": 119,
+          "processed": 468
+        },
+        {
+          "at": 1791703502,
+          "coverage": "fresh",
+          "failed": 10,
+          "first_backlog": 99,
+          "processed": 488
+        },
+        {
+          "at": 1791707106,
+          "coverage": "fresh",
+          "failed": 10,
+          "first_backlog": 80,
+          "processed": 507
+        },
+        {
+          "at": 1791710721,
+          "coverage": "fresh",
+          "failed": 14,
+          "first_backlog": 64,
+          "processed": 523
+        },
+        {
+          "at": 1791714321,
+          "coverage": "fresh",
+          "failed": 15,
+          "first_backlog": 45,
+          "processed": 542
+        },
+        {
+          "at": 1791717909,
+          "coverage": "fresh",
+          "failed": 15,
+          "first_backlog": 25,
+          "processed": 562
+        },
+        {
+          "at": 1791721502,
+          "coverage": "fresh",
+          "failed": 15,
+          "first_backlog": 15,
+          "processed": 572
+        },
+        {
+          "at": 1791723657,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 1,
+          "processed": 586
+        },
+        {
+          "at": 1791725111,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 1,
+          "processed": 586
+        },
+        {
+          "at": 1791728705,
+          "coverage": "fresh",
+          "failed": 1,
+          "first_backlog": 1,
+          "processed": 586
+        }
+      ],
+      "collection_unavailable_at": [],
+      "complete_age_seconds": 37139,
+      "cooldown_active": false,
+      "coverage_evidence": {
+        "at": 1791692398,
+        "body_reference_digests_verified": 25,
+        "coverage": "complete",
+        "home_recheck_unchanged": true,
+        "page_count": 24,
+        "registered_rows": 589,
+        "registration_count": 24,
+        "run_id": "4113cbf15325448382c4c1f8f2a9043a"
+      },
+      "coverage_missing_at": [],
+      "coverage_stale_at": [],
+      "current_documents": {
+        "discovered": 0,
+        "failed": 1,
+        "failed_with_success": 0,
+        "failed_without_success": 1,
+        "processed": 586,
+        "total": 587
+      },
+      "current_failures": [
+        {
+          "current_version_id": null,
+          "id": 54,
+          "last_attempt_at": 1791720040,
+          "last_error_code": "redirect_invalid",
+          "next_due_at": 1791741640,
+          "source_document_id": "1517:126661",
+          "status": "failed"
+        }
+      ],
+      "current_first_processing": {
+        "deferred": 1,
+        "due": 0,
+        "failed": 1,
+        "total": 1
+      },
+      "current_rechecks": {
+        "deferred": 586,
+        "due": 0,
+        "failed_due": 0,
+        "unscheduled_successful": 0
+      },
+      "gaps": [],
+      "last_service_mail_locally_ready": true,
+      "last_service_observation_at": 1791728705,
+      "last_service_prepared": true,
+      "latest_run": {
+        "coverage": "limited",
+        "coverage_error_code": "page_limit",
+        "error_code": null,
+        "finished_at": 1791729030,
+        "id": "3fe9dabcad654fd3a7d14c93eaab8c0a",
+        "result": "succeeded",
+        "started_at": 1791729014
+      },
+      "mail": {
+        "counts": {
+          "accepted": 0,
+          "blocked": 0,
+          "pending": 0,
+          "retry": 0,
+          "sending": 0,
+          "uncertain": 0
+        },
+        "paused": false,
+        "plan_error_records": 0,
+        "unallocated_digest": 1,
+        "unplanned_immediate": 0
+      },
+      "mail_attempt_records": [],
+      "mail_delivery_records": [],
+      "mail_error_codes": [],
+      "mail_events": [
+        {
+          "delivery_intent_registered_at": 1791693523,
+          "document_id": 1,
+          "effective_route": "digest",
+          "id": 1,
+          "kind": "activation_recent",
+          "occurred_at": 1791693523
+        }
+      ],
+      "mail_paused_at": [],
+      "mail_unavailable_at": [],
+      "net_changes": {
+        "documents": 0,
+        "failed": -8,
+        "first_backlog": -147,
+        "processed": 147
+      },
+      "new_problem_runs_since_previous_checkpoint": [],
+      "sample_count": 13,
+      "schema_head": "0008_list_references",
+      "unfinished_runs": 0
+    }
+  },
+  "window_elapsed_seconds": 35319,
+  "window_end": 1791729538,
+  "window_started_at": 1791694219,
+  "windows_precheck": {
+    "keepAliveState": "Running",
+    "lastTaskResult": 267009,
+    "lastTaskRun": "2026-10-10T19:32:32.0000000+08:00",
+    "observedAt": "2026-10-11T14:36:11.7418254Z",
+    "ubuntuAlreadyRunning": true
+  }
+}
