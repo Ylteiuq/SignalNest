@@ -1,0 +1,12 @@
+[Unit]
+Description=SignalNest hourly read-only %i observation
+
+[Timer]
+OnCalendar=*-*-* *:25:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=0
+Persistent=true
+Unit=signalnest-observe@%i.service
+
+[Install]
+WantedBy=timers.target

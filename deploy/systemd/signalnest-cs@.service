@@ -1,6 +1,6 @@
 # Dedicated CS database/channel; does not repoint the existing UC service.
 [Unit]
-Description=SignalNest CS bounded %i collection (mail disabled)
+Description=SignalNest CS bounded %i collection
 Wants=network-online.target
 After=network-online.target
 
@@ -21,6 +21,7 @@ ProtectHome=yes
 ProtectSystem=strict
 ReadWritePaths=/var/lib/signalnest-cs
 Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/signalnest/smtp.env
 StandardOutput=journal
 StandardError=journal
 LogNamespace=signalnest

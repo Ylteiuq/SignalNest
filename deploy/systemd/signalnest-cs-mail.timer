@@ -1,0 +1,13 @@
+[Unit]
+Description=SignalNest CS mail backlog every five minutes
+
+[Timer]
+OnBootSec=4min
+OnCalendar=*-*-* *:04/5:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=0
+Persistent=true
+Unit=signalnest-cs-mail.service
+
+[Install]
+WantedBy=timers.target

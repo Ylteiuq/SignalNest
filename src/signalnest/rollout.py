@@ -133,7 +133,12 @@ def build_release_manifest(repo_root: Path) -> dict:
     paths.update((root / "deploy/systemd").glob("*.service"))
     paths.update((root / "deploy/systemd").glob("*.timer"))
     paths.update((root / "deploy/systemd").glob("*.conf"))
-    for name in ("verify_backup.py", "evaluate_notifications.py", "release_snapshot.py"):
+    for name in (
+        "verify_backup.py",
+        "evaluate_notifications.py",
+        "release_snapshot.py",
+        "observe_instance.py",
+    ):
         candidate = root / "deploy" / name
         if candidate.exists():
             paths.add(candidate)

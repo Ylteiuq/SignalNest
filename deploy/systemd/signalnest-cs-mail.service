@@ -1,0 +1,28 @@
+# Opt-in production mail; CS config remains disabled until explicitly enabled.
+[Unit]
+Description=SignalNest CS bounded mail planning and delivery
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=signalnest
+Group=signalnest
+WorkingDirectory=/opt/signalnest
+ExecStart=/opt/signalnest/.venv/bin/signalnest scheduled-mail --config /etc/signalnest/cs.toml
+Restart=no
+TimeoutStartSec=10min
+TimeoutStopSec=30s
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/signalnest-cs
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/signalnest/smtp.env
+StandardOutput=journal
+StandardError=journal
+LogNamespace=signalnest
+SyslogIdentifier=signalnest-cs-mail

@@ -60,6 +60,10 @@ sudo -u signalnest /opt/signalnest/.venv/bin/signalnest scheduled-run --config /
 | `signalnest@regular.service` | 每小时整点及半点 | limited，2 页、20 详情、64 请求、600 秒 |
 | `signalnest@full.service` | 每日 01:15 | full，64 页、0 详情、96 请求、600 秒 |
 | `signalnest-mail.service` | 启动后 2 分钟；每小时 02、07…57 分钟 | 每轮计划最多 5 封，发送最多 5 封/300 秒 |
+| `signalnest-cs@regular.service` | 每小时 :15 | CS 示例为 limited，2 页、2 详情、12 请求、180 秒 |
+| `signalnest-cs@full.service` | 每日 01:45 | CS 示例为 full，16 页、0 详情、24 请求、300 秒 |
+| `signalnest-cs-mail.service` | 启动后 4 分钟；每小时 04、09…59 分钟 | 明确启用后按本实例配置；首次各 1 封/120 秒 |
+| `signalnest-observe@signalnest/cs.service` | 每小时 :25 | 只读实际时间观察，不计划、发送或取得写锁 |
 
 `scheduled-run --mode regular/full` 从配置读取预算，不靠模板另写一份数字。full 把预算用于发现与覆盖验证，详情由 regular 分批补全；两者共用相同写入锁、缓存、冷却及 due。启用后台邮件后，采集普通失败仍接着计划/发送；数据库、归档或状态登记等系统错误终止本轮。独立邮件 timer 可推进已有冻结积压，单项渲染阻断不阻止其他冻结邮件；暂停则禁止 SMTP。两个入口均持相同实例锁。详情分组容量、复查年龄档与失败延期见 README；分配槽不保证预算耗尽或冷却时仍完成相应尝试。
 
@@ -90,6 +94,8 @@ systemctl list-timers signalnest-regular.timer signalnest-full.timer signalnest-
 日历显式标注时区，不依赖主机本地时区；启动前确认系统时钟与 Asia/Shanghai 时区数据正常。[systemd 时间表达式](https://github.com/systemd/systemd/blob/v252/man/systemd.time.xml) 升级或备份时停止三个 timer 和正在运行的采集/邮件 service；仅停止 timer 不会停止已经启动的进程。
 
 采集及邮件服务模板均读取 `/etc/signalnest/smtp.env`（可选），由管理员建立 root 所有、0600 的 `NAME=value` 文件，名称须与 `[smtp]` 对应；不写 export、shell 命令或真实凭据示例。启用邮件但缺凭据会持久暂停，修复后先 `mail-status`，再显式 `mail-resume`。首次上线先保持 `mail-pause` 验证 unit 环境和路径，再核对预览并人工恢复；实际发送和超时演练仍需在目标机受控验证。
+
+UC 和 CS 使用独立数据库、配置、启用边界及 timer，共享程序升级时先停两组所有写入服务。新增 CS full/mail 模板的安装顺序见 [CS 采集](cs-collection.md) 与 [后台邮件](background-mail.md)；只读每小时观察服务见 [上线准备](rollout.md)。默认观察 Profile 未确认，不因安装模板而更改真实画像或开启邮件。
 
 ## 状态与日志
 

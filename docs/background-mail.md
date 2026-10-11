@@ -52,6 +52,10 @@ signalnest scheduled-mail --config /etc/signalnest/signalnest.toml
 
 沿用 [运维模板](operations.md) 的 Linux/systemd 252+、服务账号、数据库路径和 journal namespace。新增 `signalnest-mail.service` / `.timer`：启动后两分钟检查一次，此后上海时间每小时 02、07、12…57 分钟执行；持久 timer 停机后至多补一次触发，积压由多轮额度推进。regular/full 的 `scheduled-run` 也在采集后计划/发送；独立 timer 在采集未正常收尾时继续提供邮件入口。不同服务共用写锁，没有并行发送。
 
+CS 使用独立的 `signalnest-cs-mail.service` / `.timer`、`/etc/signalnest/cs.toml` 和 `/var/lib/signalnest-cs`；启动后四分钟，此后上海时间 04、09…59 分钟触发。UC/CS 各自持有实例锁、政策、通知基线、邮件成员与暂停状态；共享 SMTP 凭据不共享投递资格，也不形成跨来源 Digest。CS 采集模板同样读取可选 EnvironmentFile，避免开启后台邮件后组合入口缺凭据而意外暂停；默认配置仍关闭邮件。
+
+首次真实启用采用显式小额度，例如每轮计划/发送各 1 封、10 个成员、128 KiB、发送预算 120 秒。先分别完成本来源 full、画像核对、activation、暂停与候选/冻结预览，再开启对应 mail timer。没有自然候选时不把旧通知改造成新事件。CS full 单独每天 01:45，UC 保持 01:15；详情继续由 regular 处理，参见[CS 来源边界](cs-collection.md)。
+
 两个服务均读取可选 `/etc/signalnest/smtp.env`。由管理员在目标机创建，root 拥有、权限 0600，变量名与 SMTP 配置一致；文件使用 `NAME=value`，不要写 `export` 或 shell 命令。真实密码不要写进 TOML、仓库、unit 或命令行。文件缺失不会阻止仅采集实例启动；邮件已启用但凭据缺失时会暂停，修复后须核对 `mail-status` 并显式 `mail-resume`。
 
 EnvironmentFile 由服务管理器读取后注入进程，适配器只在真正发送时取值；它不是加密秘密仓库，目标机仍须限制管理员与进程环境读取权限。[systemd 执行环境](https://github.com/systemd/systemd/blob/v252/man/systemd.exec.xml)

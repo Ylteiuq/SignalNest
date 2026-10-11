@@ -147,7 +147,9 @@ uv run --locked python deploy/release_snapshot.py \
   --release-root "$PWD" --output /private/tmp/signalnest-release.tar.gz
 ```
 
-准备报告检查源码、数据库、积压、冷却和邮件状态；真实画像须显式传 `--profile`，核对后再声明 `--profile-confirmed`。它始终保留 `externally_verified=false`，不会发送邮件或开启定时器。`observe` 输出一行 JSON，可由操作者保存为每日记录；没有后台监视任务。早前只读检查只见 Windows；用户后续准备 WSL 后已完成受限部署、两封工程邮件实收与隔离恢复，见[实机记录](docs/validation/n2-wsl-20261009.md)。完整覆盖、生产通知和一周观察仍未验收，不能由准备报告宣称完成。下一步与验收表见[上线说明](docs/rollout.md)。
+准备报告检查源码、数据库、积压、冷却和邮件状态；真实画像须显式传 `--profile`，核对后再声明 `--profile-confirmed`。它始终保留 `externally_verified=false`，不会发送邮件或开启定时器。`observe` 输出一行 JSON；新增 `deploy/observe_instance.py` 使用实际系统时间，供只读 systemd 观察模板每小时记录到独立 journal，不补造历史。模板默认使用明确标为测试的画像；确认个人画像后才用实例 drop-in 更换路径并加确认参数，见[上线说明](docs/rollout.md)。
+
+WSL 已完成 UC 24 页、CS 4 页真实完整扫描及首页复核，原文、逐页成员和持久成功时间另行核对；两封工程邮件实收与隔离恢复保留在[历史实机记录](docs/validation/n2-wsl-20261009.md)。生产通知和一周观察仍待验收，不能由准备报告宣称完成。UC、CS 分别使用数据库、完整扫描与独立邮件 timer，不合并启用边界；部署步骤见[后台邮件](docs/background-mail.md)。
 
 ## 单次 HTTP 的离线衔接接口
 

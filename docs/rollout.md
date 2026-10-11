@@ -8,6 +8,8 @@ WSL 的生命周期、交互登录任务和验证顺序见 [WSL 部署指南](ws
 
 本地测试通过、`prepared=true` 或七行观察 JSON 都不能替代 N2 的实际验收。已有本科生院来源可以在受支持环境部署；EMS 当期助教来源仍未验收。
 
+2026-10-11 的邮件关闭验收已分别完成 UC 24 页（589 行，其中两条未适配引用）和 CS 4 页（58 个通知身份），均含实际首页复核、归档逐页重新解析与持久 complete 指针核对。详情成功不作为完整列表覆盖的前置条件；失败和积压如实保留。生产画像确认、真实通知启用和七天记录仍是独立步骤。
+
 ## 本地入口
 
 ```sh
@@ -25,6 +27,23 @@ signalnest observe --config /etc/signalnest/signalnest.toml \
 ```
 
 `--at` 是显式 UTC Unix 秒，观测年龄和等待时间都使用它。应使用真实观察时刻，不补造过去记录。观察日志的目录权限、备份和保留由部署者管理，不把包含个人实例状态的日志提交仓库。命令不读取 notice 正文、冻结邮件正文、收发地址或凭据文件；SMTP 仅检查配置的用户名/密码环境变量是否非空，既不输出值也不计算秘密摘要。当前交互 shell 中存在凭据不证明 systemd 已正确注入；必须另行在目标服务环境核验。
+
+### 实际时间的只读定时记录
+
+`deploy/observe_instance.py` 复用同一观察函数，仅在显式运行时取系统时间，不写数据库、不取写锁、不访问网络。`signalnest-observe@.service` / `.timer` 使用配置文件名作为实例名：`signalnest` 对应 UC，`cs` 对应 CS，每小时上海时间 :25 记录一条 JSON。stdout 交给已有 namespace journal 的 128 MiB / 14 天保留规则；容量不足可能更早轮转，关键周报须独立导出，不保证日志满七天。
+
+默认 Profile 为 `/etc/signalnest/profile.test.toml`，且不传 `--profile-confirmed`，因此不会把验收假设伪装为个人确认。操作者确认后，用每个观察服务的 drop-in 清空并重新设置 `ExecStart`，指定真实文件与确认参数，再核对实际服务输出。EnvironmentFile 只用于已配置 SMTP 凭据的存在性检查；不发送邮件或改变暂停状态。
+
+```sh
+sudo install -m 0644 deploy/systemd/signalnest-observe@.service /etc/systemd/system/
+sudo install -m 0644 deploy/systemd/signalnest-observe@.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl start signalnest-observe@signalnest.service signalnest-observe@cs.service
+sudo systemctl enable --now signalnest-observe@signalnest.timer signalnest-observe@cs.timer
+journalctl --namespace=signalnest -u signalnest-observe@signalnest.service --since today
+```
+
+这个 timer 不评估七天是否通过、不告警、不修复。退出 0 仅表示产生了观察，健康判断须查看 `prepared`、checks、覆盖时间及积压。新模板与脚本均进入发布指纹允许集合；部署后必须核对运行源码与冻结清单。邮件仍由独立 mail timer 推进。
 
 报告包含：
 

@@ -48,9 +48,11 @@ uv run --locked signalnest status --config cs.toml
 
 当前每库仅一个通知启用通道。部署为两个独立实例：UC 保留原配置/database/data/启用边界；CS 单独 config/database/data/实例锁、运行事实、冷却和通知基线。共享程序安装不共享业务状态。采集前发现当前数据库已启用另一来源的通知即拒绝，避免网络和部分写入后才发现冲突；没有跨来源邮件聚合。
 
-Linux/systemd 模板：`signalnest-cs@.service` 使用 `/etc/signalnest/cs.toml`、`/var/lib/signalnest-cs`，不读取 SMTP EnvironmentFile；`signalnest-cs-regular.timer` 每小时 Asia/Shanghai :15 触发一次。CS 配置将 storage 两路径设为该绝对数据目录；初始化/迁移及写入仍统一服务账号。安装后先校验模板、手动执行一次服务及其有限摘要，再启用专用 timer。升级共享程序时同时停 UC/CS timer 和服务，分别备份实例；已有 UC 无 SMTP drop-in 保留。
+Linux/systemd 模板：`signalnest-cs@.service` 使用 `/etc/signalnest/cs.toml`、`/var/lib/signalnest-cs`；`signalnest-cs-regular.timer` 每小时 Asia/Shanghai :15 触发一次，`signalnest-cs-full.timer` 每日 01:45 完整扫描。采集和新增独立 `signalnest-cs-mail.service` 都读取可选 SMTP EnvironmentFile；后台邮件仍必须由本配置显式开启，不会因环境文件存在而发送。CS 配置将 storage 两路径设为该绝对数据目录；初始化/迁移及写入仍统一服务账号。安装后先校验模板、手动执行一次服务及其有限摘要，再启用专用 timer。升级共享程序时同时停 UC/CS 所有采集、邮件 timer 和服务，分别备份实例；邮件关闭验收期间已有 UC 无 SMTP drop-in 保留。
 
-CS mail_runtime.enabled=false，且无启用通道；不会因接入来源自动复用 UC 政策、个人画像或邮件资格。后续需本来源真实完整扫描、画像核对、首启候选预览和显式 activation，再决定小额度生产邮件。本阶段不启用它。
+CS mail_runtime.enabled=false，且无启用通道；不会因接入来源自动复用 UC 政策、个人画像或邮件资格。2026-10-11 已完成四页真实完整扫描与首页复核，58 个通知身份均已登记；其中此前未遍历的 28 个身份仍按详情待办继续处理。画像核对、首启候选预览、显式 activation 和小额度生产邮件是后续独立边界，新增模板不自动启用它。
+
+独立 CS 邮件 timer 在上海时间每小时 04、09…59 分钟推进冻结积压，UC 保持 02、07…57；各库按自己的锁和暂停状态运行。CS 采集服务 8 分钟上限适合当前 full 300 秒加小额度发送 120 秒，调整预算须同步核对上限。只读观察模板的实例名为 `cs`，默认仍记录测试画像未确认，详见[连续观察](rollout.md)。
 
 ## 验证范围
 

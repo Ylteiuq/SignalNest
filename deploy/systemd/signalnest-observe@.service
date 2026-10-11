@@ -1,0 +1,26 @@
+# Instance names match config filenames: signalnest (UC) and cs (CS).
+# Default profile is explicitly a test hypothesis; no personal confirmation flag.
+[Unit]
+Description=SignalNest read-only %i observation
+
+[Service]
+Type=oneshot
+User=signalnest
+Group=signalnest
+WorkingDirectory=/opt/signalnest
+ExecStart=/opt/signalnest/.venv/bin/python /opt/signalnest/deploy/observe_instance.py --config /etc/signalnest/%i.toml --profile /etc/signalnest/profile.test.toml --release-root /opt/signalnest
+Restart=no
+TimeoutStartSec=2min
+TimeoutStopSec=30s
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/signalnest/smtp.env
+StandardOutput=journal
+StandardError=journal
+LogNamespace=signalnest
+SyslogIdentifier=signalnest-observe-%i

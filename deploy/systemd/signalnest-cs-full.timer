@@ -1,0 +1,12 @@
+[Unit]
+Description=SignalNest CS daily bounded full scan
+
+[Timer]
+OnCalendar=*-*-* 01:45:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=0
+Persistent=true
+Unit=signalnest-cs@full.service
+
+[Install]
+WantedBy=timers.target
