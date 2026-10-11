@@ -23,3 +23,9 @@
     uv run --locked python deploy/evaluate_notifications.py --check --cases docs/validation/notification-original-misses-cases.json --output /tmp/signalnest-notification-misses.json
 
 不传 --output 时结果写到标准输出；已有输出文件不会被覆盖。详情见[通知规则说明](../notifications.md)和[维护入口](../notification-maintenance.md)。
+
+## 独立人工评价进度
+
+六组共 31 个情境仍全部符合当前工程期望，规则保持 v8。本轮仅更新至有真实失败依据的 UC Parser v5/CS v3，并重新回放，已支持模板的内容摘要保持。工程标签不等于真人评价。
+
+新增[人工入口](../human-review.md)绑定完整输入与冻结回放证据，[当前待确认结果](human-review-pending-20261011.json)为 31 个通知情境加 15 个搜索查询，0 confirmed、46 pending。未替用户创建标签；漏报/误报率在无人工分母时均为 null。工程回归和后续人工子集统计分别报告，旧决策和已冻结邮件不改写。

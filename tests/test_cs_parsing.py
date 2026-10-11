@@ -297,7 +297,7 @@ def test_real_detail_preserves_conflicts_plain_text_channels_and_structure():
     result = parse_cs_notice(capture(NOTICE))
     content = result.content
     assert result.source_document_id == "1074:64481"
-    assert result.parser_version == PARSER_VERSION == "cs-undergrad-notices-v2"
+    assert result.parser_version == PARSER_VERSION == "cs-undergrad-notices-v3"
     assert str(result.page_url) == NOTICE_URL
     assert content.title == "2026-2027学年第一学期计算机学院助教招募通知"
     assert content.published_date == date(2026, 7, 13)

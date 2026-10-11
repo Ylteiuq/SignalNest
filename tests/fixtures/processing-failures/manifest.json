@@ -1,0 +1,495 @@
+{
+  "format": "signalnest-redacted-parser-failures-v1",
+  "note": "Existing complete 200 archive, not new HTTP. Article topology and public title/date retained; non-header text and alt labels replaced, scripts/styles and unnecessary attributes removed. Redacted projection, not original bytes or decision evidence.",
+  "cases": [
+    {
+      "fetched_at": 1791703822,
+      "fixture_sha256": "964f89fa9079157bc76f2a73b8f3597760a20bce446956f988e499f46de30a82",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "307a3cf042dea94d82db1e166ed22ddab4e1b03bedd93ff8d63d75ff861fdf47",
+      "response_id": 806,
+      "source": "uc",
+      "source_document_id": "1517:128201",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=128201",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_503",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-128201.html",
+      "title": "关于做好2027届推荐优秀应届本科毕业生免试攻读研究生工作的通知",
+      "published_date": "2026-09-02",
+      "sanitized_content_sha256": "1afeaa8feebbbc5c23680caab03b008d703c596e95c02418da21ad5eb915aee2"
+    },
+    {
+      "fetched_at": 1791720050,
+      "fixture_sha256": "78cdac7c687b67345bbc8d8085e28f75edebf6404897c312a2eb4e80342dacae",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "dae5fe3072429cf13113287435343003597404fd55fd4644dc2f7f4045b94c92",
+      "response_id": 934,
+      "source": "uc",
+      "source_document_id": "1517:125511",
+      "source_url": "https://uc.whu.edu.cn/info/1517/125511.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_4",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-125511.html",
+      "title": "本科生院关于2026年寒假工作安排的通知",
+      "published_date": "2026-01-19",
+      "sanitized_content_sha256": "81c5aa8a5a6c00d6a68f2bdafafa2aa135b5f4dd1d4bb3e1e4512bbd17550eed"
+    },
+    {
+      "fetched_at": 1791720055,
+      "fixture_sha256": "6879751fbbbc6372edaad589942284c0b3e1c7bd0ffdc6b82bca61cae3a3be78",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "890d8770c67f18efef957eb5eaadfa82b53553b4e187efc8a439bb99a9644403",
+      "response_id": 935,
+      "source": "uc",
+      "source_document_id": "1517:123631",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=123631",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_6",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-123631.html",
+      "title": "关于武汉大学2025年秋季学期《国际化拔尖创新人才科研训练》课程选课的通知",
+      "published_date": "2025-09-16",
+      "sanitized_content_sha256": "3e99c35296c1cc5efb015e88480faff9fd1f80a7ae8e9ff041a42bf7194c64ff"
+    },
+    {
+      "fetched_at": 1791720059,
+      "fixture_sha256": "c214bf45a79b20db2eb31a5bf8f8eafebba2d4dab43e846e9d42894f21c227e4",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "cfa5a5717731f90629050b43d021f639251040bb67c8256c207eba48d7b80006",
+      "response_id": 936,
+      "source": "uc",
+      "source_document_id": "1517:118441",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=118441",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_7",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-118441.html",
+      "title": "关于公布武汉大学2025年普通本科生转专业、转学院接收规模的通知",
+      "published_date": "2025-02-10",
+      "sanitized_content_sha256": "da97548b0c3d77d8af0a08e3cf4652bc8002f63bbfb687a32233688422521278"
+    },
+    {
+      "fetched_at": 1791720069,
+      "fixture_sha256": "3dc523d7ba9a9ee45fd3beceace2535db9a94aea92bf13370c994cced4b198de",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "e9ce401b45b79585918663d8c478044dec4956f76f5c3af8aee0402f02be36a6",
+      "response_id": 938,
+      "source": "uc",
+      "source_document_id": "1517:115001",
+      "source_url": "https://uc.whu.edu.cn/info/1517/115001.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_6",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-115001.html",
+      "title": "关于本学期通识教育必修课程（导引课）的选课说明",
+      "published_date": "2024-09-17",
+      "sanitized_content_sha256": "614c54e78ba7ee51444c705634c3d7fda4756037836ab34cd5d314189f7cf4bb"
+    },
+    {
+      "fetched_at": 1791720079,
+      "fixture_sha256": "36515f50718725a6ce53c4e6ee9082807f6577d7e34a8e7da5d8ab6964a076c5",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "f6d5033fdd264d403fea71bd2f88ab599cd636de58f28d5ec148eaca07134058",
+      "response_id": 940,
+      "source": "uc",
+      "source_document_id": "1517:17283",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17283.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_7",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-17283.html",
+      "title": "武汉大学2023年本科生学科竞赛获奖信息公示",
+      "published_date": "2023-12-26",
+      "sanitized_content_sha256": "eb846cb51e87434ba3f1ed8f013a3f9f2f6361c1bf60b2eed7e9bdcbd0ab51c7"
+    },
+    {
+      "fetched_at": 1791720087,
+      "fixture_sha256": "ca50ba18fc38417e6f433d46129dab4897ea93f8ae801855dd03a3f25298e15d",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "1a5eaaf8be86c1797d28dbc93d99a35e9580e5f3802a06f2da11054c687d5ca2",
+      "response_id": 942,
+      "source": "uc",
+      "source_document_id": "1517:16897",
+      "source_url": "https://uc.whu.edu.cn/info/1517/16897.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_2",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-16897.html",
+      "title": "关于组织报名参加第十五届全国大学生数学竞赛的通知",
+      "published_date": "2023-08-26",
+      "sanitized_content_sha256": "8edc311ec75b5b85d4f292ed9d0b315c62ee94dbfeb85fec21a787f58f55f21c"
+    },
+    {
+      "fetched_at": 1791720097,
+      "fixture_sha256": "37ef82ed5d78e94c1fc40ea0be97709fca188dcff012c4c421f9de2c050bd61b",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "f722922081ac3512f03e8378ee3ba919fae04c1a8e0377f1efdf63abc4e7bab1",
+      "response_id": 944,
+      "source": "uc",
+      "source_document_id": "1517:16716",
+      "source_url": "https://uc.whu.edu.cn/info/1517/16716.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        },
+        {
+          "direct_body_count": 0,
+          "id": "vsb_content",
+          "nested_body_count": 0,
+          "parent_classes": [],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-16716.html",
+      "title": "关于2022级工科试验班（一流学科群）专业分流工作安排",
+      "published_date": "2023-06-25",
+      "sanitized_content_sha256": "1951e5888c2e4ffd2e92ad24d17d3594cadbc9b9d416dabc545e236dbc1347bf"
+    },
+    {
+      "fetched_at": 1791720107,
+      "fixture_sha256": "3a35b5faef5b4c8adaed92d93cd42fba5fda91297d37ef917496ad9cddc3b3ce",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "29987d55f64e1820e6da6c198efbe600223f2291ae56b8d4f54db31721ed9ab3",
+      "response_id": 946,
+      "source": "uc",
+      "source_document_id": "1517:14188",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14188.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_555",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-14188.html",
+      "title": "关于举办2022年武汉大学创业模拟大赛暨第九届“学创杯”全国大学生创业综合模拟大赛武汉大学选拔赛的通知",
+      "published_date": "2022-03-16",
+      "sanitized_content_sha256": "50c6aba59ea6a16b393f398a9f2a4ef894988e7ccff98e73ed63e14cdeece28a"
+    },
+    {
+      "fetched_at": 1791707446,
+      "fixture_sha256": "f46eb575da29d9a71e3dd068d0dfb1819908c7bbff8e86193fd68525b030db26",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "c8a0fda199ab099044c5a41769ab199bdc7a28164f58ba2566a390849fd1a963",
+      "response_id": 839,
+      "source": "uc",
+      "source_document_id": "1517:14249",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14249.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_7",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-14249.html",
+      "title": "关于组织参加“正大杯”第十二届全国大学生市场调查与分析大赛的通知",
+      "published_date": "2021-10-09",
+      "sanitized_content_sha256": "7bd33843a65778fefa68f5c7b8994cada9ec33dc15416a364c0241c09e84004f"
+    },
+    {
+      "fetched_at": 1791707456,
+      "fixture_sha256": "804f63ace26b4e699502e7d86f2e5718416a1f8fa86a02bad9c9072a3414ef70",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "c0b93fe518de1fc1a70e7829e4529db67063afcf8fa2e8a116da571a6c44f11b",
+      "response_id": 841,
+      "source": "uc",
+      "source_document_id": "1517:14251",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14251.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_4",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-14251.html",
+      "title": "全国大学生电子设计竞赛武汉大学集训队选拔通知",
+      "published_date": "2021-09-29",
+      "sanitized_content_sha256": "a33221b21f03407ff4a8de9484f6c1a68bb1d7c2633eeeef2cbca3836bfe25f4"
+    },
+    {
+      "fetched_at": 1791709250,
+      "fixture_sha256": "4e84071cd09940ca0fb1ea85a180dfa4e4e9d57d97c73d1b8d3202f495008e37",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "7add9701ccacefcdcf236b07575cf7b05a694ca80c4a691465e80cbef6079995",
+      "response_id": 850,
+      "source": "uc",
+      "source_document_id": "1517:14256",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14256.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_4",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-14256.html",
+      "title": "关于组织报名参加全国大学生数学竞赛的通知",
+      "published_date": "2021-09-24",
+      "sanitized_content_sha256": "4b931e6a56544685843da169be2a3f961f1a39ef46ceb8779bc73db1ac3a32e1"
+    },
+    {
+      "fetched_at": 1791709264,
+      "fixture_sha256": "6e14041dc30e50db6802f499de35b009ea091de1119faeabee56827d1ebf67d7",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "c65f02eb062d83395badb13b9c6d8e82b6968f457c13b4eeb1007bf45f05b024",
+      "response_id": 853,
+      "source": "uc",
+      "source_document_id": "1517:14261",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14261.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_555",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-14261.html",
+      "title": "2021年全国大学生数学竞赛培训通知",
+      "published_date": "2021-09-17",
+      "sanitized_content_sha256": "8d960f9b5ae75638574a620dd988d819f908b6b3978d857b10aabd51c7841e68"
+    },
+    {
+      "fetched_at": 1791712884,
+      "fixture_sha256": "f34cd29fe3ce03e87d3dc50733c480ba79b0c07edaf4f6a36023bf2f2d6a979d",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "f6f64230ef15f548fdc1121b846ddb1003bd83d832edbd7a739f780f2bcfe5d9",
+      "response_id": 885,
+      "source": "uc",
+      "source_document_id": "1517:14288",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14288.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_6",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "news_show"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "uc-14288.html",
+      "title": "武汉大学2021年优秀学士学位论文名单公示",
+      "published_date": "2021-06-25",
+      "sanitized_content_sha256": "668233e7b91746ec5a92dbe301e87ffad15aaa4ad44aa646dddf38c7ee336672"
+    },
+    {
+      "fetched_at": 1791695711,
+      "fixture_sha256": "d2ac478312dfc2ff8b5d8b236fc872c1993e8e8ba54a4a836247b954c7dd8aa3",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "d6e5a72511e10fd4d29bae580aa5f7b6b83e2b7c8fdf1b0041df2f287543dfb3",
+      "response_id": 76,
+      "source": "cs",
+      "source_document_id": "1074:39801",
+      "source_url": "https://cs.whu.edu.cn/info/1074/39801.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_2",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "content"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "cs-39801.html",
+      "title": "2023-2024学年第二学期计算机学院助教招募通知",
+      "published_date": "2024-01-04",
+      "sanitized_content_sha256": "bf8dfbc4a1fa804f2bb5fb5bbedeb3d45d5a6655b5eb3e130e6ec5069fc956fc"
+    },
+    {
+      "fetched_at": 1791720930,
+      "fixture_sha256": "5712555fa578f557bb599906504cbcb6ba68196205863070b57eb179f1d49a2a",
+      "old_replay": {
+        "code": "missing_structure",
+        "field": "body"
+      },
+      "raw_sha256": "88047195611b87f04ef07b4742127500c3e8ee83598be4c118478808005eedd9",
+      "response_id": 104,
+      "source": "cs",
+      "source_document_id": "1074:4204",
+      "source_url": "https://cs.whu.edu.cn/info/1074/4204.htm",
+      "wrappers": [
+        {
+          "direct_body_count": 1,
+          "id": "vsb_content_6",
+          "nested_body_count": 1,
+          "parent_classes": [
+            "content"
+          ],
+          "parent_id": null,
+          "parent_tag": "div",
+          "tag": "div"
+        }
+      ],
+      "fixture": "cs-4204.html",
+      "title": "计算机学院关于开展 2023年“教与学的革命”珞珈论坛活动的通知",
+      "published_date": "2023-04-14",
+      "sanitized_content_sha256": "d0cfc4f7d6b947d196aa1c916f667dc31f2f83e80c50d6f6f3e8652c6a0882b7"
+    }
+  ]
+}

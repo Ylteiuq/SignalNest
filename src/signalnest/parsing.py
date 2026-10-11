@@ -22,7 +22,7 @@ from signalnest.contracts import (
     WebUrl,
 )
 
-PARSER_VERSION = "whu-student-notices-v4"
+PARSER_VERSION = "whu-student-notices-v5"
 _WEB_URL = TypeAdapter(WebUrl)
 _BLOCKS = frozenset(
     {
@@ -532,9 +532,27 @@ def parse_notice(page: PageInput) -> ParsedNotice:
     if match is None:
         raise ParseError(ParseErrorCode.INVALID_FIELD, field="published_date")
     published = _date(match[1], "published_date")
-    # Only the two observed source templates are supported. A second wrapper,
-    # even an empty one, is ambiguous; never fall back to an arbitrary content div.
-    wrapper = _one(region, "div#vsb_content, div#vsb_content_501", "body")
+    # Exact observed wrappers, scoped to the article or its direct .news_show
+    # child. 16716 repeats id=vsb_content inside the body; that nested node is
+    # content, not another article wrapper. Sibling wrappers remain ambiguous.
+    wrapper = _one(
+        region,
+        ", ".join(
+            f"{scope} div#{name}"
+            for scope in (":scope >", ":scope > div.news_show >")
+            for name in (
+                "vsb_content",
+                "vsb_content_501",
+                "vsb_content_2",
+                "vsb_content_4",
+                "vsb_content_6",
+                "vsb_content_7",
+                "vsb_content_503",
+                "vsb_content_555",
+            )
+        ),
+        "body",
+    )
     body = _one(wrapper, ":scope > .v_news_content", "body")
     base = str(page.page_url)
     attachments = _attachments(region, base)

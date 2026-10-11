@@ -138,6 +138,8 @@ def build_release_manifest(repo_root: Path) -> dict:
         "evaluate_notifications.py",
         "release_snapshot.py",
         "observe_instance.py",
+        "summarize_observations.py",
+        "human_review.py",
     ):
         candidate = root / "deploy" / name
         if candidate.exists():

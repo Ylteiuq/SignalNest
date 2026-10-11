@@ -37,7 +37,7 @@ uv run --locked signalnest config-check --config signalnest.toml
 
 `[source].parser` 明确选择 `whu-student-notices`（旧 UC 配置省略时的默认值）或 `cs-undergrad-notices`。它同时绑定列表/详情 Parser、解析版本及请求/重定向许可，不从主机、身份或解析失败猜选来源。CS 示例为 `config.cs.example.toml`；使用独立配置、数据目录、数据库、启用基线和实例锁，勿覆盖既有 UC 配置。`crawl-once`、`scheduled-run`、`import-page`、`reparse` 均使用这一绑定。EMS 仍仅离线预览。
 
-CS 当前为 Parser v2，有限补充实采确认的 `vsb_content_501` 正文包装；UC v4、政策 v8、正文摘要、身份与分页规则保持。旧 CS v1 产物保留，已归档失败正文可离线 `reparse`，不伪造新获取或更新邮件。专用 `signalnest-cs@.service` / `signalnest-cs-regular.timer` 每小时 :15 做小额度受限采集，默认不注入 SMTP 凭据；邮件及通知启用边界独立，见[CS 采集说明](docs/cs-collection.md)。
+当前 UC Parser v5 / CS v3，补充实际归档中已确认的正文包装，并限定文章层级以免正文内部重复 ID 误判。旧解析产物保留；规范化、身份和分页规则、政策 v8 保持。已归档失败正文可离线 `reparse`，不伪造新获取或更新邮件。专用 `signalnest-cs@.service` / `signalnest-cs-regular.timer` 每小时 :15 做小额度受限采集，读取可选 SMTP EnvironmentFile；邮件及通知仍须独立显式启用，见[CS 采集说明](docs/cs-collection.md)。
 
 `[runtime]` 配置详情配额、复查日期档与有限错误延期；`[runtime.regular]` / `[runtime.full]` 为外部触发的单次任务预算。旧配置可以省略 runtime，使用新默认政策。定时频率由外部 timer 决定，不能用 HTTP 请求间隔设置。示例字段与行为见 [处理政策](docs/runtime-policy.md)。
 
@@ -149,7 +149,9 @@ uv run --locked python deploy/release_snapshot.py \
 
 准备报告检查源码、数据库、积压、冷却和邮件状态；真实画像须显式传 `--profile`，核对后再声明 `--profile-confirmed`。它始终保留 `externally_verified=false`，不会发送邮件或开启定时器。`observe` 输出一行 JSON；新增 `deploy/observe_instance.py` 使用实际系统时间，供只读 systemd 观察模板每小时记录到独立 journal，不补造历史。模板默认使用明确标为测试的画像；确认个人画像后才用实例 drop-in 更换路径并加确认参数，见[上线说明](docs/rollout.md)。
 
-WSL 已完成 UC 24 页、CS 4 页真实完整扫描及首页复核，原文、逐页成员和持久成功时间另行核对；两封工程邮件实收与隔离恢复保留在[历史实机记录](docs/validation/n2-wsl-20261009.md)。生产通知和一周观察仍待验收，不能由准备报告宣称完成。UC、CS 分别使用数据库、完整扫描与独立邮件 timer，不合并启用边界；部署步骤见[后台邮件](docs/background-mail.md)。
+WSL 已完成 UC 24 页、CS 4 页真实完整扫描及首页复核，10 月 11 日确认提醒画像后分别启用生产通知、邮件和观察 timer，见[上线起点](docs/validation/n2-production-wsl-20261011.md)。首条自然 Digest 于 10 月 12 日 09:00 到期，计划/SMTP 接受/实际收件须分别追踪；旧工程测试邮件实收不代替它。首周窗口固定从 **10 月 11 日 12:50:19 至 10 月 18 日 12:50:19（Asia/Shanghai）**，满七天后依据真实记录判断，当前尚未验收。UC、CS 分别使用数据库、完整扫描与独立邮件 timer；部署步骤见[后台邮件](docs/background-mail.md)。
+
+新增[只读运行汇总](docs/observation-summary.md)从导出的观察记录计算积压净变化、覆盖过期和缺失区间，不读业务库、不联网、不修复；[人工评价入口](docs/human-review.md)独立保存输入摘要绑定的人工标签。六组 31 情境及 15 搜索查询仍是工程回归，未确认的案例保持 pending，不据此声称真实漏报率。
 
 ## 单次 HTTP 的离线衔接接口
 
@@ -165,7 +167,7 @@ WSL 已完成 UC 24 页、CS 4 页真实完整扫描及首页复核，原文、�
 
 完整扫描状态接口校验传入分页/复核声明，新生产调用还校验响应绑定及通知/引用成员已登记，并与来源成功时间一起保存证据；`crawl_once` 在调用前实际提交全部页面、验证 URI 链/连续页码/总数/明确末页并完成首页复核。列表 complete 与运行 partial_failure 可以同时成立。旧记录的发现 origin 保持 unknown，不根据日期猜测。
 
-写入锁支持 macOS/Linux POSIX，本次实测 macOS；Windows 未支持。数据库路径别名解析到同一锁，硬链接数据库和符号链接锁文件拒绝。帮助/config-check 不获取锁；外部不遵守 advisory lock 的程序不受保护。文件/Parser 均在事务外，正常回滚与锁释放不证明断电耐久性。
+写入锁支持 macOS/Linux POSIX；macOS 与 WSL/Linux 的真实子进程验证已分别记录，原生 Windows 写入未支持。数据库路径别名解析到同一锁，硬链接数据库和符号链接锁文件拒绝。帮助/config-check 不获取锁；外部不遵守 advisory lock 的程序不受保护。文件/Parser 均在事务外，正常回滚与锁释放不证明断电耐久性。
 
 ## 有界 HTTP 获取接口
 

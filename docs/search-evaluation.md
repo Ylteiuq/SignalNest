@@ -101,3 +101,5 @@ uv run --locked ruff format --check deploy/evaluate_search.py tests/test_search_
 
 后续应由用户确认这些标签，增加真实搜索记录、更多比赛/招聘及同主题干扰页，
 再决定是否扩展词典、分词或排序。不要用这 9 篇语料的 Recall@5=1.0 外推全站质量。
+
+当前已提供[独立人工相关性入口](human-review.md)，冻结查询、过滤项和整个语料摘要，再由真人选择完整相关集；未标注与空相关集分开，旧输入标签不可静默复用。15 查询当前均 pending。UC v5/CS v3 更新后的真实生产索引回放维持上述结果；工程 Recall 与人工已确认子集继续分开报告。

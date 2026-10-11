@@ -39,7 +39,7 @@ from signalnest.parsing import (
     html_tree,
 )
 
-PARSER_VERSION = "cs-undergrad-notices-v2"
+PARSER_VERSION = "cs-undergrad-notices-v3"
 SOURCE_ID = "whu-cs-undergrad-teaching"
 LIST_URL = "https://cs.whu.edu.cn/xwdt/tzgg/bkjx.htm"
 
@@ -302,8 +302,15 @@ def parse_cs_notice(page: PageInput) -> ParsedNotice:
         raise ParseError(ParseErrorCode.INVALID_FIELD, field="published_date")
     published = _date(match[1], "published_date")
     content_region = _one(article, ":scope > div.content", "body")
-    # Observed in archived CS 66441/65481/65321, not an arbitrary suffix guess.
-    wrapper = _one(content_region, ":scope > div#vsb_content, :scope > div#vsb_content_501", "body")
+    # Exact archived wrappers: 66441/65481/65321, plus 39801/4204. No suffix guess.
+    wrapper = _one(
+        content_region,
+        ", ".join(
+            f":scope > div#{name}"
+            for name in ("vsb_content", "vsb_content_501", "vsb_content_2", "vsb_content_6")
+        ),
+        "body",
+    )
     body = _one(wrapper, ":scope > .v_news_content", "body")
     _clean_body(body)
     links, images, attachments = [], [], []

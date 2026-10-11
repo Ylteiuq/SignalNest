@@ -24,7 +24,7 @@
 - `parse_cs_notice(PageInput) -> ParsedNotice`，沿用 NoticeContent 与内容摘要。
 - Parser 版本 `cs-undergrad-notices-v1`，独立来源标识 `whu-cs-undergrad-teaching`。
 
-以上为离线节点版本；后续实采确认同结构的 `vsb_content_501` 包装，当前有限接受它并升至 v2。唯一性、必要字段、内层正文、规范化与分页规则保持，详见[CS 采集](cs-collection.md)。
+以上为离线节点版本；后续实采确认同结构的 `vsb_content_501` 包装，当时有限接受它并升至 v2；首周真实归档失败又有限补入 _2 / _6，当前为 v3，见[失败恢复](parser-failure-recovery.md)。唯一性、必要字段、内层正文、规范化与分页规则保持，详见[CS 采集](cs-collection.md)。
 
 列表最终 URL 和所有分页链接只接受 HTTPS/443、cs.whu.edu.cn、`/xwdt/tzgg/bkjx.htm` 或其正整数 `.htm` 子页，不接受 query/fragment。
 以实际最终 URL 解析相对链接；从数字声明、first/prev/next/last 控制相互印证页码和总数。
