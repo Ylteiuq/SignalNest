@@ -2,6 +2,11 @@
 
 本指南用于新 N2 的 Windows 宿主 + Linux 实例部署。当前已核验 Ubuntu 24.04 / WSL2、systemd 255（PID 1）、Python 3.12.3、SQLite 3.45.1 及 FTS5 trigram、ext4，并完成受限实采、工程邮件实际收件和 Linux 隔离恢复。2026-10-10 已升级至 0008，真实 24 页完整扫描、首页复核、持久成功时间及新快照隔离恢复通过，见[升级验收](validation/n2-wsl-upgrade-20261010.md)。2026-10-11 UC/CS 生产通知、独立邮件与只读观察已启用，窗口从 12:50:19 开始，最早 10-18 12:50:19 满七天；自然生产收件、宿主重启及一周验收尚待完成，见[上线起点](validation/n2-production-wsl-20261011.md)。此前中断与邮件工程验收见[历史实机记录](validation/n2-wsl-20261009.md)。
 
+10-11 首日已升级运行代码至 7cdecf6（schema 仍 0008）：UC v5 / CS v3 仅补实际归档的正文包装，
+14 / 2 条失败离线恢复。停写一致备份、444 秒维护、timer 恢复和新快照隔离暂停校验见[首日记录](validation/n2-week-day0-20261011.md)。
+后续导出用[只读汇总](observation-summary.md)检查净积压、过期与缺口；人工标签用[独立入口](human-review.md)，
+不将工程通过或无样本缺口当作一周上线验收。
+
 ## Linux 路径与应用前置条件
 
 沿用 [运维模板](operations.md) 的单实例路径：项目和虚拟环境 `/opt/signalnest`，配置 `/etc/signalnest/signalnest.toml`，数据和数据库 `/var/lib/signalnest`，运行账号 `signalnest`。数据库和 raw 放在 Linux ext4，避免移到 `/mnt/c` 等 Windows 挂载目录。初始化、迁移和后续写入统一使用服务账号，避免 root 建立仅 root 可写的数据库或 `.lock`。

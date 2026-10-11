@@ -1,0 +1,804 @@
+{
+  "duplicate_samples": 0,
+  "format": "signalnest-observation-summary-v1",
+  "input_diagnostics": {
+    "ignored_journal_messages": 0,
+    "unreadable_journal_messages": 0
+  },
+  "limitations": [
+    "Snapshots do not prove continuous uptime or mailbox receipt.",
+    "Net backlog changes are not throughput or failure rates.",
+    "Unobserved intervals and unavailable snapshots remain unknown."
+  ],
+  "outside_window_samples": 0,
+  "rollout_acceptance": "requires_human_evidence_review",
+  "selected_evidence_sha256": "0d767ee3898a7b00ac310fc904fb2db86f86005a59f2576333bd9b51d02c42c1",
+  "seven_days_elapsed": false,
+  "sources": {
+    "whu-cs-undergrad-teaching": {
+      "collection_unavailable_at": [],
+      "coverage_missing_at": [],
+      "coverage_stale_at": [],
+      "gaps": [],
+      "mail_paused_at": [],
+      "mail_unavailable_at": [],
+      "net_changes": {
+        "documents": 0,
+        "failed": 0,
+        "first_backlog": -16,
+        "processed": 16
+      },
+      "points": [
+        {
+          "at": 1791694220,
+          "collection": {
+            "complete_age_seconds": 2062,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 0,
+            "first_backlog": 28,
+            "first_deferred": 0,
+            "first_due": 28,
+            "last_complete_at": 1791692158,
+            "processed": 30,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791694912,
+          "collection": {
+            "complete_age_seconds": 2754,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 0,
+            "first_backlog": 28,
+            "first_deferred": 0,
+            "first_due": 28,
+            "last_complete_at": 1791692158,
+            "processed": 30,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791696321,
+          "collection": {
+            "complete_age_seconds": 4163,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 27,
+            "first_deferred": 1,
+            "first_due": 26,
+            "last_complete_at": 1791692158,
+            "processed": 31,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791699914,
+          "collection": {
+            "complete_age_seconds": 7756,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 25,
+            "first_deferred": 1,
+            "first_due": 24,
+            "last_complete_at": 1791692158,
+            "processed": 33,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791703502,
+          "collection": {
+            "complete_age_seconds": 11344,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 23,
+            "first_deferred": 1,
+            "first_due": 22,
+            "last_complete_at": 1791692158,
+            "processed": 35,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791707106,
+          "collection": {
+            "complete_age_seconds": 14948,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 21,
+            "first_deferred": 1,
+            "first_due": 20,
+            "last_complete_at": 1791692158,
+            "processed": 37,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791710721,
+          "collection": {
+            "complete_age_seconds": 18563,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 19,
+            "first_deferred": 1,
+            "first_due": 18,
+            "last_complete_at": 1791692158,
+            "processed": 39,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791714321,
+          "collection": {
+            "complete_age_seconds": 22163,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 17,
+            "first_deferred": 1,
+            "first_due": 16,
+            "last_complete_at": 1791692158,
+            "processed": 41,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791717909,
+          "collection": {
+            "complete_age_seconds": 25751,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 1,
+            "first_backlog": 15,
+            "first_deferred": 0,
+            "first_due": 15,
+            "last_complete_at": 1791692158,
+            "processed": 43,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791721502,
+          "collection": {
+            "complete_age_seconds": 29344,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 2,
+            "first_backlog": 14,
+            "first_deferred": 1,
+            "first_due": 13,
+            "last_complete_at": 1791692158,
+            "processed": 44,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-cs-undergrad-teaching"
+        },
+        {
+          "at": 1791723658,
+          "collection": {
+            "complete_age_seconds": 31500,
+            "complete_run_id": "b88d9a8d3c3f4c2aa82785b6d371d231",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 58,
+            "failed": 0,
+            "first_backlog": 12,
+            "first_deferred": 0,
+            "first_due": 12,
+            "last_complete_at": 1791692158,
+            "processed": 46,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 0,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "c5edd728645813305705002dd3b8c25b5f3d8d62db93c4d36ffd24ea7384136d",
+          "source_id": "whu-cs-undergrad-teaching"
+        }
+      ],
+      "sample_count": 11
+    },
+    "whu-undergrad-student": {
+      "collection_unavailable_at": [],
+      "coverage_missing_at": [],
+      "coverage_stale_at": [],
+      "gaps": [],
+      "mail_paused_at": [],
+      "mail_unavailable_at": [],
+      "net_changes": {
+        "documents": 0,
+        "failed": -8,
+        "first_backlog": -147,
+        "processed": 147
+      },
+      "points": [
+        {
+          "at": 1791694220,
+          "collection": {
+            "complete_age_seconds": 1822,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 9,
+            "first_backlog": 148,
+            "first_deferred": 1,
+            "first_due": 147,
+            "last_complete_at": 1791692398,
+            "processed": 439,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791694912,
+          "collection": {
+            "complete_age_seconds": 2514,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 9,
+            "first_backlog": 138,
+            "first_deferred": 1,
+            "first_due": 137,
+            "last_complete_at": 1791692398,
+            "processed": 449,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791696321,
+          "collection": {
+            "complete_age_seconds": 3923,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 9,
+            "first_backlog": 138,
+            "first_deferred": 1,
+            "first_due": 137,
+            "last_complete_at": 1791692398,
+            "processed": 449,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791699914,
+          "collection": {
+            "complete_age_seconds": 7516,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 10,
+            "first_backlog": 119,
+            "first_deferred": 2,
+            "first_due": 117,
+            "last_complete_at": 1791692398,
+            "processed": 468,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791703502,
+          "collection": {
+            "complete_age_seconds": 11104,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 10,
+            "first_backlog": 99,
+            "first_deferred": 1,
+            "first_due": 98,
+            "last_complete_at": 1791692398,
+            "processed": 488,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791707106,
+          "collection": {
+            "complete_age_seconds": 14708,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 10,
+            "first_backlog": 80,
+            "first_deferred": 2,
+            "first_due": 78,
+            "last_complete_at": 1791692398,
+            "processed": 507,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791710721,
+          "collection": {
+            "complete_age_seconds": 18323,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 14,
+            "first_backlog": 64,
+            "first_deferred": 6,
+            "first_due": 58,
+            "last_complete_at": 1791692398,
+            "processed": 523,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791714321,
+          "collection": {
+            "complete_age_seconds": 21923,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 15,
+            "first_backlog": 45,
+            "first_deferred": 7,
+            "first_due": 38,
+            "last_complete_at": 1791692398,
+            "processed": 542,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791717909,
+          "collection": {
+            "complete_age_seconds": 25511,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 15,
+            "first_backlog": 25,
+            "first_deferred": 7,
+            "first_due": 18,
+            "last_complete_at": 1791692398,
+            "processed": 562,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791721502,
+          "collection": {
+            "complete_age_seconds": 29104,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 15,
+            "first_backlog": 15,
+            "first_deferred": 15,
+            "first_due": 0,
+            "last_complete_at": 1791692398,
+            "processed": 572,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "7a8ddd5faf5a7b134b75bb158bc217c859ee51b13409e80e843995e1a8b44d17",
+          "source_id": "whu-undergrad-student"
+        },
+        {
+          "at": 1791723657,
+          "collection": {
+            "complete_age_seconds": 31259,
+            "complete_run_id": "4113cbf15325448382c4c1f8f2a9043a",
+            "cooldown_active": false,
+            "coverage": "fresh",
+            "documents": 587,
+            "failed": 1,
+            "first_backlog": 1,
+            "first_deferred": 1,
+            "first_due": 0,
+            "last_complete_at": 1791692398,
+            "processed": 586,
+            "recheck_due": 0,
+            "unfinished_runs": 0
+          },
+          "mail": {
+            "counts": {
+              "accepted": 0,
+              "blocked": 0,
+              "pending": 0,
+              "retry": 0,
+              "sending": 0,
+              "uncertain": 0
+            },
+            "paused": false,
+            "plan_error_records": 0,
+            "unallocated_digest": 1,
+            "unplanned_immediate": 0
+          },
+          "release_content_sha256": "c5edd728645813305705002dd3b8c25b5f3d8d62db93c4d36ffd24ea7384136d",
+          "source_id": "whu-undergrad-student"
+        }
+      ],
+      "sample_count": 11
+    }
+  },
+  "window_elapsed_seconds": 29908,
+  "window_end": 1791724127,
+  "window_start": 1791694219
+}

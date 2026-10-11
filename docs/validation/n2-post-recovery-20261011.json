@@ -1,0 +1,51 @@
+{
+  "at": 1791724568,
+  "sources": {
+    "cs": {
+      "channel": {
+        "paused": 0
+      },
+      "delivery": {},
+      "latest_run": {
+        "coverage": "limited",
+        "error_code": null,
+        "finished_at": 1791724535,
+        "id": "817b27e13ff8425c92856ae214732c81",
+        "result": "succeeded",
+        "started_at": 1791724521
+      },
+      "parser_version": "cs-undergrad-notices-v3",
+      "source": {
+        "last_complete_scan_at": 1791692158,
+        "not_before_at": null
+      },
+      "statuses": {
+        "discovered": 10,
+        "processed": 48
+      }
+    },
+    "uc": {
+      "channel": {
+        "paused": 0
+      },
+      "delivery": {},
+      "latest_run": {
+        "coverage": "limited",
+        "error_code": null,
+        "finished_at": 1791723635,
+        "id": "55fb20817d1d4fdc8226fa1ebb49d665",
+        "result": "succeeded",
+        "started_at": 1791723621
+      },
+      "parser_version": "whu-student-notices-v5",
+      "source": {
+        "last_complete_scan_at": 1791692398,
+        "not_before_at": null
+      },
+      "statuses": {
+        "failed": 1,
+        "processed": 586
+      }
+    }
+  }
+}
