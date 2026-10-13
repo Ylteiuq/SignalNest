@@ -1,0 +1,82 @@
+{
+  "current_release_verified": false,
+  "format": "signalnest-n2-host-checkpoint-v1",
+  "last_known_windows_running_at": "2026-10-11T14:36:11+00:00",
+  "last_verified_release_content_sha256": "c5edd728645813305705002dd3b8c25b5f3d8d62db93c4d36ffd24ea7384136d",
+  "last_verified_release_git": "7cdecf6d9a147318015f157a3ec7fffcacf837cd",
+  "last_verified_schema_head": "0008_list_references",
+  "limitations": [
+    "Windows snapshots establish stopped state only at the checked times.",
+    "Task last-run/result fields do not establish the stop time or cause.",
+    "No current Linux/database/journal export was acquired; current counts are unknown, not zero.",
+    "Old coverage and mail records are not extrapolated to this check.",
+    "Seven elapsed calendar days alone do not establish rollout acceptance."
+  ],
+  "linux_probe_blocker": "wsl_not_running",
+  "linux_probe_performed": false,
+  "natural_digest_delivery": "unverified",
+  "natural_digest_mailbox_receipt": "unverified",
+  "previous_checkpoint": "n2-host-stopped-20261012T223259.json",
+  "private_evidence": "retained_outside_repository",
+  "recovery_authorization": "requested_pending",
+  "recovery_performed": false,
+  "reviewed_at": 1791854549,
+  "reviewed_at_utc": "2026-10-13T01:22:29.911137+00:00",
+  "seven_days_elapsed": false,
+  "sources": {
+    "whu-cs-undergrad-teaching": {
+      "current_complete_scan_age_seconds": null,
+      "current_cooldown": null,
+      "current_first_processing": null,
+      "current_mail_counts": {
+        "accepted": null,
+        "blocked": null,
+        "pending": null,
+        "retry": null,
+        "sending": null,
+        "uncertain": null
+      },
+      "current_mail_paused": null,
+      "current_observation": null,
+      "current_rechecks": null,
+      "last_verified_service_observation_at": 1791728705
+    },
+    "whu-undergrad-student": {
+      "current_complete_scan_age_seconds": null,
+      "current_cooldown": null,
+      "current_first_processing": null,
+      "current_mail_counts": {
+        "accepted": null,
+        "blocked": null,
+        "pending": null,
+        "retry": null,
+        "sending": null,
+        "uncertain": null
+      },
+      "current_mail_paused": null,
+      "current_observation": null,
+      "current_rechecks": null,
+      "last_verified_service_observation_at": 1791728705
+    }
+  },
+  "state_changed_from_previous_checkpoint": false,
+  "stop_at": null,
+  "stop_cause": null,
+  "window_reset": false,
+  "window_start_at": 1791694219,
+  "windows": {
+    "at": "2026-10-13T01:19:22.1207562Z",
+    "execution_time_limit": "PT0S",
+    "last_result": 3221225786,
+    "last_run": "10/10/2026 19:32:32",
+    "next_run": "",
+    "state": "Ready",
+    "task_found": true
+  },
+  "windows_checked_at": 1791854362,
+  "windows_command_returncode": 0,
+  "wsl_distribution": "Ubuntu-24.04",
+  "wsl_running_list_empty": true,
+  "wsl_state": "Stopped",
+  "wsl_version": 2
+}
