@@ -26,6 +26,8 @@ class Event(StrEnum):
     STATUS_READ = "status_read"
     SEARCH_READ = "search_read"
     SEARCH_INDEX_REBUILT = "search_index_rebuilt"
+    ASK_STARTED = "ask_started"
+    ASK_FINISHED = "ask_finished"
     POLICY_APPLIED = "policy_applied"
     NOTIFICATION_EVENT_REGISTERED = "notification_event_registered"
     NOTIFICATION_COMPARISON_UNKNOWN = "notification_comparison_unknown"

@@ -10,6 +10,8 @@ campus.toml
 signalnest.toml
 cs.toml
 profile.toml
+profile.personal.toml
+ask.toml
 # Local raw capture contains named student and academic records; commit only its redacted structure.
 research/fixtures/list-links-20261009/ek-public-link-20261009T030441987287Z.html
 
@@ -45,4 +47,8 @@ docs/validation/notification-production-v*.json
 docs/validation/notification-production-synthetic-v*.json
 docs/validation/teaching-assistant-v*.json
 docs/validation/notification-current-instruction-v*.json
+# Query replay reports and review bundles embed real notice text and profile data.
+# Keep them in a private directory outside the repository.
+docs/validation/query-local-*.json
+docs/validation/query-review-pending*.json
 docs/validation/search-before-reference-registration.json

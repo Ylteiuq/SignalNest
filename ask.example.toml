@@ -1,0 +1,36 @@
+# Query-only example, NOT a deployment or verified personal profile.
+# All paths are relative to this file. Existing UC and CS instances must be initialized.
+timezone = "Asia/Shanghai"
+profile = "profile.cs-undergrad.example.toml"
+
+[[instances]]
+id = "uc"
+config = "config.example.toml"
+
+[[instances]]
+id = "cs"
+config = "config.cs.example.toml"
+
+[limits]
+max_model_calls = 6
+max_requests = 8
+max_tool_calls = 16
+run_seconds = 90.0
+max_tool_chars = 60000
+notice_chunk_chars = 6000
+max_read_notices = 12
+results_per_source = 5
+
+# Leave model absent for local retrieval. Uncomment only after selecting an available
+# Chat Completions tool-capable model and checking its actual USD token prices.
+# These rates are ILLUSTRATIVE, not current provider pricing. No secret belongs here.
+# [model]
+# provider = "openai-chat-completions"
+# model = "REPLACE_WITH_YOUR_MODEL"
+# api_key_env = "OPENAI_API_KEY"
+# timeout_seconds = 20.0
+# max_attempts = 2
+# max_completion_tokens = 1800
+# input_usd_per_million = "1.0"
+# output_usd_per_million = "4.0"
+# max_cost_usd = "0.10"

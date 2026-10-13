@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "human_gold": false,
+  "note": "真实 UC/CS 归档上的有限查询回放。问题、时钟和最低候选检查均为工程设计，不是人工 gold；完整语料和回答交给独立人工核对。历史时钟不证明当时真实开放。",
+  "profile": {
+    "schema_version": 1,
+    "profile_id": "synthetic-undergraduate",
+    "study_level": "undergraduate",
+    "role": "student",
+    "interest_topics": [
+      "research",
+      "teaching_assistant",
+      "minor",
+      "competition"
+    ],
+    "include_phrases": [],
+    "exclude_topics": [],
+    "high_value_topics": [],
+    "store_only_topics": [
+      "course_enrollment"
+    ]
+  },
+  "corpus": [
+    {
+      "corpus_id": "uc-117011",
+      "instance_id": "uc",
+      "source_document_id": "1517:117011",
+      "fixture": "research/fixtures/notifications/notice-117011-20261005T133549Z.html",
+      "sha256": "c1525fdb8bec6b4a9d6ca91fdf1933aa17ebe80991302fb6ed94b1a9b27717f6",
+      "source_url": "https://uc.whu.edu.cn/info/1517/117011.htm",
+      "fetched_at": 1791207349,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "uc-127511",
+      "instance_id": "uc",
+      "source_document_id": "1517:127511",
+      "fixture": "research/fixtures/notifications/notice-127511-20261005T133829869212Z.html",
+      "sha256": "e346473cf4571b8ab3b64b2a53f2fe21afa1517f959959eacd679b35e9de8cc1",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127511",
+      "fetched_at": 1791207511,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "uc-128291",
+      "instance_id": "uc",
+      "source_document_id": "1517:128291",
+      "fixture": "research/fixtures/notifications/notice-128291-20261005T133533Z.html",
+      "sha256": "71afbc36f4c178a2fb111d5aeb19ad65f535b4efef71373dbc7e6e3cc9ca4bdb",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128291.htm",
+      "fetched_at": 1791207333,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "uc-14147",
+      "instance_id": "uc",
+      "source_document_id": "1517:14147",
+      "fixture": "research/fixtures/notifications/notice-14147-20261005T133543Z.html",
+      "sha256": "3a08f94f6ad86d08290d332bfd7b4f33976a42d7e563aa106056388e60769fee",
+      "source_url": "https://uc.whu.edu.cn/info/1517/14147.htm",
+      "fetched_at": 1791207344,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "uc-17361",
+      "instance_id": "uc",
+      "source_document_id": "1517:17361",
+      "fixture": "research/fixtures/notifications/notice-17361-20261005T133538Z.html",
+      "sha256": "e14a8bb68df2d118dd45a568628ccbaf8b9add3904e579e46a1802ea0dee2db9",
+      "source_url": "https://uc.whu.edu.cn/info/1517/17361.htm",
+      "fetched_at": 1791207338,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "uc-18135",
+      "instance_id": "uc",
+      "source_document_id": "1517:18135",
+      "fixture": "research/fixtures/notifications/notice-18135-20261005T133554Z.html",
+      "sha256": "5b0a3dcfac752ec0947ccfc8e87bccf5a313be586907b44905494ed592e04aa1",
+      "source_url": "https://uc.whu.edu.cn/info/1517/18135.htm",
+      "fetched_at": 1791207354,
+      "provenance": "真实公开详情原文；研究元数据客户端 finished_at 精度取整，本次不抓取。"
+    },
+    {
+      "corpus_id": "uc-128231",
+      "instance_id": "uc",
+      "source_document_id": "1517:128231",
+      "fixture": "research/fixtures/current-notice-detail.html",
+      "sha256": "581317beac56ddca7cdfc7f657d70efbfe95903853972fa52fedef62cac4ef21",
+      "source_url": "https://uc.whu.edu.cn/info/1517/128231.htm",
+      "fetched_at": 1790579171,
+      "provenance": "真实公开详情原文；已有离线示例获取时间依据当时响应 Date，非精确客户端观测。"
+    },
+    {
+      "corpus_id": "uc-127581",
+      "instance_id": "uc",
+      "source_document_id": "1517:127581",
+      "fixture": "research/fixtures/legacy-notice-detail.html",
+      "sha256": "4e39671b3ceba811baf7ec0c23728596054b585768e02fcddfb0c1500a9260e8",
+      "source_url": "https://uc.whu.edu.cn/2022/show.jsp?urltype=news.NewsContentUrl&wbtreeid=1517&wbnewsid=127581",
+      "fetched_at": 1790579063,
+      "provenance": "真实公开详情原文；已有离线示例获取时间依据当时响应 Date，非精确客户端观测。"
+    },
+    {
+      "corpus_id": "cs-64481",
+      "instance_id": "cs",
+      "source_document_id": "1074:64481",
+      "fixture": "research/fixtures/ta-entrypoints-20261009/cs-ta-recruit-64481.html",
+      "sha256": "2efaf4ec0ebaea2541fd914cbcf066fd3fdee1fed46d63fd4de649f8f1fe8217",
+      "source_url": "https://cs.whu.edu.cn/info/1074/64481.htm",
+      "fetched_at": 1791514965,
+      "provenance": "真实 CS 招募结构；fixture 已由原研究脱敏，时间取原客户端 finished_at 的秒级下界。只做离线目标登记，不是自动发现或资格验收。"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "Q01",
+      "question": {
+        "text": "最近一个月有没有本科生可以参加的科研机会？列出报名条件和截止时间。",
+        "at": "2026-09-10T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "uc-128291"
+        ],
+        "candidate_absent": [
+          "uc-14147",
+          "uc-17361"
+        ],
+        "date_from": "2026-08-10",
+        "date_to": "2026-09-10",
+        "date_warning": null
+      },
+      "note": "用户提出的查询类别具体化；科研课程仍需核对专业、英文和报名限制，不把词法候选都当机会。"
+    },
+    {
+      "case_id": "Q02",
+      "question": {
+        "text": "最近一个月有没有助教招聘？报名对象和截止时间是什么？",
+        "at": "2026-07-15T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "cs-64481"
+        ],
+        "candidate_absent": [],
+        "date_from": "2026-06-15",
+        "date_to": "2026-07-15",
+        "date_warning": null
+      },
+      "note": "真实 CS 招募，年份、资格和校外渠道仍有未知；正文未给出唯一可解析的完整截止时间。"
+    },
+    {
+      "case_id": "Q03",
+      "question": {
+        "text": "查找2024-11-01至2024-11-30发布的辅修报名通知。",
+        "at": "2024-12-01T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "uc-117011"
+        ],
+        "candidate_absent": [
+          "uc-128231"
+        ],
+        "date_from": "2024-11-01",
+        "date_to": "2024-11-30",
+        "date_warning": null
+      },
+      "note": "工程查询，不是用户日志或人工相关性标签。"
+    },
+    {
+      "case_id": "Q04",
+      "question": {
+        "text": "有哪些科研训练通知？请区分学生报名和教师征集选题。",
+        "at": "2026-10-12T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "uc-14147",
+          "uc-17361",
+          "uc-128291"
+        ],
+        "candidate_absent": [],
+        "date_from": null,
+        "date_to": null,
+        "date_warning": null
+      },
+      "note": "保留征题、立项、中期和结题候选，人工核对主体和真实报名机会；不以科研词命中宣布可申请。"
+    },
+    {
+      "case_id": "Q05",
+      "question": {
+        "text": "最近一周有没有竞赛报名？截止依据是什么？",
+        "at": "2024-07-01T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "uc-18135"
+        ],
+        "candidate_absent": [],
+        "date_from": "2024-06-25",
+        "date_to": "2024-07-01",
+        "date_warning": null
+      },
+      "note": "工程查询，不是用户日志或人工相关性标签。"
+    },
+    {
+      "case_id": "Q06",
+      "question": {
+        "text": "找2026-09-01至2026-09-10发布的选课通知。",
+        "at": "2026-09-10T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "uc-128291",
+          "uc-128231"
+        ],
+        "candidate_absent": [
+          "uc-127581"
+        ],
+        "date_from": "2026-09-01",
+        "date_to": "2026-09-10",
+        "date_warning": null
+      },
+      "note": "工程查询，不是用户日志或人工相关性标签。"
+    },
+    {
+      "case_id": "Q07",
+      "question": {
+        "text": "本月截止的科研机会有哪些？",
+        "at": "2026-09-10T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "uc-128291"
+        ],
+        "candidate_absent": [],
+        "date_from": null,
+        "date_to": null,
+        "date_warning": "deadline_window_not_supported"
+      },
+      "note": "本月限定截止，不应错误过滤发布日期；当前期限范围未实现，必须展示未知。"
+    },
+    {
+      "case_id": "Q08",
+      "question": {
+        "text": "上周有什么助教招聘？",
+        "at": "2026-10-12T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [
+          "cs-64481"
+        ],
+        "candidate_absent": [],
+        "date_from": null,
+        "date_to": null,
+        "date_warning": "date_expression_not_resolved"
+      },
+      "note": "上周未支持，旧招募仍可能是词法候选；不得宣称满足该时间条件。"
+    },
+    {
+      "case_id": "Q09",
+      "question": {
+        "text": "有没有天文观测志愿招募？",
+        "at": "2026-10-12T12:00:00+08:00"
+      },
+      "label_origin": "engineering_expectation_unconfirmed",
+      "engineering_expectation": {
+        "candidate_contains": [],
+        "candidate_absent": [
+          "uc-117011",
+          "uc-127511",
+          "uc-128291",
+          "uc-14147",
+          "uc-17361",
+          "uc-18135",
+          "uc-128231",
+          "uc-127581",
+          "cs-64481"
+        ],
+        "date_from": null,
+        "date_to": null,
+        "date_warning": null
+      },
+      "note": "此冻结语料为空命中，不证明全校没有该类通知。"
+    }
+  ]
+}

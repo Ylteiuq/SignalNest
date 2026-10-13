@@ -27,6 +27,7 @@ def main(argv=None):
     prepare = commands.add_parser("prepare", help="freeze full snapshots; no automatic labels")
     prepare.add_argument("--notifications", type=Path, nargs="*", default=[])
     prepare.add_argument("--search", type=Path)
+    prepare.add_argument("--queries", type=Path, help="full campus-query replay snapshot")
     prepare.add_argument("--output", type=Path, required=True)
     label = commands.add_parser("label", help="record one explicit human judgement")
     label.add_argument("--bundle", type=Path, required=True)
@@ -39,6 +40,11 @@ def main(argv=None):
         "--relevant-id", nargs="*", help="complete relevant corpus set; empty allowed"
     )
     label.add_argument("--note", default="")
+    label.add_argument(
+        "--answer-assessment",
+        choices=["supported", "unsupported", "incomplete", "not_answered"],
+        help="query-only explicit judgement; retrieval relevance is labelled separately",
+    )
     label.add_argument("--output", type=Path, required=True)
     report = commands.add_parser("report", help="read-only metrics; unlabelled remains pending")
     report.add_argument("--bundle", type=Path, required=True)
@@ -49,7 +55,11 @@ def main(argv=None):
             snapshots = {p.stem: _read(p) for p in args.notifications}
             if len(snapshots) != len(args.notifications):
                 raise ReviewError("review_group_duplicate")
-            result = prepare_review(snapshots, _read(args.search) if args.search else None)
+            result = prepare_review(
+                snapshots,
+                _read(args.search) if args.search else None,
+                _read(args.queries) if args.queries else None,
+            )
         elif args.command == "label":
             result = make_label(
                 _read(args.bundle),
@@ -59,6 +69,7 @@ def main(argv=None):
                 status="pending" if args.pending else "confirmed",
                 action=args.action,
                 relevant_corpus_ids=args.relevant_id,
+                answer_assessment=args.answer_assessment,
                 note=args.note,
             )
         else:

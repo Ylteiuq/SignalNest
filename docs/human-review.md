@@ -77,3 +77,5 @@ STORE_ONLY 与 IGNORE 的差异仍在 Action 混淆中体现，不合并它们�
 
 `prepare_review`、`make_label`、`review_report` 是不依赖 CLI 的纯函数。
 CLI 成功退出 0；有限输入、摘要绑定、冲突与文件错误退出 2。帮助/导入无业务存储副作用。
+
+查询 Agent 的九篇原文/九个情境使用新增 `prepare --queries` 与查询标签 v2，将完整相关集和 `--answer-assessment` 分开记录，见[查询评价](query-evaluation.md)。旧规则/搜索 v1 标签及上述46项历史记录保持；新查询未标注时仍 pending，不能将本地候选或模拟模型回答当作人工确认。

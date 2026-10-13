@@ -17,6 +17,18 @@ def main(argv: list[str] | None = None) -> int:
         prog="signalnest", description="个人校园信息助手（离线处理与有界采集）"
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    query_check = commands.add_parser(
+        "ask-config-check", help="校验查询 TOML 与实例/画像配置；不打开存储或读取密钥"
+    )
+    query_check.add_argument("--config", type=Path, required=True)
+    ask_parser = commands.add_parser("ask", help="有界只读校园查询；模型失败返回已有检索结果")
+    ask_parser.add_argument("--config", type=Path, required=True, help="查询配置（不是采集配置）")
+    ask_parser.add_argument("--question", required=True)
+    ask_parser.add_argument("--at", help="显式查询时间 ISO-8601，含 UTC offset；默认本次实际时间")
+    ask_parser.add_argument(
+        "--local", action="store_true", help="只运行本地检索，不调用模型或读取密钥"
+    )
+    ask_parser.add_argument("--json", action="store_true", help="输出含证据与诊断的 JSON")
     profile = commands.add_parser("profile-check", help="校验本地示例/个人画像；不访问存储或网络")
     profile.add_argument("--profile", type=Path, required=True)
     preview = commands.add_parser("decision-preview", help="纯本地预览事实、决策理由与路线；不发送")
@@ -188,6 +200,10 @@ def main(argv: list[str] | None = None) -> int:
         "--max-body-bytes", type=int, default=2 * 1024 * 1024, help="每份响应正文上限，默认 2 MiB"
     )
     args = parser.parse_args(argv)
+    if args.command in {"ask", "ask-config-check"}:
+        from signalnest.querying.cli import query_command
+
+        return query_command(args)
     if args.command in {"profile-check", "decision-preview"}:
         return _notification_preview(args)
     logger = configure_logging()

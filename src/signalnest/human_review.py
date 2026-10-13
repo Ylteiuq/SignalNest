@@ -15,6 +15,7 @@ ACTION = frozenset({"PUSH_NOW", "DIGEST", "STORE_ONLY", "IGNORE"})
 REMIND = frozenset({"PUSH_NOW", "DIGEST"})
 IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
+ANSWER_ASSESSMENTS = frozenset({"supported", "unsupported", "incomplete", "not_answered"})
 
 
 class ReviewError(ValueError):
@@ -52,7 +53,11 @@ def _item(identifier, kind, inputs, prediction, evidence):
     }
 
 
-def prepare_review(notification_snapshots: dict[str, dict], search_snapshot: dict | None = None):
+def prepare_review(
+    notification_snapshots: dict[str, dict],
+    search_snapshot: dict | None = None,
+    query_snapshot: dict | None = None,
+):
     """Freeze full replay rows and retrieval evidence, with all labels pending.
 
     A compact engineering summary cannot reconstruct individual inputs and is
@@ -154,10 +159,180 @@ def prepare_review(notification_snapshots: dict[str, dict], search_snapshot: dic
                     },
                 )
             )
+    if query_snapshot is not None:
+        items.extend(_query_items(query_snapshot))
     if not items or len({i["item_id"] for i in items}) != len(items):
         raise ReviewError("review_items_invalid")
     payload = {"format": "signalnest-human-review-bundle-v1", "items": items}
     return {**payload, "bundle_sha256": _hash(payload)}
+
+
+def _query_items(report):
+    """Bind actual query outputs to a whole frozen corpus; omit engineering labels."""
+    from pydantic import ValidationError
+
+    from signalnest.model_client import ModelConfig
+    from signalnest.notifications.contracts import Profile
+    from signalnest.querying.config import QueryLimits
+    from signalnest.querying.contracts import QueryReport, Question
+
+    if (
+        not isinstance(report, dict)
+        or report.get("kind") != "offline_campus_query_evaluation"
+        or report.get("schema_version") != 1
+        or not isinstance(report.get("corpus"), list)
+        or not report["corpus"]
+        or not isinstance(report.get("results"), list)
+        or not report["results"]
+        or not isinstance(report.get("profile"), dict)
+        or not isinstance(report.get("cases"), list)
+    ):
+        raise ReviewError("review_snapshot_incomplete")
+    corpus = report["corpus"]
+    locators = {}
+    for row in corpus:
+        if not isinstance(row, dict) or not all(
+            key in row
+            for key in (
+                "instance_id",
+                "document_id",
+                "version_id",
+                "parser_version",
+                "source_url",
+                "title",
+                "published_date",
+                "body_text",
+            )
+        ):
+            raise ReviewError("review_corpus_invalid")
+        _identifier(row.get("corpus_id"))
+        _digest(row.get("sha256"))
+        _digest(row.get("content_sha256"))
+        key = (row["instance_id"], row["document_id"])
+        if (
+            not isinstance(row["instance_id"], str)
+            or type(row["document_id"]) is not int
+            or type(row["version_id"]) is not int
+            or not isinstance(row["title"], str)
+            or not isinstance(row["body_text"], str)
+            or key in locators
+        ):
+            raise ReviewError("review_corpus_invalid")
+        locators[key] = row
+    if len({c["corpus_id"] for c in corpus}) != len(corpus):
+        raise ReviewError("review_corpus_invalid")
+    cases = {}
+    for case in report["cases"]:
+        if not isinstance(case, dict):
+            raise ReviewError("review_query_invalid")
+        case_id = _identifier(case.get("case_id"))
+        cases[case_id] = case
+    if len(cases) != len(report["cases"]):
+        raise ReviewError("review_query_invalid")
+    items = []
+    for row in report["results"]:
+        if (
+            not isinstance(row, dict)
+            or not isinstance(row.get("case_id"), str)
+            or row["case_id"] not in cases
+        ):
+            raise ReviewError("review_query_invalid")
+        result = row.get("report")
+        if (
+            not isinstance(result, dict)
+            or not isinstance(result.get("status"), str)
+            or result["status"] not in {"answered", "fallback", "local"}
+            or not isinstance(result.get("notices"), list)
+            or not isinstance(result.get("search_results"), list)
+            or not isinstance(row.get("question"), dict)
+            or row.get("question") != cases[row["case_id"]].get("question")
+            or result.get("question") != row["question"].get("text")
+            or result.get("at") != row["question"].get("at")
+            or result.get("timezone") != report.get("timezone")
+        ):
+            raise ReviewError("review_snapshot_incomplete")
+        try:
+            QueryReport.model_validate(result)
+            Question.model_validate(row["question"])
+            Profile.model_validate(report["profile"])
+            QueryLimits.model_validate(row.get("query_limits"))
+            if row.get("effective_model_config") is not None:
+                ModelConfig.model_validate(row["effective_model_config"])
+        except ValidationError as exc:
+            raise ReviewError("review_snapshot_incomplete") from exc
+        if result["status"] != "answered" and result["notices"]:
+            raise ReviewError("review_prediction_invalid")
+        retrieved, answered = [], []
+        for field, ids in (("search_results", retrieved), ("notices", answered)):
+            for notice in result[field]:
+                if not isinstance(notice, dict):
+                    raise ReviewError("review_prediction_invalid")
+                if (
+                    not isinstance(notice.get("instance_id"), str)
+                    or type(notice.get("document_id")) is not int
+                ):
+                    raise ReviewError("review_query_evidence_mismatch")
+                original = locators.get((notice["instance_id"], notice["document_id"]))
+                fields = ("version_id", "title", "published_date")
+                if field == "notices" or "content_sha256" in notice:
+                    fields += ("content_sha256",)
+                for name in ("source_id", "source_document_id", "parser_version"):
+                    if field == "notices" or name in notice:
+                        fields += (name,)
+                if original is None or any(notice.get(key) != original.get(key) for key in fields):
+                    raise ReviewError("review_query_evidence_mismatch")
+                if notice.get("original_url") != original["source_url"]:
+                    raise ReviewError("review_query_evidence_mismatch")
+                if field == "notices":
+                    if notice.get("reference") != (
+                        f"{original['instance_id']}:{original['document_id']}:v{original['version_id']}"
+                    ):
+                        raise ReviewError("review_query_evidence_mismatch")
+                    for name in ("relevance", "conditions", "deadline"):
+                        if not isinstance(notice.get(name), list):
+                            raise ReviewError("review_prediction_invalid")
+                        for quote in notice[name]:
+                            if (
+                                not isinstance(quote, dict)
+                                or not isinstance(quote.get("field"), str)
+                                or quote.get("field") not in {"title", "body_text"}
+                                or not isinstance(quote.get("text"), str)
+                                or not quote["text"].strip()
+                                or quote["text"] not in original[quote["field"]]
+                            ):
+                                raise ReviewError("review_query_evidence_mismatch")
+                if original["corpus_id"] not in ids:
+                    ids.append(original["corpus_id"])
+                elif field == "notices":
+                    raise ReviewError("review_prediction_invalid")
+        if retrieved != row.get("retrieved_corpus_ids") or answered != row.get("answer_corpus_ids"):
+            raise ReviewError("review_query_evidence_mismatch")
+        items.append(
+            _item(
+                f"query:{_identifier(row['case_id'])}",
+                "query",
+                {
+                    "question": row["question"],
+                    "profile": report["profile"],
+                    "timezone": report["timezone"],
+                    "corpus": corpus,
+                    "model_config": row.get("effective_model_config", report.get("model_config")),
+                    "query_limits": row.get("query_limits"),
+                    "source_sha256": report.get("source_sha256"),
+                },
+                {
+                    "status": result["status"],
+                    "retrieved_corpus_ids": retrieved,
+                    "answer_corpus_ids": answered,
+                },
+                {
+                    "report": result,
+                    "snapshot_sha256": _hash(report),
+                    "manifest_sha256": _digest(report.get("manifest_sha256")),
+                },
+            )
+        )
+    return items
 
 
 def validate_bundle(bundle):
@@ -186,7 +361,7 @@ def validate_bundle(bundle):
         if (
             identifier in seen
             or not isinstance(item["kind"], str)
-            or item["kind"] not in {"notification", "search"}
+            or item["kind"] not in {"notification", "search", "query"}
         ):
             raise ReviewError("review_items_invalid")
         seen.add(identifier)
@@ -201,10 +376,12 @@ def validate_bundle(bundle):
             not isinstance(prediction.get("action"), str) or prediction["action"] not in ACTION
         ):
             raise ReviewError("review_prediction_invalid")
-        if item["kind"] == "search":
+        if item["kind"] in {"search", "query"}:
             corpus = item["input"].get("corpus", [])
             identifiers = [c.get("corpus_id") for c in corpus if isinstance(c, dict)]
-            ranking = prediction.get("ranked_corpus_ids")
+            ranking = prediction.get(
+                "ranked_corpus_ids" if item["kind"] == "search" else "retrieved_corpus_ids"
+            )
             if (
                 not identifiers
                 or any(not isinstance(r, str) for r in identifiers)
@@ -216,6 +393,16 @@ def validate_bundle(bundle):
                 or any(r not in identifiers for r in ranking)
             ):
                 raise ReviewError("review_prediction_invalid")
+            if item["kind"] == "query":
+                selected = prediction.get("answer_corpus_ids")
+                if (
+                    not isinstance(prediction.get("status"), str)
+                    or prediction["status"] not in {"answered", "fallback", "local"}
+                    or not isinstance(selected, list)
+                    or any(not isinstance(r, str) or r not in identifiers for r in selected)
+                    or len(set(selected)) != len(selected)
+                ):
+                    raise ReviewError("review_prediction_invalid")
 
 
 def make_label(
@@ -227,6 +414,7 @@ def make_label(
     status="confirmed",
     action=None,
     relevant_corpus_ids=None,
+    answer_assessment=None,
     note="",
 ):
     """Explicit operator entry; no default from system or engineering Action."""
@@ -246,11 +434,17 @@ def make_label(
         "relevant_corpus_ids": relevant_corpus_ids,
         "note": note,
     }
+    if item["kind"] == "query":
+        record["format"] = "signalnest-human-label-v2"
+        record["answer_assessment"] = answer_assessment
+    elif answer_assessment is not None:
+        raise ReviewError("review_assessment_type_invalid")
     _validate_label(record, item)
     return record
 
 
 def _validate_label(record, item=None):
+    new = isinstance(record, dict) and record.get("format") == "signalnest-human-label-v2"
     if (
         not isinstance(record, dict)
         or set(record)
@@ -266,7 +460,9 @@ def _validate_label(record, item=None):
             "relevant_corpus_ids",
             "note",
         }
-        or record["format"] != "signalnest-human-label-v1"
+        | ({"answer_assessment"} if new else set())
+        or not isinstance(record["format"], str)
+        or record["format"] not in {"signalnest-human-label-v1", "signalnest-human-label-v2"}
     ):
         raise ReviewError("review_label_invalid")
     _digest(record["bundle_sha256"])
@@ -289,13 +485,26 @@ def _validate_label(record, item=None):
     except (ValueError, TypeError):
         raise ReviewError("review_label_time_invalid") from None
     action, relevant = record["action"], record["relevant_corpus_ids"]
+    if (
+        new
+        and record["status"] == "confirmed"
+        and (
+            not isinstance(record["answer_assessment"], str)
+            or record["answer_assessment"] not in ANSWER_ASSESSMENTS
+        )
+    ):
+        raise ReviewError("review_query_assessment_invalid")
     if record["status"] == "pending":
-        if action is not None or relevant is not None:
+        if (
+            action is not None
+            or relevant is not None
+            or record.get("answer_assessment") is not None
+        ):
             raise ReviewError("review_pending_has_label")
     elif item is not None and item["kind"] == "notification":
         if not isinstance(action, str) or action not in ACTION or relevant is not None:
             raise ReviewError("review_action_invalid")
-    elif item is not None and item["kind"] == "search":
+    elif item is not None and item["kind"] in {"search", "query"}:
         corpus = {c["corpus_id"] for c in item["input"]["corpus"]}
         if (
             action is not None
@@ -305,6 +514,19 @@ def _validate_label(record, item=None):
             or any(r not in corpus for r in relevant)
         ):
             raise ReviewError("review_relevance_invalid")
+    if item is not None and item["kind"] == "query":
+        if not new:
+            raise ReviewError("review_query_assessment_missing")
+        if record["status"] == "confirmed" and (
+            record["answer_assessment"] not in ANSWER_ASSESSMENTS
+            or (
+                item["prediction"]["status"] != "answered"
+                and record["answer_assessment"] != "not_answered"
+            )
+        ):
+            raise ReviewError("review_query_assessment_invalid")
+    elif item is not None and new:
+        raise ReviewError("review_assessment_type_invalid")
 
 
 def review_report(bundle, labels):
@@ -335,6 +557,7 @@ def review_report(bundle, labels):
     confusion = Counter()
     urgent_misses = []
     search_rows = []
+    query_rows = []
     for key, label in confirmed.items():
         item = items[key]
         if item["kind"] == "notification":
@@ -352,10 +575,12 @@ def review_report(bundle, labels):
             ] += 1
             if actual == "PUSH_NOW" and predicted != "PUSH_NOW":
                 urgent_misses.append(key)
-        else:
+        elif item["kind"] == "search":
             search_rows.append(
                 (item["prediction"]["ranked_corpus_ids"], set(label["relevant_corpus_ids"]))
             )
+        else:
+            query_rows.append((item["prediction"], label))
     positive = counts["true_positive"] + counts["false_negative"]
     negative = counts["true_negative"] + counts["false_positive"]
     nonempty = [row for row in search_rows if row[1]]
@@ -367,7 +592,7 @@ def review_report(bundle, labels):
         )
         for k in (1, 3, 5)
     }
-    return {
+    result = {
         "format": "signalnest-human-review-report-v1",
         "bundle_sha256": bundle["bundle_sha256"],
         "item_states": states,
@@ -400,3 +625,41 @@ def review_report(bundle, labels):
             "Unconfirmed, stale and conflicted inputs are never presumed correct.",
         ],
     }
+    if any(i["kind"] == "query" for i in items.values()):
+        nonempty_queries = [r for r in query_rows if r[1]["relevant_corpus_ids"]]
+        empty_queries = [r for r in query_rows if not r[1]["relevant_corpus_ids"]]
+        result["query"] = {
+            "confirmed": len(query_rows),
+            "pending": sum(i["kind"] == "query" for i in items.values()) - len(query_rows),
+            "assessment_counts": dict(
+                sorted(Counter(r[1]["answer_assessment"] for r in query_rows).items())
+            ),
+            "nonempty_relevance_queries": len(nonempty_queries),
+            "macro_retrieval_recall": (
+                sum(
+                    len(set(p["retrieved_corpus_ids"]) & set(label["relevant_corpus_ids"]))
+                    / len(label["relevant_corpus_ids"])
+                    for p, label in nonempty_queries
+                )
+                / len(nonempty_queries)
+                if nonempty_queries
+                else None
+            ),
+            "macro_answer_recall": (
+                sum(
+                    len(set(p["answer_corpus_ids"]) & set(label["relevant_corpus_ids"]))
+                    / len(label["relevant_corpus_ids"])
+                    for p, label in nonempty_queries
+                )
+                / len(nonempty_queries)
+                if nonempty_queries
+                else None
+            ),
+            "selected_irrelevant_notices": sum(
+                len(set(p["answer_corpus_ids"]) - set(label["relevant_corpus_ids"]))
+                for p, label in query_rows
+            ),
+            "empty_relevance_queries": len(empty_queries),
+            "empty_answer_correct": sum(not p["answer_corpus_ids"] for p, _ in empty_queries),
+        }
+    return result
