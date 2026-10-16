@@ -52,3 +52,10 @@ docs/validation/notification-current-instruction-v*.json
 docs/validation/query-local-*.json
 docs/validation/query-review-pending*.json
 docs/validation/search-before-reference-registration.json
+# Keep detailed host snapshots and model replay metadata in the private evidence area.
+docs/validation/n2-*.json
+docs/validation/query-daily-*.json
+docs/validation/query-proxy-*.json
+docs/validation/query-readiness-*.json
+research/experiments/query_five_20261015/material-manifest.json
+research/experiments/query_five_20261015/integrity-check.json

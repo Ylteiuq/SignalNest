@@ -1,0 +1,115 @@
+{
+  "format": "signalnest-five-question-failure-candidates-v1",
+  "at": "2026-10-15",
+  "query_version": "campus-query-v3",
+  "human_confirmed_failures": 0,
+  "human_confirmation_complete": false,
+  "quality_passed": null,
+  "note": "Six prioritized review candidates, not six confirmed failures. No automatic human labels.",
+  "items": [
+    {
+      "id": "F1",
+      "case_id": "research",
+      "stage": "relevance_and_temporal_scope",
+      "observed": "Selected uc:4:v6, an annual project-results recommendation; cited unit recommendation and university review dates; deadline_evidence_status=unknown.",
+      "human_question": "Does this answer new undergraduate research-training enrollment within the fixed publication window?",
+      "next_validation": "Preserve topic and current action; do not use administrative dates as student deadlines.",
+      "evidence_ids": [
+        "uc:4"
+      ],
+      "priority_if_confirmed": "high",
+      "observation_status": "verified_in_frozen_report_or_original",
+      "human_verdict": null,
+      "status": "awaiting_human_review",
+      "code_change_authorized_by_this_research": false
+    },
+    {
+      "id": "F2",
+      "case_id": "applicant",
+      "stage": "reading_and_answer_coverage",
+      "observed": "uc:27 and uc:422 are in search_results, but only uc:130 was read and selected.",
+      "human_question": "Must the answer represent both student enrollment and teacher solicitation with separate evidence?",
+      "next_validation": "Read a witness for each requested actor when already retrieved; classify selection omission separately from retrieval miss.",
+      "evidence_ids": [
+        "uc:27",
+        "uc:130",
+        "uc:422"
+      ],
+      "priority_if_confirmed": "high",
+      "observation_status": "verified_in_frozen_report_or_original",
+      "human_verdict": null,
+      "status": "awaiting_human_review",
+      "code_change_authorized_by_this_research": false
+    },
+    {
+      "id": "F3",
+      "case_id": "applicant",
+      "stage": "eligibility_role_and_rendering",
+      "observed": "The recorded selected uc:130 carries rule_eligibility=ineligible and quotes the advisor qualification clause; the same original requires an undergraduate project leader.",
+      "human_question": "Does the rule/result presentation wrongly apply advisor criteria to the student?",
+      "next_validation": "Trace applicant versus advisor branches and present unknown or role-scoped diagnostics; verify using a new frozen run because source has changed.",
+      "evidence_ids": [
+        "uc:130"
+      ],
+      "priority_if_confirmed": "high",
+      "observation_status": "verified_in_frozen_report_or_original",
+      "human_verdict": null,
+      "status": "awaiting_human_review",
+      "code_change_authorized_by_this_research": false
+    },
+    {
+      "id": "F4",
+      "case_id": "cs-ta",
+      "stage": "retrieval_pagination_and_display_scope",
+      "observed": "Search reports total=7, returned=5, offset=0; three notices read/selected; seven explicit TA recruitment titles in the fixed corpus.",
+      "human_question": "Does this question require all history or a bounded recent selection? Which unreturned/unselected items are relevant and required?",
+      "next_validation": "Separate search paging from response brevity guidance or model selection; the current AnswerArgs contract permits eight notices, so three is not a hard limit. Paginate or declare selection scope only when the human-required scope warrants it.",
+      "evidence_ids": [
+        "cs:6",
+        "cs:11",
+        "cs:14",
+        "cs:18",
+        "cs:24",
+        "cs:31",
+        "cs:41"
+      ],
+      "priority_if_confirmed": "medium",
+      "observation_status": "verified_in_frozen_report_or_original",
+      "human_verdict": null,
+      "status": "awaiting_human_review",
+      "code_change_authorized_by_this_research": false
+    },
+    {
+      "id": "F5",
+      "case_id": "ambiguous-deadline",
+      "stage": "uncertainty_and_evidence_selection",
+      "observed": "Selected uc:15 with an explicit enrollment deadline and cs:6 with unknown deadline; independently selected uc:114 says defense arrangements will be announced later, not enrollment.",
+      "human_question": "Does the answer explain the uncertainty requested, without substituting a different action or stage?",
+      "next_validation": "Use explicit, partial and stage-specific dates separately; do not invent an in-domain vague-deadline recruitment positive.",
+      "evidence_ids": [
+        "uc:15",
+        "cs:6",
+        "uc:114"
+      ],
+      "priority_if_confirmed": "medium",
+      "observation_status": "verified_in_frozen_report_or_original",
+      "human_verdict": null,
+      "status": "awaiting_human_review",
+      "code_change_authorized_by_this_research": false
+    },
+    {
+      "id": "F6",
+      "case_id": "no-match",
+      "stage": "rejection_and_scope",
+      "observed": "Nineteen generic lexical candidates, one read notice, zero selected; exact compound phrase queries have zero matches; saved-only/incomplete warnings retained.",
+      "human_question": "Is rejection justified and scoped to the saved finite searches rather than all campus opportunities?",
+      "next_validation": "Evaluate the compound intent and the stated search boundary, not generic-hit count or the empty answer alone.",
+      "evidence_ids": [],
+      "priority_if_confirmed": "medium",
+      "observation_status": "verified_in_frozen_report_or_original",
+      "human_verdict": null,
+      "status": "awaiting_human_review",
+      "code_change_authorized_by_this_research": false
+    }
+  ]
+}
