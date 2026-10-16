@@ -22,6 +22,8 @@ class Event(StrEnum):
     FETCH_FINISHED = "fetch_finished"
     CRAWL_STARTED = "crawl_started"
     CRAWL_FINISHED = "crawl_finished"
+    WRITER_LOCK_WAIT_STARTED = "writer_lock_wait_started"
+    WRITER_LOCK_WAIT_FINISHED = "writer_lock_wait_finished"
     DETAIL_GROUP_FINISHED = "detail_group_finished"
     STATUS_READ = "status_read"
     SEARCH_READ = "search_read"
@@ -86,6 +88,8 @@ class JsonFormatter(logging.Formatter):
             "oldest_overdue_seconds",
             "reference_count",
             "remaining_unadapted_references",
+            "lock_wait_ms",
+            "lock_wait_limit_ms",
         ):
             value = getattr(record, key, None)
             if type(value) is int and value >= 0:
@@ -128,6 +132,8 @@ def log_event(
     oldest_overdue_seconds: int | None = None,
     reference_count: int | None = None,
     remaining_unadapted_references: int | None = None,
+    lock_wait_ms: int | None = None,
+    lock_wait_limit_ms: int | None = None,
 ) -> None:
     """Context is identifiers only; never pass configuration values or page contents."""
     if not isinstance(event, Event):
@@ -152,5 +158,7 @@ def log_event(
             "oldest_overdue_seconds": oldest_overdue_seconds,
             "reference_count": reference_count,
             "remaining_unadapted_references": remaining_unadapted_references,
+            "lock_wait_ms": lock_wait_ms,
+            "lock_wait_limit_ms": lock_wait_limit_ms,
         },
     )

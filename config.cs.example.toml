@@ -16,6 +16,8 @@ request_interval_seconds = 5.0
 user_agent = "SignalNest/0.1"
 
 [runtime]
+# Only scheduled full waits for the writer lock; wait consumes its run_seconds budget.
+full_lock_wait_seconds = 180.0
 foreground_slots = 2
 history_slots = 1
 recheck_slots = 1

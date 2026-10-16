@@ -999,6 +999,11 @@ def _crawl_command(args, settings, logger, run_id) -> int:
     try:
         options = CrawlOptions(
             scan_mode=args.scan_mode,
+            lock_wait_seconds=(
+                settings.runtime.full_lock_wait_seconds
+                if args.command == "scheduled-run" and args.mode == "full"
+                else 0.0
+            ),
             max_pages=args.max_pages
             if args.max_pages is not None
             else (64 if args.scan_mode == "full" else 2),

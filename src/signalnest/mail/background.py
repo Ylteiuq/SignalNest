@@ -156,6 +156,7 @@ def run_scheduled_cycle(
         scan_mode="limited" if mode == "regular" else "full",
         max_pages=budget.max_pages,
         max_details=budget.max_details,
+        lock_wait_seconds=settings.runtime.full_lock_wait_seconds if mode == "full" else 0.0,
         fetch_limits=FetchLimits(
             max_requests=budget.max_requests,
             run_seconds=budget.run_seconds,

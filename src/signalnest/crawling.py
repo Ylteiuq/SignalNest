@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import time
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from typing import Literal
 from uuid import uuid4
@@ -34,7 +35,7 @@ from signalnest.ingestion_state import (
     record_list_attempt_in_transaction,
     start_run_in_transaction,
 )
-from signalnest.instance_lock import writer_lock
+from signalnest.instance_lock import WriterLockError, writer_lock
 from signalnest.rawstore import RawStore
 from signalnest.runtime_policy import (
     GROUPS,
@@ -58,6 +59,8 @@ class CrawlOptions(Contract):
     # Explicit library overrides remain supported; otherwise use the configured runtime policy.
     success_recheck_seconds: int | None = Field(default=None, ge=1, le=31536000, strict=True)
     failure_retry_seconds: int | None = Field(default=None, ge=1, le=31536000, strict=True)
+    # Set only by scheduled full runs; manual/regular operations remain fail-fast.
+    lock_wait_seconds: float = Field(default=0.0, ge=0, le=600, strict=True)
 
 
 class CrawlSummary(Contract):
@@ -579,6 +582,72 @@ def _execute(run: _Run) -> CrawlSummary:
     return summary
 
 
+@contextmanager
+def _crawl_lock(settings, options, clock, deadline, run_id):
+    """Wait only before collection work, within the same absolute run deadline."""
+    started = clock.monotonic()
+    remaining = deadline - started
+    if remaining <= 0:
+        raise WriterLockError("writer_lock_budget_exhausted")
+    wait = min(options.lock_wait_seconds, remaining)
+    logger = logging.getLogger("signalnest")
+    contended = False
+
+    def on_contention():
+        nonlocal contended
+        contended = True
+        log_event(
+            logger,
+            Event.WRITER_LOCK_WAIT_STARTED,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage="lock_acquire",
+            lock_wait_limit_ms=int(wait * 1000),
+        )
+
+    def finished(stage, code=None):
+        log_event(
+            logger,
+            Event.WRITER_LOCK_WAIT_FINISHED,
+            level=logging.ERROR if code else logging.INFO,
+            source_id=settings.source.id,
+            run_id=run_id,
+            stage=stage,
+            error_code=code,
+            lock_wait_ms=int(max(0.0, clock.monotonic() - started) * 1000),
+            lock_wait_limit_ms=int(wait * 1000),
+        )
+
+    with ExitStack() as stack:
+        # Catch acquisition errors only. Never retry or reinterpret a body failure.
+        try:
+            stack.enter_context(
+                writer_lock(
+                    settings.storage.database,
+                    wait_seconds=wait,
+                    clock=clock,
+                    on_contention=on_contention,
+                )
+            )
+        except WriterLockError as exc:
+            code = (
+                "writer_lock_budget_exhausted"
+                if exc.code == "writer_lock_timeout" and clock.monotonic() >= deadline
+                else exc.code
+            )
+            if contended:
+                finished("timeout" if code != "writer_lock_unavailable" else "failed", code)
+            if code != exc.code:
+                raise WriterLockError(code) from exc
+            raise
+        if clock.monotonic() >= deadline:
+            finished("timeout", "writer_lock_budget_exhausted")
+            raise WriterLockError("writer_lock_budget_exhausted")
+        if contended:
+            finished("acquired")
+        yield
+
+
 def crawl_once(
     settings: Settings,
     options: CrawlOptions,
@@ -593,11 +662,12 @@ def crawl_once(
     finalization cannot be persisted remains running, recovered by the next locked run.
     MockTransport/Clock injection is for offline verification, not a second fetch layer.
     """
+    deadline = clock.monotonic() + options.fetch_limits.run_seconds
     run_id = run_id or uuid4().hex
     settings = settings.model_copy(deep=True)
     if not settings.storage.database.is_file():
         raise StorageError("数据库不可用或未初始化，请先执行 storage-init")
-    with writer_lock(settings.storage.database):
+    with _crawl_lock(settings, options, clock, deadline, run_id):
         engine = open_initialized_engine(settings.storage.database)
         try:
             # One active notification channel belongs to one source/instance. Fail
@@ -630,6 +700,10 @@ def crawl_once(
                 run_id=run_id,
                 before_request=before_request,
             ) as fetcher:
+                # Client/engine setup and lock waiting cannot reset the run budget.
+                fetcher.run_deadline = deadline
+                if clock.monotonic() >= deadline:
+                    raise IngestError("run_time_limit", "coordinator")
                 run = _Run(engine, store, settings, options, fetcher, run_id, clock)
                 try:
                     return _execute(run)

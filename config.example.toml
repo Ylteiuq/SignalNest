@@ -17,6 +17,8 @@ user_agent = "SignalNest/0.1"
 # Policies apply to crawl-once and scheduled-run; frequency belongs to the external timer.
 # Foreground means never successfully processed IDs from this run's first two valid pages.
 [runtime]
+# Only scheduled full waits for the writer lock; wait consumes its run_seconds budget.
+full_lock_wait_seconds = 180.0
 foreground_slots = 12
 history_slots = 4
 recheck_slots = 4

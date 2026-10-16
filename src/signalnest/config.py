@@ -187,6 +187,7 @@ class RuntimeSettings(SettingsModel):
     access_failure_seconds: int = Field(default=86400, ge=1, le=31536000, strict=True)
     parse_failure_seconds: int = Field(default=21600, ge=1, le=31536000, strict=True)
     missing_failure_seconds: int = Field(default=604800, ge=1, le=31536000, strict=True)
+    full_lock_wait_seconds: float = Field(default=180.0, ge=0, le=600, strict=True)
     regular: RunBudget = Field(default_factory=RunBudget)
     full: RunBudget = Field(
         default_factory=lambda: RunBudget(max_pages=64, max_details=0, max_requests=96)

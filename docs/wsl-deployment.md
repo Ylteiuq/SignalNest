@@ -1,6 +1,6 @@
 # WSL 部署与实例生命周期
 
-本指南用于新 N2 的 Windows 宿主 + Linux 实例部署。当前已核验 Ubuntu 24.04 / WSL2、systemd 255（PID 1）、Python 3.12.3、SQLite 3.45.1 及 FTS5 trigram、ext4，并完成受限实采、工程邮件实际收件和 Linux 隔离恢复。2026-10-10 已升级至 0008，真实 24 页完整扫描、首页复核、持久成功时间及新快照隔离恢复通过，见[升级验收](validation/n2-wsl-upgrade-20261010.md)。2026-10-11 UC/CS 生产通知、独立邮件与只读观察已启用，窗口从 12:50:19 开始，最早 10-18 12:50:19 满七天；自然生产收件、宿主重启及一周验收尚待完成，见[上线起点](validation/n2-production-wsl-20261011.md)。此前中断与邮件工程验收见[历史实机记录](validation/n2-wsl-20261009.md)。
+本指南用于新 N2 的 Windows 宿主 + Linux 实例部署。当前已核验 Ubuntu 24.04 / WSL2、systemd 255（PID 1）、Python 3.12.3、SQLite 3.45.1 及 FTS5 trigram、ext4，并完成受限实采、工程邮件实际收件和 Linux 隔离恢复。2026-10-10 已升级至 0008，真实 24 页完整扫描、首页复核、持久成功时间及新快照隔离恢复通过，见[升级验收](validation/n2-wsl-upgrade-20261010.md)。2026-10-11 UC/CS 生产通知、独立邮件与只读观察已启用，窗口从 12:50:19 开始，最早 10-18 12:50:19 满七天；首封自然生产摘要已于10-13由用户确认收到，宿主重启及一周验收尚待完成，见[上线起点](validation/n2-production-wsl-20261011.md)。此前中断与邮件工程验收见[历史实机记录](validation/n2-wsl-20261009.md)。
 
 10-11 首日已升级运行代码至 7cdecf6（schema 仍 0008）：UC v5 / CS v3 仅补实际归档的正文包装，
 14 / 2 条失败离线恢复。停写一致备份、444 秒维护、timer 恢复和新快照隔离暂停校验见[首日记录](validation/n2-week-day0-20261011.md)。
@@ -84,6 +84,26 @@ Register-ScheduledTask -TaskName $taskName -Action $action `
 默认任务运行时限为 72 小时；`PT0S` 才允许无限运行，不能省略时限后宣称一周保活。`IgnoreNew` 避免重复启动同一任务实例；失败重启最多三次，并非无限重试。[时限](https://learn.microsoft.com/en-us/windows/win32/taskschd/tasksettings-executiontimelimit)、[并行规则](https://learn.microsoft.com/en-us/windows/win32/taskschd/tasksettings-multipleinstances)、[重启间隔](https://learn.microsoft.com/en-us/windows/win32/taskschd/tasksettings-restartinterval)
 
 模板不设置 `WakeToRun`，也不改变宿主睡眠设置。电池相关条件保留系统创建的任务设置，部署者须核对：如果需要在电池供电且机器仍醒着时保持会话，可只对该任务显式采用 `AllowStartIfOnBatteries` / `DontStopIfGoingOnBatteries`；这不意味着防止宿主休眠。不要在文档未说明时暗中更改这两个条件。[任务设置参数](https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/new-scheduledtasksettingsset)
+
+## 现有任务的周期恢复与诊断升级
+
+实际10-12、10-13停止后，新增 [`repair-keepalive.ps1`](../deploy/windows/repair-keepalive.ps1) 与 [`wsl-keepalive.ps1`](../deploy/windows/wsl-keepalive.ps1)。前者只升级已核对的任务，不创建另一个生产任务；校验拥有者SID、Interactive/Limited、已知启动动作、实际发行版与PT0S/IgnoreNew。先只读检查，再用结果中的公开动作摘要绑定本次更新：
+
+```powershell
+.\deploy\windows\repair-keepalive.ps1 -InspectOnly
+.\deploy\windows\repair-keepalive.ps1 -ExpectedActionSha256 '<action_sha256>' -EnableTaskHistory -WhatIf
+.\deploy\windows\repair-keepalive.ps1 -ExpectedActionSha256 '<action_sha256>' -EnableTaskHistory
+```
+
+更新前保存原任务XML、设置、动作、旧日志和已有runner，备份目录仅拥有者、SYSTEM与管理员可访问。保留登录触发，增加每五分钟无限重复的TimeTrigger，重跑升级只替换受管重复触发器；不累计触发器。XML的**TimeTrigger/Repetition/Duration**须缺省，不能把IdleSettings中的Duration误当重复时长。[微软重复时长说明](https://learn.microsoft.com/en-us/windows/win32/taskschd/repetitionpattern-duration)。允许机器醒着时在电池下运行，但不更改宿主睡眠、唤醒、自动登录或全局WSL设置。
+
+脚本校验未来任务进程的执行策略和本地runner标记；Restricted或不允许运行该脚本时明确阻断，不改变策略或加入Bypass。拥有管理员权限时可按显式 `-EnableTaskHistory` 开启TaskScheduler Operational；未获权限时结果保留诊断，不宣称已开启。
+
+更新动作不会替换已经运行的旧进程。`logging_requires_next_launch=true` 时，新追加日志须在下一次启动或协调维护后核验；不要仅执行Start后就假定IgnoreNew创建了新进程。维护先禁用保活任务，防止周期触发意外恢复；确认应用写入结束后再停止。更换运行进程时，可用同账号的**有限前台WSL会话**保持实例，确认新保活Running、唯一目标sleep及新start记录后再结束该临时会话；不使用全局shutdown。
+
+新日志为拥有者私有runtime目录下的 `wsl-keepalive.jsonl`，追加UTC启动/退出时间、run_id、进程ID和有限退出码，1MiB轮转并保留两份旧文件。仅保留有限元数据；原输出日志保存在升级备份。强制终止可能没有exit记录，日志不是断电耐久性保证，也不能单凭缺少exit推断原因。
+
+回退时先禁用并停止该任务，用同账号核对备份 `task-before.xml`，通过 `Register-ScheduledTask -Xml (Get-Content -Raw <backup>) -Force` 还原，再恢复备份runner（如存在），核对原设置后启用。恢复时保留新诊断与备份，不覆盖未知任务或注入密码。
 
 ## 交互登录、重启与休眠边界
 

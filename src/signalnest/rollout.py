@@ -44,6 +44,41 @@ from signalnest.status import _read_only_engine, _safe_error, inspect_status
 from signalnest.storage import StorageError, migration_config
 
 MAX_RELEASE_FILE_BYTES = 16 * 1024 * 1024
+MAX_RELEASE_ARCHIVE_BYTES = 64 * 1024 * 1024
+MAX_RELEASE_CONTENT_BYTES = 128 * 1024 * 1024
+MAX_RELEASE_FILES = 4096
+RELEASE_REQUIRED_FILES = frozenset(
+    {"pyproject.toml", "uv.lock", "README.md", "src/signalnest/__init__.py"}
+)
+# Explicit public examples and tools only. Never widen this to *.toml, *.env,
+# deploy/** or docs/**: those trees may contain local data or personal evidence.
+RELEASE_PUBLIC_FILES = frozenset(
+    {
+        "ask.example.toml",
+        "ask.proxy.example.toml",
+        "config.example.toml",
+        "config.cs.example.toml",
+        "profile.example.toml",
+        "profile.cs-undergrad.example.toml",
+        "deploy/verify_backup.py",
+        "deploy/evaluate_notifications.py",
+        "deploy/evaluate_queries.py",
+        "deploy/evaluate_search.py",
+        "deploy/prepare_query_snapshot.py",
+        "deploy/replay_query_snapshot.py",
+        "deploy/ask_saved.py",
+        "deploy/release_snapshot.py",
+        "deploy/observe_instance.py",
+        "deploy/summarize_observations.py",
+        "deploy/human_review.py",
+        "deploy/windows/repair-keepalive.ps1",
+        "deploy/windows/wsl-keepalive.ps1",
+        "docs/query-release.md",
+        "docs/query-agent.md",
+        "docs/query-snapshots.md",
+        "docs/query-snapshot-replay.md",
+    }
+)
 EXTERNAL_VERIFICATIONS = (
     "target_service_and_credentials_injection",
     "live_complete_scan_and_activation_baseline",
@@ -61,7 +96,7 @@ class RolloutError(RuntimeError):
         super().__init__(code)
 
 
-def _file_bytes(path: Path, root: Path) -> bytes:
+def _file_bytes(path: Path, root: Path, *, limit: int = MAX_RELEASE_FILE_BYTES) -> bytes:
     if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
         raise RolloutError("release_platform_unsupported")
     if path.is_symlink() or any(parent.is_symlink() for parent in path.parents if parent != root):
@@ -74,10 +109,10 @@ def _file_bytes(path: Path, root: Path) -> bytes:
         with os.fdopen(descriptor, "rb") as stream:
             if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                 raise RolloutError("release_path_unsafe")
-            content = stream.read(MAX_RELEASE_FILE_BYTES + 1)
+            content = stream.read(limit + 1)
     except OSError as exc:
         raise RolloutError("release_file_unavailable") from exc
-    if len(content) > MAX_RELEASE_FILE_BYTES:
+    if len(content) > limit:
         raise RolloutError("release_file_too_large")
     return content
 
@@ -133,16 +168,9 @@ def build_release_manifest(repo_root: Path) -> dict:
     paths.update((root / "deploy/systemd").glob("*.service"))
     paths.update((root / "deploy/systemd").glob("*.timer"))
     paths.update((root / "deploy/systemd").glob("*.conf"))
-    for name in (
-        "verify_backup.py",
-        "evaluate_notifications.py",
-        "release_snapshot.py",
-        "observe_instance.py",
-        "summarize_observations.py",
-        "human_review.py",
-    ):
-        candidate = root / "deploy" / name
-        if candidate.exists():
+    for name in RELEASE_PUBLIC_FILES:
+        candidate = root / name
+        if candidate.exists() or candidate.is_symlink():
             paths.add(candidate)
     hashes = {str(path.relative_to(root)): _file_hash(path, root) for path in sorted(paths)}
     head = _git(root, "rev-parse", "HEAD")
@@ -211,6 +239,7 @@ def create_release_snapshot(repo_root: Path, output: Path) -> dict:
     Interrupted incomplete pairs are retained for diagnosis, not silently reused.
     """
     evidence = build_release_manifest(repo_root)
+    _validated_release_hashes(evidence)
     root = repo_root.expanduser().resolve()
     if not output.name.endswith(".tar.gz"):
         raise RolloutError("release_output_suffix_invalid")
@@ -304,6 +333,147 @@ def create_release_snapshot(repo_root: Path, output: Path) -> dict:
         "content_sha256": evidence["content_sha256"],
         "git_head": evidence["git_head"],
         "allowlisted_worktree_dirty": evidence["allowlisted_worktree_dirty"],
+    }
+
+
+def _release_name_allowed(name: str) -> bool:
+    return bool(
+        name in RELEASE_REQUIRED_FILES | RELEASE_PUBLIC_FILES
+        or re.fullmatch(r"src/signalnest/(?:[A-Za-z0-9_]+/)*[A-Za-z0-9_]+\.py", name)
+        or re.fullmatch(r"src/signalnest/migrations/[A-Za-z0-9_.-]+\.mako", name)
+        or re.fullmatch(r"deploy/systemd/[A-Za-z0-9_@.-]+\.(?:service|timer|conf)", name)
+    )
+
+
+def _validated_release_hashes(manifest: object) -> dict[str, str]:
+    if not isinstance(manifest, dict):
+        raise RolloutError("release_manifest_invalid")
+    hashes = manifest.get("file_sha256")
+    if (
+        not isinstance(hashes, dict)
+        or not RELEASE_REQUIRED_FILES.issubset(hashes)
+        or len(hashes) > MAX_RELEASE_FILES
+        or any(
+            not isinstance(name, str)
+            or not _release_name_allowed(name)
+            or not isinstance(digest, str)
+            or not re.fullmatch(r"[a-f0-9]{64}", digest)
+            for name, digest in hashes.items()
+        )
+        or manifest.get("content_sha256") != canonical_sha256(hashes)
+        or manifest.get("uv_lock_sha256") != hashes["uv.lock"]
+    ):
+        raise RolloutError("release_manifest_invalid")
+    return hashes
+
+
+def verify_release_snapshot(
+    snapshot: Path,
+    *,
+    repo_root: Path | None = None,
+    expected_content_sha256: str | None = None,
+) -> dict:
+    """Check a frozen archive/sidecar, optionally against an unpacked source tree.
+
+    No extraction, installation, instance access or writes occur. This verifies
+    consistency, not publisher authenticity: retain the expected fingerprint via
+    an independent trusted channel. Old v1 snapshots remain verifiable.
+    """
+    if expected_content_sha256 is not None and not re.fullmatch(
+        r"[a-f0-9]{64}", expected_content_sha256
+    ):
+        raise RolloutError("release_expected_content_invalid")
+    archive_path = snapshot.expanduser().absolute()
+    root = archive_path.parent.resolve()
+    sidecar = archive_path.with_name(archive_path.name + ".manifest.json")
+    try:
+        saved = json.loads(_file_bytes(sidecar, root))
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise RolloutError("release_manifest_invalid") from exc
+    if not isinstance(saved, dict) or saved.get("format") != "signalnest-release-snapshot-v1":
+        raise RolloutError("release_manifest_invalid")
+    evidence = saved.get("release")
+    hashes = _validated_release_hashes(evidence)
+    if evidence.get("format") != "signalnest-release-v1":
+        raise RolloutError("release_manifest_invalid")
+    content_sha256 = evidence["content_sha256"]
+    if expected_content_sha256 is not None and content_sha256 != expected_content_sha256:
+        raise RolloutError("release_content_mismatch")
+    data = _file_bytes(archive_path, root, limit=MAX_RELEASE_ARCHIVE_BYTES)
+    archive_sha256 = hashlib.sha256(data).hexdigest()
+    if (
+        type(saved.get("archive_bytes")) is not int
+        or saved["archive_bytes"] != len(data)
+        or saved.get("archive_sha256") != archive_sha256
+    ):
+        raise RolloutError("release_archive_mismatch")
+    expected_names = {"signalnest/" + name for name in hashes} | {"signalnest/RELEASE.json"}
+    seen = set()
+    total_bytes = 0
+    try:
+        # Bound gzip expansion before tarfile parses extension headers as well as
+        # normal files; a large PAX header must not bypass the per-entry checks.
+        with gzip.GzipFile(fileobj=io.BytesIO(data), mode="rb") as compressed:
+            unpacked = compressed.read(MAX_RELEASE_CONTENT_BYTES + 1)
+        if len(unpacked) > MAX_RELEASE_CONTENT_BYTES:
+            raise RolloutError("release_archive_too_large")
+        with tarfile.open(fileobj=io.BytesIO(unpacked), mode="r:") as archive:
+            for entry in archive:
+                if (
+                    entry.name not in expected_names
+                    or entry.name in seen
+                    or not entry.isfile()
+                    or entry.mode != 0o644
+                    or entry.uid != 0
+                    or entry.gid != 0
+                    or entry.mtime != 0
+                    or entry.uname != ""
+                    or entry.gname != ""
+                    or set(entry.pax_headers) - {"path"}
+                ):
+                    raise RolloutError("release_archive_unsafe")
+                total_bytes += entry.size
+                if entry.size > MAX_RELEASE_FILE_BYTES or total_bytes > MAX_RELEASE_CONTENT_BYTES:
+                    raise RolloutError("release_archive_too_large")
+                seen.add(entry.name)
+                stream = archive.extractfile(entry)
+                if stream is None:
+                    raise RolloutError("release_archive_invalid")
+                with stream:
+                    content = stream.read(MAX_RELEASE_FILE_BYTES + 1)
+                if len(content) != entry.size:
+                    raise RolloutError("release_archive_invalid")
+                if entry.name == "signalnest/RELEASE.json":
+                    embedded = json.loads(content)
+                    if (
+                        not isinstance(embedded, dict)
+                        or embedded.get("format") != "signalnest-release-content-v1"
+                        or _validated_release_hashes(embedded) != hashes
+                        or embedded.get("content_sha256") != content_sha256
+                    ):
+                        raise RolloutError("release_manifest_mismatch")
+                elif (
+                    hashlib.sha256(content).hexdigest()
+                    != hashes[entry.name.removeprefix("signalnest/")]
+                ):
+                    raise RolloutError("release_archive_mismatch")
+    except (tarfile.TarError, OSError, EOFError, ValueError, UnicodeDecodeError, zlib.error) as exc:
+        raise RolloutError("release_archive_invalid") from exc
+    if seen != expected_names:
+        raise RolloutError("release_archive_incomplete")
+    runtime_matches = None
+    if repo_root is not None:
+        actual = build_release_manifest(repo_root)
+        if actual["file_sha256"] != hashes:
+            raise RolloutError("release_source_mismatch")
+        runtime_matches = actual["runtime_code_matches_release"]
+    return {
+        "format": "signalnest-release-verification-v1",
+        "archive_sha256": archive_sha256,
+        "content_sha256": content_sha256,
+        "file_count": len(hashes),
+        "source_matches": True if repo_root is not None else None,
+        "runtime_code_matches_release": runtime_matches,
     }
 
 

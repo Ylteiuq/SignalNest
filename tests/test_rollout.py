@@ -79,7 +79,8 @@ def test_release_manifest_includes_code_lock_templates_and_actual_runtime():
     )
     assert "src/signalnest/rollout.py" in report["file_sha256"]
     assert "deploy/systemd/signalnest-mail.service" in report["file_sha256"]
-    assert "profile.example.toml" not in report["file_sha256"]
+    assert "profile.example.toml" in report["file_sha256"]
+    assert "profile.personal.toml" not in report["file_sha256"]
     assert all(not key.startswith("research/") for key in report["file_sha256"])
 
 

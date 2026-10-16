@@ -67,7 +67,9 @@ sudo -u signalnest /opt/signalnest/.venv/bin/signalnest scheduled-run --config /
 
 `scheduled-run --mode regular/full` 从配置读取预算，不靠模板另写一份数字。full 把预算用于发现与覆盖验证，详情由 regular 分批补全；两者共用相同写入锁、缓存、冷却及 due。启用后台邮件后，采集普通失败仍接着计划/发送；数据库、归档或状态登记等系统错误终止本轮。独立邮件 timer 可推进已有冻结积压，单项渲染阻断不阻止其他冻结邮件；暂停则禁止 SMTP。两个入口均持相同实例锁。详情分组容量、复查年龄档与失败延期见 README；分配槽不保证预算耗尽或冷却时仍完成相应尝试。
 
-regular 的 `Persistent=false` 不在重新启用时补每个错过的半小时；full 的 `Persistent=true` 在重新激活时至多补一次错过的日常触发，不重放整段历史。休眠恢复可能触发一次已经到期的 calendar timer，不能把 `Persistent=false` 当作禁止任何恢复触发。每日 full 与 regular 错开 15 分钟不是互斥保证：同一 unit 活跃时不重新启动它；不同实例、手工命令或很慢的运行仍由统一写入锁拒绝并行，退出非零保留锁拒绝事实。本服务不设自动重启，下一固定周期再试。[systemd timer 官方说明](https://github.com/systemd/systemd/blob/v252/man/systemd.timer.xml)
+`[runtime].full_lock_wait_seconds` 默认180秒，可设0恢复立即拒绝。只有 `scheduled-run --mode full` 的采集阶段有限等待同一实例锁；等待按单调时钟计入原 `runtime.full.run_seconds`，取得锁后只有剩余预算。regular、手动 `crawl-once`、独立邮件及其他写入入口仍立即争锁失败。等待期间不建业务运行、不打开数据库或HTTP客户端；等待耗尽和运行预算耗尽分别明确失败，不越过失败继续邮件，不增加HTTP重试层。锁取得后业务只执行一次。
+
+regular 的 `Persistent=false` 不在重新启用时补每个错过的半小时；full 的 `Persistent=true` 在重新激活时至多补一次错过的日常触发，不重放整段历史。休眠恢复可能触发一次已经到期的 calendar timer，不能把 `Persistent=false` 当作禁止任何恢复触发。每日 full 与 regular 错开 15 分钟不是互斥保证：同一 unit 活跃时不重新启动它；不同实例、手工命令或很慢的运行仍由统一写入锁保障互斥；定时full在上述有限预算内等待，其他写入入口立即拒绝并行，退出非零保留锁拒绝事实。本服务不设自动重启，下一固定周期再试。[systemd timer 官方说明](https://github.com/systemd/systemd/blob/v252/man/systemd.timer.xml)
 
 组合采集服务配置 20 分钟启动期限，独立邮件服务 10 分钟，均有 30 秒停止宽限；oneshot 在命令退出前仍是 starting，显式 `TimeoutStartSec` 因此约束整次命令。[systemd service 官方说明](https://github.com/systemd/systemd/blob/v252/man/systemd.service.xml) 超时先发送 SIGTERM，停止宽限后可以 SIGKILL 终止 control group 全组进程。[systemd 终止规则](https://github.com/systemd/systemd/blob/v252/man/systemd.kill.xml) 这是部署级保护，不把 Fetcher 的 600 秒与发送的 300 秒协作预算改称精确硬期限；修改应用预算时同步核对服务上限。邮件接受后结果未提交的终止窗口保留不确定性，下一运行恢复 sending 为 uncertain，详见 [发送恢复](mail-sending.md)。被终止的 run 可能暂留 running，下一写入运行按现有恢复机制登记中断；事务/原文恢复验证范围见 [恢复实验](recovery-validation.md)。
 
