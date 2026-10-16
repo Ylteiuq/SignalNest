@@ -1,0 +1,35 @@
+# Local compatible-proxy example; NOT a deployed query or personal profile.
+# Paths refer to already initialized instances. No key belongs in this file.
+timezone = "Asia/Shanghai"
+profile = "profile.cs-undergrad.example.toml"
+
+[[instances]]
+id = "uc"
+config = "config.example.toml"
+
+[[instances]]
+id = "cs"
+config = "config.cs.example.toml"
+
+[limits]
+max_model_calls = 4
+max_requests = 4
+max_tool_calls = 16
+run_seconds = 60.0
+max_tool_chars = 60000
+notice_chunk_chars = 4000
+max_read_notices = 6
+results_per_source = 5
+
+[model]
+provider = "openai-compatible-chat-completions"
+base_url = "http://127.0.0.1:8001/v1"
+# 'auto' is advertised by the current local proxy; its underlying model is not pinned.
+model = "auto"
+api_key_env = "SIGNALNEST_PROXY_API_KEY"
+timeout_seconds = 20.0
+max_attempts = 1
+max_completion_tokens = 1024
+token_limit_parameter = "max_tokens"
+# No known USD tariff: keep money unknown; enforce request/time/output limits.
+pricing_mode = "unpriced_proxy"

@@ -39,11 +39,13 @@ DEFAULT_CASES = ROOT / "docs/validation/query-cases.json"
 ID = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")]
 SOURCE_FILES = (
     "deploy/evaluate_queries.py",
+    "deploy/replay_query_snapshot.py",
     "src/signalnest/model_client.py",
     "src/signalnest/querying/agent.py",
     "src/signalnest/querying/tools.py",
     "src/signalnest/querying/contracts.py",
     "src/signalnest/querying/config.py",
+    "src/signalnest/querying/snapshots.py",
     "src/signalnest/querying/dates.py",
     "src/signalnest/querying/evidence.py",
     "src/signalnest/search.py",
@@ -251,15 +253,28 @@ def evaluate_cases(
     case_file=DEFAULT_CASES,
     *,
     model: ModelConfig | None = None,
-    max_total_cost_usd=Decimal("0.50"),
+    max_total_cost_usd=None,
+    max_total_requests=64,
     run_seconds=300.0,
     client=None,
 ):
     """Use real services with fixture instances; injected client is only for offline tests."""
+    priced = model is None or model.pricing_mode == "token_rates"
+    if max_total_cost_usd is None and priced:
+        max_total_cost_usd = Decimal("0.50")
+    if not priced and max_total_cost_usd is not None:
+        raise EvaluationError("query_evaluation_usd_budget_unavailable")
     if (
-        not isinstance(max_total_cost_usd, Decimal)
-        or not max_total_cost_usd.is_finite()
-        or not 0 < max_total_cost_usd <= 10
+        (
+            priced
+            and (
+                not isinstance(max_total_cost_usd, Decimal)
+                or not max_total_cost_usd.is_finite()
+                or not 0 < max_total_cost_usd <= 10
+            )
+        )
+        or type(max_total_requests) is not int
+        or not 1 <= max_total_requests <= 96
         or type(run_seconds) not in {int, float}
         or not 0 < run_seconds <= 600
     ):
@@ -267,7 +282,7 @@ def evaluate_cases(
     before = source_hashes()
     manifest, digest, bodies = _load_manifest(case_file)
     deadline = time.monotonic() + run_seconds
-    rows, cost, limited = [], Decimal(0), None
+    rows, cost, limited, requests = [], Decimal(0), None, 0
     with tempfile.TemporaryDirectory(prefix="signalnest-query-evaluation-") as temporary:
         directory = Path(temporary)
         instances, corpus, revisions = _import_corpus(manifest, bodies, directory)
@@ -289,21 +304,27 @@ def evaluate_cases(
             if remaining <= 0:
                 limited = "query_batch_time_budget"
                 break
-            if model is not None and cost >= max_total_cost_usd:
+            if model is not None and priced and cost >= max_total_cost_usd:
                 limited = "query_batch_cost_budget"
+                break
+            if model is not None and requests >= max_total_requests:
+                limited = "query_batch_request_budget"
                 break
             query_model = (
                 model.model_copy(
                     update={"max_cost_usd": min(model.max_cost_usd, max_total_cost_usd - cost)}
                 )
-                if model
-                else None
+                if model and priced
+                else model
             )
             settings = QuerySettings(
                 instances=tuple(instances),
                 profile=profile_file,
                 model=query_model,
-                limits=QueryLimits(run_seconds=min(90.0, remaining)),
+                limits=QueryLimits(
+                    run_seconds=min(90.0, remaining),
+                    max_requests=min(8, max_total_requests - requests) if model else 8,
+                ),
             )
             report = ask(
                 settings,
@@ -313,8 +334,10 @@ def evaluate_cases(
             )
             if source_hashes() != before:
                 raise EvaluationError("query_evaluation_source_changed")
-            cost += Decimal(report.model_usage["charged_estimate_usd"])
-            if cost > max_total_cost_usd:
+            requests += report.model_usage["http_requests"]
+            if priced:
+                cost += Decimal(report.model_usage["charged_estimate_usd"])
+            if priced and cost > max_total_cost_usd:
                 limited = "query_batch_cost_overrun_reported"
             candidates = list(
                 dict.fromkeys(
@@ -376,8 +399,10 @@ def evaluate_cases(
             "not_run_case_ids": [c.case_id for c in manifest.cases[len(rows) :]],
             "limit_reason": limited,
             "model_http_requests": sum(r["report"]["model_usage"]["http_requests"] for r in rows),
-            "charged_estimate_usd": str(cost),
-            "max_total_cost_usd": str(max_total_cost_usd),
+            "charged_estimate_usd": str(cost) if priced else None,
+            "max_total_cost_usd": str(max_total_cost_usd) if priced else None,
+            "max_total_requests": max_total_requests,
+            "pricing_mode": model.pricing_mode if model else None,
             "cost_is_invoice": False,
             "engineering_mismatch_cases": [
                 r["case_id"] for r in rows if r["engineering_mismatches"]
@@ -412,7 +437,8 @@ def main(argv=None):
     parser.add_argument(
         "--model-config", type=Path, help="explicitly enable configured OpenAI calls"
     )
-    parser.add_argument("--max-total-cost-usd", type=Decimal, default=Decimal("0.50"))
+    parser.add_argument("--max-total-cost-usd", type=Decimal, help="priced mode only; default 0.50")
+    parser.add_argument("--max-total-requests", type=int, default=64)
     parser.add_argument("--run-seconds", type=float, default=300.0)
     args = parser.parse_args(argv)
     if args.check and args.model_config:
@@ -429,6 +455,7 @@ def main(argv=None):
             args.cases,
             model=model,
             max_total_cost_usd=args.max_total_cost_usd,
+            max_total_requests=args.max_total_requests,
             run_seconds=args.run_seconds,
         )
         with args.output.open("x", encoding="utf-8") as stream:

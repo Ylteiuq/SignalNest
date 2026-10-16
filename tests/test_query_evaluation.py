@@ -124,10 +124,11 @@ def test_bundle_never_turns_engineering_expectations_into_human_labels(bundle):
     assert item["input"]["query_limits"]["max_model_calls"] == 6
 
 
-def test_old_v1_query_snapshot_and_review_remain_frozen(replay):
+@pytest.mark.parametrize("old_version", ["campus-query-v1", "campus-query-v2", "campus-query-v3"])
+def test_old_query_snapshot_and_review_remain_frozen(replay, old_version):
     snapshot = copy.deepcopy(replay)
     for row in snapshot["results"]:
-        row["report"]["query_version"] = "campus-query-v1"
+        row["report"]["query_version"] = old_version
     before = copy.deepcopy(snapshot)
     bundle = prepare_review({}, query_snapshot=snapshot)
     pending = review_report(bundle, [])
@@ -290,6 +291,59 @@ def test_elapsed_batch_budget_does_not_invoke_a_model():
     assert result["summary"]["limit_reason"] == "query_batch_time_budget"
     assert result["summary"]["completed_cases"] == 0
     assert result["summary"]["model_http_requests"] == 0
+
+
+def test_unpriced_proxy_batch_has_an_aggregate_request_cap_and_unknown_money(monkeypatch):
+    monkeypatch.setenv("SIGNALNEST_TEST_QUERY_KEY", "fake-offline-key")
+    settings = ModelConfig(
+        provider="openai-compatible-chat-completions",
+        base_url="http://127.0.0.1:8001/v1",
+        model="auto",
+        api_key_env="SIGNALNEST_TEST_QUERY_KEY",
+        pricing_mode="unpriced_proxy",
+    )
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        payload = json.loads(request.content)
+        assert payload["tool_choice"] == "required" and len(payload["tools"]) == 1
+        if payload["tools"][0]["function"]["name"] == "read_notice":
+            initial = json.loads(payload["messages"][1]["content"])
+            hit = next(
+                item
+                for result in initial["initial_retrieval"]
+                for source in result["data"]["sources"]
+                for item in source.get("items", [])
+            )
+            return httpx.Response(
+                200,
+                json=completion(
+                    "read_notice",
+                    {"instance_id": hit["instance_id"], "document_id": hit["document_id"]},
+                    "one_read",
+                ),
+            )
+        return httpx.Response(200, json=completion("answer", {"notices": []}, "one_answer"))
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        result = evaluate_cases(model=settings, client=client, max_total_requests=2)
+    summary = result["summary"]
+    assert summary["model_http_requests"] == len(requests) == 2
+    assert summary["completed_cases"] == 1 and len(summary["not_run_case_ids"]) == 8
+    assert summary["limit_reason"] == "query_batch_request_budget"
+    assert summary["charged_estimate_usd"] is summary["max_total_cost_usd"] is None
+    assert summary["database_bytes_unchanged"] is True
+    assert all(r["report"]["model_usage"]["price_source"] == "unknown" for r in result["results"])
+    assert len(prepare_review({}, query_snapshot=result)["items"]) == 1
+    with pytest.raises(EvaluationError, match="query_evaluation_usd_budget_unavailable"):
+        evaluate_cases(model=settings, max_total_cost_usd=Decimal("0.05"))
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, 97, 1.5])
+def test_batch_request_budget_validation(limit):
+    with pytest.raises(EvaluationError, match="query_evaluation_budget_invalid"):
+        evaluate_cases(max_total_requests=limit)
 
 
 def test_database_mutation_is_detected_instead_of_exported_as_read_only(monkeypatch):

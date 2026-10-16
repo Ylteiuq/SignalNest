@@ -17,6 +17,14 @@ from signalnest.querying.contracts import InstanceID
 class InstanceConfig(Contract):
     id: InstanceID
     config: Path
+    snapshot_manifest: Path | None = None
+
+    @field_validator("snapshot_manifest", mode="before")
+    @classmethod
+    def nonempty_manifest_path(cls, value):
+        if value is not None and (not str(value).strip() or "\x00" in str(value)):
+            raise ValueError("snapshot_manifest must be a nonempty filesystem path")
+        return value
 
 
 class QueryLimits(Contract):
@@ -80,7 +88,15 @@ def load_query_config(path: Path) -> QuerySettings:
         update={
             "instances": tuple(
                 item.model_copy(
-                    update={"config": (path.parent / item.config.expanduser()).resolve()}
+                    update={
+                        "config": (path.parent / item.config.expanduser()).resolve(),
+                        # Preserve the lexical path so runtime validation can reject symlinks.
+                        "snapshot_manifest": (
+                            path.parent / item.snapshot_manifest.expanduser()
+                        ).absolute()
+                        if item.snapshot_manifest is not None
+                        else None,
+                    }
                 )
                 for item in settings.instances
             ),

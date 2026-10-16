@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "human_gold": false,
-  "note": "真实 UC/CS 归档上的有限查询回放。问题、时钟和最低候选检查均为工程设计，不是人工 gold；完整语料和回答交给独立人工核对。历史时钟不证明当时真实开放。",
+  "note": "真实 UC/CS 归档上的有限查询回放。画像为合成测试输入；profile_id=self 仅遵守单用户契约，不表示真实个人配置。问题、时钟和最低候选检查均为工程设计，不是人工 gold；完整语料和回答交给独立人工核对。历史时钟不证明当时真实开放。",
   "profile": {
     "schema_version": 1,
-    "profile_id": "synthetic-undergraduate",
+    "profile_id": "self",
     "study_level": "undergraduate",
     "role": "student",
     "interest_topics": [

@@ -94,8 +94,9 @@ class QueryReport(Contract):
     notices: tuple[dict, ...]
     search_results: tuple[dict, ...]
     source_status: tuple[dict, ...]
+    retrieval_scope: tuple[dict, ...] = ()
     warnings: tuple[str, ...]
     error_code: str | None = None
     tool_trace: tuple[ToolTrace, ...]
     model_usage: dict
-    query_version: str = "campus-query-v2"
+    query_version: str = "campus-query-v4"

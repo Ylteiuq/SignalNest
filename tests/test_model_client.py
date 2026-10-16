@@ -11,9 +11,125 @@ from signalnest.model_client import (
     ENDPOINT,
     MAX_RESPONSE_BYTES,
     ModelBudget,
+    ModelConfig,
     ModelError,
     OpenAIChatClient,
 )
+
+
+def proxy_settings(**overrides):
+    return ModelConfig(
+        **dict(
+            provider="openai-compatible-chat-completions",
+            base_url="http://127.0.0.1:8001/v1",
+            model="auto",
+            pricing_mode="unpriced_proxy",
+            token_limit_parameter="max_tokens",
+        )
+        | overrides
+    )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://127.0.0.1:8001/v1",
+        "http://[::1]:8001/v1/",
+        "https://compatible.example/v1",
+    ],
+)
+def test_explicit_compatible_endpoint(url):
+    settings = proxy_settings(base_url=url)
+    assert settings.endpoint() == url.rstrip("/") + "/chat/completions"
+    assert settings.max_cost_usd is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://localhost:8001/v1",
+        "http://192.0.2.1:8001/v1",
+        "http://127.0.0.1:0/v1",
+        "http://127.0.0.1:8001/other",
+        "http://127.0.0.1:8001/v1?key=not-a-secret",
+        "http://127.0.0.1:8001/v1#fragment",
+        "http://user:password@127.0.0.1:8001/v1",
+    ],
+)
+def test_compatible_endpoint_rejects_unsafe_forms(url):
+    with pytest.raises(ValueError):
+        proxy_settings(base_url=url)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"input_usd_per_million": "1"},
+        {"output_usd_per_million": "4"},
+        {"max_cost_usd": "0.05"},
+        {"provider": "openai-chat-completions", "base_url": None},
+        {"base_url": None},
+    ],
+)
+def test_unpriced_configuration_never_claims_usd_limits(change):
+    with pytest.raises(ValueError):
+        proxy_settings(**change)
+
+
+def test_priced_official_configuration_remains_required_and_fixed():
+    with pytest.raises(ValueError):
+        ModelConfig(model="chosen")
+    with pytest.raises(ValueError):
+        model_settings(base_url="https://compatible.example/v1")
+    with pytest.raises(ValueError):
+        model_settings(token_limit_parameter="max_tokens")
+
+
+def test_unpriced_proxy_sends_selected_token_parameter_and_reports_unknown_money():
+    ledger = budget()
+
+    def handler(request):
+        assert str(request.url) == "http://127.0.0.1:8001/v1/chat/completions"
+        payload = json.loads(request.content)
+        assert payload["max_tokens"] == 1800 and "max_completion_tokens" not in payload
+        assert payload["model"] == "auto" and payload["store"] is False
+        return httpx.Response(200, json=completion("read_profile", {}))
+
+    execute(handler, settings=proxy_settings(), ledger=ledger)
+    assert ledger.snapshot()["charged_estimate_usd"] is None
+    assert ledger.requests == 1 and ledger.uncertain_requests == 0
+    assert ledger.prompt_tokens == ledger.completion_tokens == 100
+
+
+def test_unpriced_proxy_retry_consumes_the_request_budget():
+    requests = []
+    ledger = budget(max_requests=1)
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(503)
+
+    with pytest.raises(ModelError, match="model_request_budget"):
+        execute(handler, settings=proxy_settings(), ledger=ledger)
+    assert len(requests) == ledger.requests == ledger.uncertain_requests == 1
+    assert ledger.snapshot()["charged_estimate_usd"] is None
+
+
+@pytest.mark.parametrize("usage", [None, {"prompt_tokens": 10, "completion_tokens": 1801}])
+def test_unpriced_usage_missing_or_over_limit_is_not_free_success(usage):
+    ledger = budget()
+
+    def handler(request):
+        return httpx.Response(200, json=completion("read_profile", {}, usage=usage))
+
+    if usage is None:
+        execute(handler, settings=proxy_settings(), ledger=ledger)
+        assert ledger.uncertain_requests == 1
+    else:
+        with pytest.raises(ModelError, match="model_usage_out_of_bounds"):
+            execute(handler, settings=proxy_settings(), ledger=ledger)
+        assert ledger.completion_tokens == 1801
+    assert ledger.snapshot()["charged_estimate_usd"] is None
 
 
 @pytest.fixture(autouse=True)
@@ -61,6 +177,87 @@ def test_actual_headers_payload_usage_and_resource_closure():
         "reported_prompt_tokens": 100,
         "reported_completion_tokens": 100,
     }
+
+
+@pytest.mark.parametrize("settings", [model_settings(), proxy_settings()])
+def test_forced_tool_wire_format_and_single_result(settings):
+    ledger = budget()
+    response_seen = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        compatible = settings.provider == "openai-compatible-chat-completions"
+        assert payload["tool_choice"] == (
+            "required" if compatible else {"type": "function", "function": {"name": "answer"}}
+        )
+        assert [tool["function"]["name"] for tool in payload["tools"]] == (
+            ["answer"] if compatible else ["answer", "search"]
+        )
+        assert payload["parallel_tool_calls"] is False
+        response = httpx.Response(200, json=completion("answer", {"notices": []}))
+        response_seen.append(response)
+        return response
+
+    tools = [
+        {"type": "function", "function": {"name": name, "parameters": {}}}
+        for name in ("answer", "search")
+    ]
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        provider = OpenAIChatClient(settings, client=client)
+        turn = provider.complete([], tools, ledger, required_tool="answer")
+    assert len(turn.calls) == 1 and turn.calls[0].name == "answer"
+    assert ledger.calls == ledger.requests == 1
+    assert all(response.is_closed for response in response_seen)
+
+
+@pytest.mark.parametrize("required", ["not_provided", "answer-with-invalid-name", 1, ""])
+def test_invalid_required_tool_never_spends_model_or_http_budget(required):
+    ledger = budget()
+
+    def forbidden(request):
+        raise AssertionError("invalid requested tool must not send HTTP")
+
+    tools = [{"type": "function", "function": {"name": "answer", "parameters": {}}}]
+    with httpx.Client(transport=httpx.MockTransport(forbidden)) as client:
+        provider = OpenAIChatClient(model_settings(), client=client)
+        with pytest.raises(ModelError, match="^model_required_tool_invalid$"):
+            provider.complete([], tools, ledger, required_tool=required)
+    assert ledger.calls == ledger.requests == 0
+
+
+@pytest.mark.parametrize("kind", ["different_tool", "two_answers", "answer_and_other", "text"])
+@pytest.mark.parametrize("settings", [model_settings(), proxy_settings()])
+def test_ignored_named_tool_is_finite_failure_without_retry_or_returning_replacement(
+    kind, settings
+):
+    seen = []
+    ledger = budget()
+
+    def handler(request):
+        if kind == "different_tool":
+            data = completion("search", {"query": "private body must not become a diagnostic"})
+        elif kind == "text":
+            data = {"choices": [{"finish_reason": "stop", "message": {"content": "private body"}}]}
+        else:
+            data = completion("answer", {"notices": []})
+            extra = completion("answer" if kind == "two_answers" else "search", {}, "second_call")[
+                "choices"
+            ][0]["message"]["tool_calls"][0]
+            data["choices"][0]["message"]["tool_calls"].append(extra)
+        response = httpx.Response(200, json=data)
+        seen.append(response)
+        return response
+
+    tools = [
+        {"type": "function", "function": {"name": name, "parameters": {}}}
+        for name in ("answer", "search")
+    ]
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        provider = OpenAIChatClient(settings, client=client)
+        with pytest.raises(ModelError, match="^model_required_tool_ignored$"):
+            provider.complete([], tools, ledger, required_tool="answer")
+    assert ledger.calls == ledger.requests == 1
+    assert all(response.is_closed for response in seen)
 
 
 @pytest.mark.parametrize(

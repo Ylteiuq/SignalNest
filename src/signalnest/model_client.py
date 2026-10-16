@@ -10,9 +10,9 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 import httpx
-from pydantic import Field, StringConstraints
+from pydantic import Field, StringConstraints, model_validator
 
-from signalnest.contracts import Contract
+from signalnest.contracts import Contract, WebUrl
 
 ENDPOINT = "https://api.openai.com/v1/chat/completions"
 MAX_RESPONSE_BYTES = 256 * 1024
@@ -25,7 +25,10 @@ class ModelError(RuntimeError):
 
 
 class ModelConfig(Contract):
-    provider: Literal["openai-chat-completions"] = "openai-chat-completions"
+    provider: Literal["openai-chat-completions", "openai-compatible-chat-completions"] = (
+        "openai-chat-completions"
+    )
+    base_url: WebUrl | None = None
     model: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$")]
     api_key_env: Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,99}$")] = (
         "OPENAI_API_KEY"
@@ -33,10 +36,54 @@ class ModelConfig(Contract):
     timeout_seconds: float = Field(default=20.0, strict=True, gt=0, le=60, allow_inf_nan=False)
     max_attempts: int = Field(default=2, strict=True, ge=1, le=2)
     max_completion_tokens: int = Field(default=1800, strict=True, ge=128, le=8192)
+    token_limit_parameter: Literal["max_completion_tokens", "max_tokens"] = "max_completion_tokens"
+    pricing_mode: Literal["token_rates", "unpriced_proxy"] = "token_rates"
     # Operator-provided USD rates, never a claim about current provider prices.
-    input_usd_per_million: Decimal = Field(gt=0, le=1000, max_digits=12, decimal_places=6)
-    output_usd_per_million: Decimal = Field(gt=0, le=1000, max_digits=12, decimal_places=6)
-    max_cost_usd: Decimal = Field(default=Decimal("0.10"), gt=0, le=10)
+    input_usd_per_million: Decimal | None = Field(
+        default=None, gt=0, le=1000, max_digits=12, decimal_places=6
+    )
+    output_usd_per_million: Decimal | None = Field(
+        default=None, gt=0, le=1000, max_digits=12, decimal_places=6
+    )
+    max_cost_usd: Decimal | None = Field(default=Decimal("0.10"), gt=0, le=10)
+
+    @model_validator(mode="before")
+    @classmethod
+    def unpriced_defaults(cls, data):
+        if isinstance(data, dict) and data.get("pricing_mode") == "unpriced_proxy":
+            return {"max_cost_usd": None, **data}
+        return data
+
+    @model_validator(mode="after")
+    def connection_and_prices(self):
+        if self.provider == "openai-chat-completions":
+            if self.base_url is not None or self.token_limit_parameter != "max_completion_tokens":
+                raise ValueError("official provider uses its fixed endpoint and token parameter")
+            if self.pricing_mode != "token_rates":
+                raise ValueError("official provider requires token rates")
+        elif self.base_url is None:
+            raise ValueError("compatible provider requires an explicit base_url")
+        else:
+            url = self.base_url
+            if (
+                url.query is not None
+                or url.fragment is not None
+                or url.path not in {"/v1", "/v1/"}
+                or url.port == 0
+                or (url.scheme == "http" and url.host not in {"127.0.0.1", "[::1]"})
+            ):
+                raise ValueError("base_url requires HTTPS or literal loopback HTTP, at /v1")
+        rates = (self.input_usd_per_million, self.output_usd_per_million, self.max_cost_usd)
+        if self.pricing_mode == "token_rates" and any(rate is None for rate in rates):
+            raise ValueError("token rates and a USD budget are required")
+        if self.pricing_mode == "unpriced_proxy" and any(rate is not None for rate in rates):
+            raise ValueError("unpriced proxy must not claim token rates or a USD budget")
+        return self
+
+    def endpoint(self) -> str:
+        if self.provider == "openai-chat-completions":
+            return ENDPOINT
+        return str(self.base_url).rstrip("/") + "/chat/completions"
 
 
 class ModelBudget:
@@ -60,6 +107,7 @@ class ModelBudget:
         self.calls = 0
         self.requests = 0
         self.charged_usd = Decimal(0)
+        self.cost_known = True
         self.uncertain_requests = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
@@ -74,7 +122,7 @@ class ModelBudget:
         return {
             "model_calls": self.calls,
             "http_requests": self.requests,
-            "charged_estimate_usd": str(self.charged_usd),
+            "charged_estimate_usd": str(self.charged_usd) if self.cost_known else None,
             "uncertain_requests": self.uncertain_requests,
             "reported_prompt_tokens": self.prompt_tokens,
             "reported_completion_tokens": self.completion_tokens,
@@ -107,7 +155,9 @@ class ModelTurn:
         }
 
 
-def _price(settings: ModelConfig, prompt: int, completion: int) -> Decimal:
+def _price(settings: ModelConfig, prompt: int, completion: int) -> Decimal | None:
+    if settings.pricing_mode == "unpriced_proxy":
+        return None
     return (
         prompt * settings.input_usd_per_million + completion * settings.output_usd_per_million
     ) / Decimal(1_000_000)
@@ -184,19 +234,60 @@ class OpenAIChatClient:
         if self._owned:
             self._client.close()
 
-    def complete(self, messages: list[dict], tools: list[dict], budget: ModelBudget) -> ModelTurn:
+    def complete(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        budget: ModelBudget,
+        *,
+        required_tool: str | None = None,
+    ) -> ModelTurn:
+        """Optionally require one known function, then verify the provider complied."""
+        if required_tool is not None and (
+            not isinstance(required_tool, str)
+            or not re.fullmatch(r"[A-Za-z_]{1,60}", required_tool)
+            or not any(
+                isinstance(tool, dict)
+                and tool.get("type") == "function"
+                and isinstance(tool.get("function"), dict)
+                and tool["function"].get("name") == required_tool
+                for tool in tools
+            )
+        ):
+            raise ModelError("model_required_tool_invalid")
         budget.remaining()
         if budget.calls >= budget.max_calls:
             raise ModelError("model_call_budget")
         budget.calls += 1
+        # Some compatible gateways reject the named-function object. A single
+        # offered function with `required` has the same bounded intent; validate
+        # exactly one matching call below rather than trusting the gateway.
+        compatible_forced = (
+            required_tool is not None
+            and self.settings.provider == "openai-compatible-chat-completions"
+        )
+        offered_tools = (
+            [
+                tool
+                for tool in tools
+                if isinstance(tool, dict)
+                and tool.get("type") == "function"
+                and isinstance(tool.get("function"), dict)
+                and tool["function"].get("name") == required_tool
+            ]
+            if compatible_forced
+            else tools
+        )
         payload = json.dumps(
             {
                 "model": self.settings.model,
                 "messages": messages,
-                "tools": tools,
-                "tool_choice": "required",
+                "tools": offered_tools,
+                "tool_choice": {"type": "function", "function": {"name": required_tool}}
+                if required_tool is not None and not compatible_forced
+                else "required",
                 "parallel_tool_calls": False,
-                "max_completion_tokens": self.settings.max_completion_tokens,
+                self.settings.token_limit_parameter: self.settings.max_completion_tokens,
                 "store": False,
                 "stream": False,
                 "n": 1,
@@ -208,21 +299,24 @@ class OpenAIChatClient:
         # an application estimate, not a mathematical bound on provider billing.
         prompt_estimate = len(payload) + 4096
         reserve = _price(self.settings, prompt_estimate, self.settings.max_completion_tokens)
+        if reserve is None:
+            budget.cost_known = False
         for attempt in range(self.settings.max_attempts):
             remaining = budget.remaining()
             if budget.requests >= budget.max_requests:
                 raise ModelError("model_request_budget")
-            if budget.charged_usd + reserve > self.settings.max_cost_usd:
+            if reserve is not None and budget.charged_usd + reserve > self.settings.max_cost_usd:
                 raise ModelError("model_cost_budget")
             budget.requests += 1
-            budget.charged_usd += reserve
+            if reserve is not None:
+                budget.charged_usd += reserve
             budget.uncertain_requests += 1
             wait = 0.5 * (attempt + 1)
             try:
                 timeout = min(remaining, self.settings.timeout_seconds)
                 with self._client.stream(
                     "POST",
-                    ENDPOINT,
+                    self.settings.endpoint(),
                     content=payload,
                     headers=self._headers,
                     timeout=httpx.Timeout(timeout),
@@ -252,7 +346,17 @@ class OpenAIChatClient:
                         except (ValueError, UnicodeDecodeError, RecursionError) as exc:
                             raise ModelError("model_invalid_response") from exc
                         self._settle(data, budget, reserve, prompt_estimate)
-                        return _parse_turn(data)
+                        try:
+                            turn = _parse_turn(data)
+                        except ModelError as exc:
+                            if required_tool is not None and exc.code == "model_no_answer_tool":
+                                raise ModelError("model_required_tool_ignored") from exc
+                            raise
+                        if required_tool is not None and (
+                            len(turn.calls) != 1 or turn.calls[0].name != required_tool
+                        ):
+                            raise ModelError("model_required_tool_ignored")
+                        return turn
                     code = {
                         401: "model_authentication_failed",
                         403: "model_access_denied",
@@ -300,9 +404,16 @@ class OpenAIChatClient:
         if prompt > prompt_estimate or output > self.settings.max_completion_tokens:
             # Unexpected usage invalidates the estimate. Stop immediately, preserving
             # the larger reported cost instead of hiding it behind the configured cap.
-            budget.charged_usd += max(Decimal(0), _price(self.settings, prompt, output) - reserve)
+            if reserve is not None:
+                budget.charged_usd += max(
+                    Decimal(0), _price(self.settings, prompt, output) - reserve
+                )
+            else:
+                budget.prompt_tokens += prompt
+                budget.completion_tokens += output
             raise ModelError("model_usage_out_of_bounds")
-        budget.charged_usd += _price(self.settings, prompt, output) - reserve
+        if reserve is not None:
+            budget.charged_usd += _price(self.settings, prompt, output) - reserve
         budget.uncertain_requests -= 1
         budget.prompt_tokens += prompt
         budget.completion_tokens += output

@@ -387,7 +387,9 @@ def test_full_model_loop_refines_reads_and_answers_from_real_data(campus, monkey
                     "read_notice", {"instance_id": "cs", "document_id": identifier}, "r"
                 ),
             )
-        body = json.loads(payload["messages"][-1]["content"])["data"]
+        body = json.loads(
+            next(m["content"] for m in reversed(payload["messages"]) if m["role"] == "tool")
+        )["data"]
         return httpx.Response(200, json=completion("answer", {"notices": [selection(body)]}, "a"))
 
     before = digests(campus)
@@ -402,6 +404,78 @@ def test_full_model_loop_refines_reads_and_answers_from_real_data(campus, monkey
     assert "条件原文：未知" in text and "截止原文：未知" in text
     assert "official_eligibility_not_verified" in text
     assert "test-secret" not in report.model_dump_json()
+
+
+def test_rule_mismatch_exposes_original_scope_without_claiming_personal_eligibility(
+    campus, monkeypatch
+):
+    teacher_sentence = "面向全校教师共征集了1100余个在研科研项目选题"
+    student_sentence = "项目负责人必须为本科生"
+    body_text = f"{teacher_sentence}。{student_sentence}。请本科生报名科研训练项目。"
+    imported = import_text_notice(campus, body_text)
+    monkeypatch.setenv("OPENAI_API_KEY", "offline-placeholder")
+    settings = campus.settings.model_copy(
+        update={
+            "model": model_settings(),
+            "limits": QueryLimits(max_model_calls=2, max_requests=2),
+        }
+    )
+    responses = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        if not responses:
+            responses.append("read")
+            return httpx.Response(
+                200,
+                json=completion(
+                    "read_notice", {"instance_id": "uc", "document_id": imported.document_id}
+                ),
+            )
+        notice = json.loads(
+            next(m["content"] for m in reversed(payload["messages"]) if m["role"] == "tool")
+        )["data"]
+        responses.append(notice)
+        assert notice["facts"]["eligibility"] == "ineligible"
+        return httpx.Response(
+            200,
+            json=completion(
+                "answer",
+                {
+                    "notices": [
+                        selection(
+                            notice,
+                            conditions=[{"field": "body_text", "text": student_sentence}],
+                        )
+                    ]
+                },
+                "answer",
+            ),
+        )
+
+    before = digests(campus)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        report = ask(settings, Question(text="科研训练", at=AT), client=client)
+    assert report.status == "answered" and report.error_code is None
+    result = report.notices[0]
+    assert result["official_eligibility_verified"] is False
+    # Preserve the current rules' actual result while disclosing its evidence;
+    # this test deliberately does not claim that the faculty interpretation is right.
+    assert result["rule_eligibility"] == "ineligible"
+    mismatches = result["rule_mismatch_evidence"]
+    assert 1 <= len(mismatches) <= 4
+    level = next(item for item in mismatches if item["field"] == "study_level")
+    evidence = level["evidence"]
+    assert evidence["field"] == "body_text"
+    assert teacher_sentence in evidence["excerpt"]
+    assert body_text[evidence["start"] : evidence["end"]] == evidence["excerpt"]
+    assert all(set(item) == {"field", "evidence"} for item in mismatches)
+    assert all("actual" not in item for item in mismatches)
+    text = render_report(report)
+    assert "本人资格：未知（尚未核对完整申请主体与条件）" in text
+    assert f"规则不匹配依据（study_level）：{evidence['excerpt']}" in text
+    assert "请核对该句是否针对申请人" in text and student_sentence in text
+    assert digests(campus) == before
 
 
 def test_model_failure_after_tool_read_returns_actual_candidates(campus, monkeypatch):
@@ -456,7 +530,9 @@ def test_call_tool_and_character_budgets_are_real_limits(campus, monkeypatch, to
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         report = ask(settings, QUESTION, client=client)
-    assert report.error_code == "model_call_budget" and len(requests) == 2
+    # v3 reserves the two remaining calls for read+answer; a provider ignoring
+    # required read_notice is rejected before any arbitrary tool executes.
+    assert report.error_code == "model_required_tool_ignored" and len(requests) == 1
     assert report.search_results
 
 
@@ -600,7 +676,7 @@ def test_real_research_notice_answers_conditions_and_deadline_with_publication_f
             client=client,
         )
     assert report.status == "answered"
-    assert report.query_version == "campus-query-v2"
+    assert report.query_version == "campus-query-v4"
     result = report.notices[0]
     assert result["published_date"] == "2026-09-07"
     assert result["extracted_deadline_at"] == "2026-09-28T23:59:00+08:00"
@@ -863,7 +939,7 @@ def test_model_opening_quote_is_reported_as_unknown_in_the_real_loop(
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         report = ask(settings, Question(text="科研训练报名截止时间", at=AT), client=client)
     assert report.status == "answered" and report.model_usage["http_requests"] == 2
-    assert report.query_version == "campus-query-v2"
+    assert report.query_version == "campus-query-v4"
     assert report.notices[0]["deadline_evidence_status"] == "unknown"
     assert "截止原文：未知；时间原文待核对：报名开始时间为2026年9月1日" in render_report(report)
     assert digests(campus) == before
@@ -929,18 +1005,28 @@ def test_unknown_citations_never_become_successful_final_answer(campus, monkeypa
     settings = campus.settings.model_copy(
         update={
             "model": model_settings(),
-            "limits": QueryLimits(max_model_calls=1),
+            "limits": QueryLimits(max_model_calls=2),
         }
     )
     invented = {"reference": "uc:999:v1", "relevance": [{"field": "title", "text": "虚构科研机会"}]}
-    with httpx.Client(
-        transport=httpx.MockTransport(
-            lambda request: httpx.Response(200, json=completion("answer", {"notices": [invented]}))
-        )
-    ) as client:
+
+    def handler(request):
+        payload = json.loads(request.content)
+        if payload["tool_choice"]["function"]["name"] == "read_notice":
+            return httpx.Response(
+                200,
+                json=completion(
+                    "read_notice",
+                    {"instance_id": "uc", "document_id": campus.uc.document_id},
+                    "read-valid",
+                ),
+            )
+        return httpx.Response(200, json=completion("answer", {"notices": [invented]}, "invented"))
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         report = ask(settings, Question(text="选课", at=AT), client=client)
     assert report.status == "fallback" and report.notices == ()
-    assert report.search_results and report.error_code == "model_call_budget"
+    assert report.search_results and report.error_code == "citation_not_read"
     assert report.tool_trace[-1].error_code == "citation_not_read"
 
 

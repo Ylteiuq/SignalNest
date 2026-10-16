@@ -22,6 +22,7 @@ from signalnest.querying.contracts import (
 )
 from signalnest.querying.dates import publication_window
 from signalnest.querying.evidence import DeadlineEvidence
+from signalnest.querying.snapshots import validate_snapshot
 from signalnest.search import SearchError, SearchQuery, get_notice, search_notices
 from signalnest.status import inspect_status
 from signalnest.storage import StorageError, open_initialized_engine
@@ -70,9 +71,11 @@ class QueryTools:
         self.trace: list[ToolTrace] = []
         self.chars = 0
         self.search_results: dict[tuple, dict] = {}
+        self.retrieval_scope: list[dict] = []
         self.statuses: dict[str, dict] = {}
         self.retrieval_errors: set[str] = set()
         self._engines = {}
+        self._provenance: dict[str, dict] = {}
         self._snapshots: dict[tuple, dict] = {}
         self._visible: dict[str, list[tuple[str, str]]] = {}
         self._finished = False
@@ -85,10 +88,30 @@ class QueryTools:
         if instance_id not in self.instances:
             raise QueryError("unknown_instance")
         if instance_id not in self._engines:
+            self._origin(instance_id)
             self._engines[instance_id] = open_initialized_engine(
                 self.instances[instance_id].storage.database, read_only=True
             )
         return self._engines[instance_id]
+
+    def _origin(self, instance_id):
+        if instance_id not in self._provenance:
+            config = next(item for item in self.settings.instances if item.id == instance_id)
+            if config.snapshot_manifest is None:
+                self._provenance[instance_id] = {"kind": "configured_database"}
+            else:
+                snapshot = validate_snapshot(
+                    config.snapshot_manifest,
+                    self.instances[instance_id].storage.database,
+                    instance_id,
+                    self.instances[instance_id].source.id,
+                )
+                self._provenance[instance_id] = {
+                    "kind": "frozen_snapshot",
+                    **snapshot.model_dump(mode="json"),
+                    "live_database": False,
+                }
+        return self._provenance[instance_id]
 
     def call(self, name: str, arguments: str) -> dict:
         """Expected failures become finite tool results; programming defects propagate."""
@@ -182,7 +205,17 @@ class QueryTools:
                     self._engine(identifier),
                     query.model_copy(update={"source_id": self.instances[identifier].source.id}),
                 )
-            except (StorageError, SearchError) as exc:
+            except (StorageError, SearchError, QueryError) as exc:
+                self.retrieval_scope.append(
+                    {
+                        "instance_id": identifier,
+                        "query": args.query,
+                        "offset": args.offset,
+                        "error_code": "storage_unavailable"
+                        if isinstance(exc, StorageError)
+                        else exc.code,
+                    }
+                )
                 self.retrieval_errors.add(
                     "storage_unavailable" if isinstance(exc, StorageError) else exc.code
                 )
@@ -195,6 +228,15 @@ class QueryTools:
                     }
                 )
                 continue
+            self.retrieval_scope.append(
+                {
+                    "instance_id": identifier,
+                    "query": args.query,
+                    "offset": page.offset,
+                    "total": page.total,
+                    "returned": len(page.items),
+                }
+            )
             items = []
             for hit in page.items:
                 item = {"instance_id": identifier, **hit.model_dump(mode="json")}
@@ -220,6 +262,7 @@ class QueryTools:
         for identifier, settings in self.instances.items():
             self.budget.remaining()
             try:
+                origin = self._origin(identifier)
                 status = inspect_status(settings, at=int(self.question.at.timestamp()))
                 item = {
                     "instance_id": identifier,
@@ -231,9 +274,15 @@ class QueryTools:
                     "rechecks": status.rechecks.model_dump(),
                     "unadapted_references": status.unadapted_references,
                     "diagnostic_codes": [d.code for d in status.diagnostics],
+                    "data_origin": origin,
                 }
-            except StorageError:
-                item = {"instance_id": identifier, "error_code": "storage_unavailable"}
+            except (StorageError, QueryError) as exc:
+                item = {
+                    "instance_id": identifier,
+                    "error_code": "storage_unavailable"
+                    if isinstance(exc, StorageError)
+                    else exc.code,
+                }
             self.statuses[identifier] = item
             result.append(item)
         return result
@@ -395,7 +444,16 @@ class QueryTools:
                     "content_sha256": detail.content_sha256,
                     "processing_status": detail.status,
                     "last_error_code": detail.last_error_code,
+                    "official_eligibility_verified": False,
                     "rule_eligibility": preview.eligibility if preview else "unknown",
+                    "rule_mismatch_evidence": [
+                        {
+                            "field": result.constraint.field,
+                            "evidence": result.constraint.evidence.model_dump(mode="json"),
+                        }
+                        for result in (preview.constraint_results if preview else ())
+                        if result.result == "mismatch"
+                    ][:4],
                     "rule_category": facts.category,
                     "rule_time_status": preview.time_status if preview else "unknown",
                     "parser_version": detail.parser_version,
